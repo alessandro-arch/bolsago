@@ -10,7 +10,8 @@ import {
   HelpCircle,
   ChevronLeft,
   Menu,
-  Receipt
+  Receipt,
+  UserCircle
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/" },
   { name: "Bolsistas", icon: Users, href: "#" },
+  { name: "Perfil Bolsista", icon: UserCircle, href: "/perfil-bolsista" },
   { name: "Bolsas", icon: GraduationCap, href: "#" },
   { name: "Pagamentos", icon: DollarSign, href: "#" },
   { name: "Meus Pagamentos", icon: Receipt, href: "/pagamentos-relatorios" },

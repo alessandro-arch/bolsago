@@ -22,7 +22,7 @@ const navigation = [
   { name: "Bolsas", icon: GraduationCap, href: "#" },
   { name: "Pagamentos", icon: DollarSign, href: "#" },
   { name: "Meus Pagamentos", icon: Receipt, href: "/pagamentos-relatorios" },
-  { name: "Documentos", icon: FileText, href: "#" },
+  { name: "Documentos", icon: FileText, href: "/documentos" },
   { name: "Calendário", icon: Calendar, href: "#" },
 ];
 

@@ -9,18 +9,21 @@ import {
   Bell,
   HelpCircle,
   ChevronLeft,
-  Menu
+  Menu,
+  Receipt
 } from "lucide-react";
 import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: "Dashboard", icon: LayoutDashboard, href: "#", current: true },
-  { name: "Bolsistas", icon: Users, href: "#", current: false },
-  { name: "Bolsas", icon: GraduationCap, href: "#", current: false },
-  { name: "Pagamentos", icon: DollarSign, href: "#", current: false },
-  { name: "Documentos", icon: FileText, href: "#", current: false },
-  { name: "Calendário", icon: Calendar, href: "#", current: false },
+  { name: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { name: "Bolsistas", icon: Users, href: "#" },
+  { name: "Bolsas", icon: GraduationCap, href: "#" },
+  { name: "Pagamentos", icon: DollarSign, href: "#" },
+  { name: "Meus Pagamentos", icon: Receipt, href: "/pagamentos-relatorios" },
+  { name: "Documentos", icon: FileText, href: "#" },
+  { name: "Calendário", icon: Calendar, href: "#" },
 ];
 
 const secondaryNavigation = [
@@ -31,6 +34,7 @@ const secondaryNavigation = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
 
   return (
     <aside 
@@ -63,21 +67,42 @@ export function Sidebar() {
 
       {/* Main Navigation */}
       <nav className="flex-1 p-3 space-y-1">
-        {navigation.map((item) => (
-          <a
-            key={item.name}
-            href={item.href}
-            className={cn(
-              "nav-item",
-              item.current && "active",
-              collapsed && "justify-center px-2"
-            )}
-            title={collapsed ? item.name : undefined}
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && <span>{item.name}</span>}
-          </a>
-        ))}
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          const isLink = item.href !== "#";
+          
+          const linkClasses = cn(
+            "nav-item",
+            isActive && "active",
+            collapsed && "justify-center px-2"
+          );
+          
+          if (isLink) {
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={linkClasses}
+                title={collapsed ? item.name : undefined}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span>{item.name}</span>}
+              </Link>
+            );
+          }
+          
+          return (
+            <a
+              key={item.name}
+              href={item.href}
+              className={linkClasses}
+              title={collapsed ? item.name : undefined}
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span>{item.name}</span>}
+            </a>
+          );
+        })}
       </nav>
 
       {/* Secondary Navigation */}

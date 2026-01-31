@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { ManagerGreeting } from "@/components/dashboard/ManagerGreeting";
 import { KPICards } from "@/components/dashboard/KPICards";
+import { WorkflowBanner } from "@/components/dashboard/WorkflowBanner";
 import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
 
 const daySummary = {
@@ -27,6 +28,11 @@ const Index = () => {
           {/* KPI Cards */}
           <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
             <KPICards />
+          </div>
+
+          {/* Workflow Banner */}
+          <div className="animate-fade-in" style={{ animationDelay: "150ms" }}>
+            <WorkflowBanner />
           </div>
 
           {/* Scholars Table */}

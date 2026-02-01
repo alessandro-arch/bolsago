@@ -13,6 +13,7 @@ import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
 import Import from "./pages/Import";
+import AuditTrail from "./pages/AuditTrail";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -49,6 +50,13 @@ const App = () => (
             <Route path="/projetos-tematicos" element={
               <RoleProtectedRoute requireManagerAccess>
                 <ThematicProjects />
+              </RoleProtectedRoute>
+            } />
+            
+            {/* Admin-only routes */}
+            <Route path="/trilha-auditoria" element={
+              <RoleProtectedRoute allowedRoles={["admin"]}>
+                <AuditTrail />
               </RoleProtectedRoute>
             } />
             

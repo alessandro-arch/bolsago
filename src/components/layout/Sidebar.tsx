@@ -13,7 +13,8 @@ import {
   Receipt,
   UserCircle,
   Upload,
-  FolderOpen
+  FolderOpen,
+  ShieldAlert
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -26,6 +27,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   href: string;
   managerOnly?: boolean;
+  adminOnly?: boolean;
   scholarOnly?: boolean;
 }
 
@@ -34,6 +36,7 @@ const navigation: NavItem[] = [
   { name: "Painel Gestor", icon: Users, href: "/painel-gestor", managerOnly: true },
   { name: "Projetos Temáticos", icon: FolderOpen, href: "/projetos-tematicos", managerOnly: true },
   { name: "Importar Dados", icon: Upload, href: "/importar", managerOnly: true },
+  { name: "Trilha de Auditoria", icon: ShieldAlert, href: "/trilha-auditoria", adminOnly: true },
   { name: "Meu Perfil", icon: UserCircle, href: "/perfil-bolsista" },
   { name: "Meus Pagamentos", icon: Receipt, href: "/pagamentos-relatorios" },
   { name: "Documentos", icon: FileText, href: "/documentos" },
@@ -48,10 +51,11 @@ const secondaryNavigation = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const { hasManagerAccess, loading } = useUserRole();
+  const { hasManagerAccess, isAdmin, loading } = useUserRole();
 
   const filteredNavigation = navigation.filter(item => {
     if (item.managerOnly && !hasManagerAccess) return false;
+    if (item.adminOnly && !isAdmin) return false;
     if (item.scholarOnly && hasManagerAccess) return false;
     return true;
   });

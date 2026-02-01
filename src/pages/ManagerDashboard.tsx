@@ -1,10 +1,11 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { ManagerGreeting } from "@/components/dashboard/ManagerGreeting";
-import { KPICards } from "@/components/dashboard/KPICards";
+import { ConsolidatedKPICards } from "@/components/dashboard/ConsolidatedKPICards";
 import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
+import { BatchActionsPanel } from "@/components/dashboard/BatchActionsPanel";
 import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
-import { QuickActions } from "@/components/dashboard/QuickActions";
+import { AuditExportSection } from "@/components/dashboard/AuditExportSection";
 import { PaymentsSummary } from "@/components/dashboard/PaymentsSummary";
 
 const ManagerDashboard = () => {
@@ -21,9 +22,9 @@ const ManagerDashboard = () => {
             <ManagerGreeting />
           </div>
 
-          {/* KPI Cards */}
+          {/* Consolidated KPI Cards with Drilldown */}
           <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-            <KPICards />
+            <ConsolidatedKPICards />
           </div>
 
           {/* Alerts Banner */}
@@ -31,18 +32,23 @@ const ManagerDashboard = () => {
             <AlertsBanner />
           </div>
 
-          {/* Quick Actions */}
+          {/* Batch Actions Panel - Priority Queue */}
           <div className="animate-fade-in" style={{ animationDelay: "175ms" }}>
-            <QuickActions />
+            <BatchActionsPanel />
           </div>
 
-          {/* Scholars Table */}
+          {/* Audit & Export Section */}
           <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+            <AuditExportSection />
+          </div>
+
+          {/* Scholars Table with Advanced Filters */}
+          <div className="animate-fade-in" style={{ animationDelay: "225ms" }}>
             <ScholarsTableFiltered />
           </div>
 
           {/* Payments Summary */}
-          <div className="animate-fade-in" style={{ animationDelay: "225ms" }}>
+          <div className="animate-fade-in" style={{ animationDelay: "250ms" }}>
             <PaymentsSummary />
           </div>
         </main>

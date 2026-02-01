@@ -9,12 +9,15 @@ import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFilte
 import { AuditExportSection } from "@/components/dashboard/AuditExportSection";
 import { PaymentsSummary } from "@/components/dashboard/PaymentsSummary";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
+import { AdminBanner } from "@/components/admin/AdminBanner";
+
 const ManagerDashboard = () => {
   return (
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar />
       
       <div className="flex-1 flex flex-col">
+        <AdminBanner />
         <Header />
         
         <main className="flex-1 p-6 overflow-auto">

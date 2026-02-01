@@ -266,44 +266,41 @@ export type Database = {
         Row: {
           code: string
           created_at: string
-          description: string | null
           end_date: string
           id: string
-          modalities: Database["public"]["Enums"]["grant_modality"][] | null
-          proponent_cpf: string | null
-          proponent_email: string | null
+          modalidade_bolsa: string | null
+          orientador: string | null
           proponent_name: string
           start_date: string
           title: string
           updated_at: string
+          valor_mensal: number
         }
         Insert: {
           code: string
           created_at?: string
-          description?: string | null
           end_date: string
           id?: string
-          modalities?: Database["public"]["Enums"]["grant_modality"][] | null
-          proponent_cpf?: string | null
-          proponent_email?: string | null
+          modalidade_bolsa?: string | null
+          orientador?: string | null
           proponent_name: string
           start_date: string
           title: string
           updated_at?: string
+          valor_mensal: number
         }
         Update: {
           code?: string
           created_at?: string
-          description?: string | null
           end_date?: string
           id?: string
-          modalities?: Database["public"]["Enums"]["grant_modality"][] | null
-          proponent_cpf?: string | null
-          proponent_email?: string | null
+          modalidade_bolsa?: string | null
+          orientador?: string | null
           proponent_name?: string
           start_date?: string
           title?: string
           updated_at?: string
+          valor_mensal?: number
         }
         Relationships: []
       }

@@ -55,6 +55,11 @@ export function useSpreadsheetParser() {
           errors.push('Data de início deve ser anterior à data de término');
         }
       }
+
+      const valorMensal = row.valor_mensal;
+      if (valorMensal !== undefined && (isNaN(Number(valorMensal)) || Number(valorMensal) <= 0)) {
+        errors.push('Valor mensal deve ser um número positivo');
+      }
     }
 
     if (importType === 'enrollments') {

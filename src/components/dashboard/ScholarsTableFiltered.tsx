@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckSquare, Square } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckSquare, Square, UserX, Loader2, X, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,54 +16,39 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
+import { BulkRemovalDialog } from "./BulkRemovalDialog";
+import { getModalityLabel } from "@/lib/modality-labels";
+import type { Database } from "@/integrations/supabase/types";
 
-type ReportStatus = "pending" | "submitted" | "approved" | "rejected";
-type PaymentStatus = "released" | "blocked" | "processing" | "paid";
+type EnrollmentStatus = Database["public"]["Enums"]["enrollment_status"];
+type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 
-interface Scholar {
-  id: string;
-  name: string;
-  project: string;
-  scholarshipType: string;
-  currentMonth: string;
-  reportStatus: ReportStatus;
-  paymentStatus: PaymentStatus;
-  projectProgress: number;
+interface ScholarData {
+  userId: string;
+  fullName: string | null;
+  email: string | null;
+  cpf: string | null;
+  isActive: boolean;
+  projectTitle: string | null;
+  projectCode: string | null;
+  modality: string | null;
+  enrollmentStatus: EnrollmentStatus | null;
+  enrollmentId: string | null;
+  pendingReports: number;
+  pendingPayments: number;
 }
 
-// Empty array - data will be loaded from backend or imported via spreadsheet
-const initialScholars: Scholar[] = [];
-
-const projects = ["Todos", "IA Aplicada à Saúde", "Robótica Educacional", "Sustentabilidade Urbana", "Direito Digital"];
-const scholarshipTypes = ["Todos", "Iniciação Científica", "Extensão", "Monitoria", "Pesquisa", "Assistência Estudantil"];
-const reportStatuses = ["Todos", "Pendente", "Enviado", "Aprovado", "Rejeitado"];
-const paymentStatuses = ["Todos", "Liberado", "Bloqueado", "Processando", "Pago"];
-
-const reportStatusConfig: Record<ReportStatus, { label: string; className: string }> = {
-  pending: { label: "Pendente", className: "bg-warning/10 text-warning" },
-  submitted: { label: "Enviado", className: "bg-info/10 text-info" },
-  approved: { label: "Aprovado", className: "bg-success/10 text-success" },
-  rejected: { label: "Rejeitado", className: "bg-destructive/10 text-destructive" },
-};
-
-const paymentStatusConfig: Record<PaymentStatus, { label: string; className: string }> = {
-  released: { label: "Liberado", className: "bg-success/10 text-success" },
-  blocked: { label: "Bloqueado", className: "bg-destructive/10 text-destructive" },
-  processing: { label: "Processando", className: "bg-info/10 text-info" },
-  paid: { label: "Pago", className: "bg-primary/10 text-primary" },
+const enrollmentStatusConfig: Record<EnrollmentStatus, { label: string; className: string }> = {
+  active: { label: "Ativo", className: "bg-success/10 text-success" },
+  suspended: { label: "Suspenso", className: "bg-warning/10 text-warning" },
+  completed: { label: "Concluído", className: "bg-info/10 text-info" },
+  cancelled: { label: "Cancelado", className: "bg-destructive/10 text-destructive" },
 };
 
 function StatusBadge({ status, config }: { status: string; config: { label: string; className: string } }) {
@@ -75,117 +60,257 @@ function StatusBadge({ status, config }: { status: string; config: { label: stri
   );
 }
 
-function ProgressBar({ value }: { value: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-        <div 
-          className={cn(
-            "h-full rounded-full transition-all",
-            value >= 75 ? "bg-success" : value >= 50 ? "bg-info" : value >= 25 ? "bg-warning" : "bg-destructive"
-          )}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-      <span className="text-xs font-medium text-muted-foreground w-9">{value}%</span>
-    </div>
-  );
-}
-
 export function ScholarsTableFiltered() {
-  const [scholars, setScholars] = useState<Scholar[]>(initialScholars);
+  const { hasManagerAccess, isAdmin } = useUserRole();
+  const [scholars, setScholars] = useState<ScholarData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [projectFilter, setProjectFilter] = useState("Todos");
-  const [typeFilter, setTypeFilter] = useState("Todos");
-  const [reportFilter, setReportFilter] = useState("Todos");
-  const [paymentFilter, setPaymentFilter] = useState("Todos");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [modalityFilter, setModalityFilter] = useState("Todos");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [scholarToDelete, setScholarToDelete] = useState<Scholar | null>(null);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+
+  const fetchScholars = async () => {
+    setLoading(true);
+    try {
+      // Fetch profiles that are scholars (have role = scholar)
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "scholar");
+
+      if (rolesError) throw rolesError;
+
+      const scholarUserIds = rolesData?.map(r => r.user_id) || [];
+      
+      if (scholarUserIds.length === 0) {
+        setScholars([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch profiles for scholars
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, cpf, is_active")
+        .in("user_id", scholarUserIds);
+
+      if (profilesError) throw profilesError;
+
+      // Fetch enrollments with project info
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from("enrollments")
+        .select(`
+          id,
+          user_id,
+          status,
+          modality,
+          project_id,
+          projects (
+            title,
+            code
+          )
+        `)
+        .in("user_id", scholarUserIds);
+
+      if (enrollmentsError) throw enrollmentsError;
+
+      // Fetch pending reports count
+      const { data: reports, error: reportsError } = await supabase
+        .from("reports")
+        .select("user_id, status")
+        .in("user_id", scholarUserIds)
+        .eq("status", "under_review");
+
+      if (reportsError) throw reportsError;
+
+      // Fetch pending payments count
+      const { data: payments, error: paymentsError } = await supabase
+        .from("payments")
+        .select("user_id, status")
+        .in("user_id", scholarUserIds)
+        .eq("status", "pending");
+
+      if (paymentsError) throw paymentsError;
+
+      // Build lookup maps
+      const pendingReportsMap = new Map<string, number>();
+      reports?.forEach(r => {
+        pendingReportsMap.set(r.user_id, (pendingReportsMap.get(r.user_id) || 0) + 1);
+      });
+
+      const pendingPaymentsMap = new Map<string, number>();
+      payments?.forEach(p => {
+        pendingPaymentsMap.set(p.user_id, (pendingPaymentsMap.get(p.user_id) || 0) + 1);
+      });
+
+      // Map enrollments by user_id (get most recent or active one)
+      const enrollmentMap = new Map<string, typeof enrollments[0]>();
+      enrollments?.forEach(e => {
+        const existing = enrollmentMap.get(e.user_id);
+        if (!existing || e.status === "active") {
+          enrollmentMap.set(e.user_id, e);
+        }
+      });
+
+      // Build scholar data
+      const scholarData: ScholarData[] = (profiles || []).map(profile => {
+        const enrollment = enrollmentMap.get(profile.user_id);
+        const project = enrollment?.projects as { title: string; code: string } | null;
+        
+        return {
+          userId: profile.user_id,
+          fullName: profile.full_name,
+          email: profile.email,
+          cpf: profile.cpf,
+          isActive: profile.is_active,
+          projectTitle: project?.title || null,
+          projectCode: project?.code || null,
+          modality: enrollment?.modality || null,
+          enrollmentStatus: enrollment?.status || null,
+          enrollmentId: enrollment?.id || null,
+          pendingReports: pendingReportsMap.get(profile.user_id) || 0,
+          pendingPayments: pendingPaymentsMap.get(profile.user_id) || 0,
+        };
+      });
+
+      setScholars(scholarData);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Error fetching scholars:", error);
+      toast.error("Erro ao carregar bolsistas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchScholars();
+  }, []);
 
   const filteredScholars = useMemo(() => {
     return scholars.filter((scholar) => {
-      const matchesSearch = scholar.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesProject = projectFilter === "Todos" || scholar.project === projectFilter;
-      const matchesType = typeFilter === "Todos" || scholar.scholarshipType === typeFilter;
-      const matchesReport = reportFilter === "Todos" || reportStatusConfig[scholar.reportStatus].label === reportFilter;
-      const matchesPayment = paymentFilter === "Todos" || paymentStatusConfig[scholar.paymentStatus].label === paymentFilter;
+      const matchesSearch = 
+        !searchTerm ||
+        scholar.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        scholar.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        scholar.cpf?.includes(searchTerm);
       
-      return matchesSearch && matchesProject && matchesType && matchesReport && matchesPayment;
+      const matchesStatus = 
+        statusFilter === "Todos" ||
+        (statusFilter === "Ativo" && scholar.enrollmentStatus === "active") ||
+        (statusFilter === "Suspenso" && scholar.enrollmentStatus === "suspended") ||
+        (statusFilter === "Concluído" && scholar.enrollmentStatus === "completed") ||
+        (statusFilter === "Cancelado" && scholar.enrollmentStatus === "cancelled") ||
+        (statusFilter === "Sem Vínculo" && !scholar.enrollmentStatus) ||
+        (statusFilter === "Desativado" && !scholar.isActive);
+      
+      const matchesModality = 
+        modalityFilter === "Todos" ||
+        scholar.modality === modalityFilter;
+      
+      return matchesSearch && matchesStatus && matchesModality;
     });
-  }, [scholars, searchTerm, projectFilter, typeFilter, reportFilter, paymentFilter]);
+  }, [scholars, searchTerm, statusFilter, modalityFilter]);
 
   const clearFilters = () => {
     setSearchTerm("");
-    setProjectFilter("Todos");
-    setTypeFilter("Todos");
-    setReportFilter("Todos");
-    setPaymentFilter("Todos");
+    setStatusFilter("Todos");
+    setModalityFilter("Todos");
   };
 
-  const hasActiveFilters = searchTerm || projectFilter !== "Todos" || typeFilter !== "Todos" || reportFilter !== "Todos" || paymentFilter !== "Todos";
+  const hasActiveFilters = searchTerm || statusFilter !== "Todos" || modalityFilter !== "Todos";
 
   // Selection logic
-  const allFilteredSelected = filteredScholars.length > 0 && filteredScholars.every(s => selectedIds.has(s.id));
-  const someFilteredSelected = filteredScholars.some(s => selectedIds.has(s.id));
+  const allFilteredSelected = filteredScholars.length > 0 && filteredScholars.every(s => selectedIds.has(s.userId));
+  const someFilteredSelected = filteredScholars.some(s => selectedIds.has(s.userId));
 
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
-      // Deselect all filtered
       const newSelected = new Set(selectedIds);
-      filteredScholars.forEach(s => newSelected.delete(s.id));
+      filteredScholars.forEach(s => newSelected.delete(s.userId));
       setSelectedIds(newSelected);
     } else {
-      // Select all filtered
       const newSelected = new Set(selectedIds);
-      filteredScholars.forEach(s => newSelected.add(s.id));
+      filteredScholars.forEach(s => newSelected.add(s.userId));
       setSelectedIds(newSelected);
     }
   };
 
-  const toggleSelectOne = (id: string) => {
+  const toggleSelectOne = (userId: string) => {
     const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
     } else {
-      newSelected.add(id);
+      newSelected.add(userId);
     }
     setSelectedIds(newSelected);
   };
 
-  // Delete logic
-  const handleDeleteSingle = (scholar: Scholar) => {
-    setScholarToDelete(scholar);
-    setDeleteDialogOpen(true);
+  const handleBulkRemove = () => {
+    setBulkDialogOpen(true);
   };
 
-  const handleDeleteSelected = () => {
-    setScholarToDelete(null);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (scholarToDelete) {
-      // Delete single
-      setScholars(prev => prev.filter(s => s.id !== scholarToDelete.id));
-      setSelectedIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(scholarToDelete.id);
-        return newSet;
+  const handleBulkDeactivate = async () => {
+    const userIds = Array.from(selectedIds);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "deactivate", userIds },
       });
-      toast.success(`Bolsista "${scholarToDelete.name}" removido com sucesso.`);
-    } else {
-      // Delete selected
-      const count = selectedIds.size;
-      setScholars(prev => prev.filter(s => !selectedIds.has(s.id)));
+
+      if (error) {
+        const refCode = `ERR-${Date.now().toString(36).toUpperCase()}`;
+        console.error("[BULK_DEACTIVATE_ERROR]", { error, refCode });
+        toast.error("Erro ao desativar usuários", {
+          description: `${error.message}. Código: ${refCode}`,
+          duration: 10000,
+        });
+        return;
+      }
+
+      if (data?.results) {
+        const successCount = data.results.success?.length || 0;
+        const failedCount = data.results.failed?.length || 0;
+        
+        if (successCount > 0) {
+          toast.success(`${successCount} usuário(s) desativado(s)`);
+        }
+        if (failedCount > 0) {
+          toast.warning(`${failedCount} usuário(s) não puderam ser desativados`);
+        }
+      }
+
       setSelectedIds(new Set());
-      toast.success(`${count} bolsista(s) removido(s) com sucesso.`);
+      fetchScholars();
+    } catch (error: any) {
+      const refCode = `ERR-${Date.now().toString(36).toUpperCase()}`;
+      console.error("[BULK_DEACTIVATE_ERROR]", { error, refCode });
+      toast.error("Erro inesperado", {
+        description: `Código: ${refCode}`,
+        duration: 10000,
+      });
     }
-    setDeleteDialogOpen(false);
-    setScholarToDelete(null);
+  };
+
+  const cancelSelection = () => {
+    setSelectedIds(new Set());
   };
 
   const selectedCount = selectedIds.size;
+  const getInitials = (name: string | null) => {
+    if (!name) return "??";
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  // Get unique modalities from scholars
+  const modalities = useMemo(() => {
+    const modalitySet = new Set(scholars.map(s => s.modality).filter(Boolean));
+    return Array.from(modalitySet) as string[];
+  }, [scholars]);
+
+  if (!hasManagerAccess) {
+    return null;
+  }
 
   return (
     <div className="card-institutional overflow-hidden p-0">
@@ -204,26 +329,21 @@ export function ScholarsTableFiltered() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {selectedCount > 0 && (
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                className="gap-2"
-                onClick={handleDeleteSelected}
-              >
-                <Trash2 className="w-4 h-4" />
-                Excluir ({selectedCount})
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchScholars}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              Atualizar
+            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 Limpar filtros
               </Button>
             )}
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="w-4 h-4" />
-              Exportar
-            </Button>
           </div>
         </div>
 
@@ -232,200 +352,266 @@ export function ScholarsTableFiltered() {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome..."
+              placeholder="Buscar por nome, email ou CPF..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
           
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="Todos">Todos</SelectItem>
+              <SelectItem value="Ativo">Ativo</SelectItem>
+              <SelectItem value="Suspenso">Suspenso</SelectItem>
+              <SelectItem value="Concluído">Concluído</SelectItem>
+              <SelectItem value="Cancelado">Cancelado</SelectItem>
+              <SelectItem value="Sem Vínculo">Sem Vínculo</SelectItem>
+              <SelectItem value="Desativado">Desativado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={modalityFilter} onValueChange={setModalityFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Projeto" />
+              <SelectValue placeholder="Modalidade" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
-              {projects.map((project) => (
-                <SelectItem key={project} value={project}>{project}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tipo de bolsa" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              {scholarshipTypes.map((type) => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={reportFilter} onValueChange={setReportFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Status relatório" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              {reportStatuses.map((status) => (
-                <SelectItem key={status} value={status}>{status}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Status pagamento" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              {paymentStatuses.map((status) => (
-                <SelectItem key={status} value={status}>{status}</SelectItem>
+              <SelectItem value="Todos">Todas Modalidades</SelectItem>
+              {modalities.map((modality) => (
+                <SelectItem key={modality} value={modality}>
+                  {getModalityLabel(modality)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedCount > 0 && (
+        <div className="px-5 py-3 bg-primary/5 border-b border-primary/20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="gap-1">
+              {selectedCount} selecionado(s)
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Ações em massa:
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkRemove}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Remover
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkDeactivate}
+              className="gap-2 border-warning text-warning hover:bg-warning/10"
+            >
+              <UserX className="w-4 h-4" />
+              Desativar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cancelSelection}
+              className="gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="table-institutional">
-          <thead>
-            <tr>
-              <th className="w-12">
-                <button
-                  onClick={toggleSelectAll}
-                  className="p-1 rounded hover:bg-muted transition-colors"
-                  title={allFilteredSelected ? "Desmarcar todos" : "Selecionar todos"}
-                >
-                  {allFilteredSelected ? (
-                    <CheckSquare className="w-5 h-5 text-primary" />
-                  ) : someFilteredSelected ? (
-                    <div className="w-5 h-5 border-2 border-primary rounded flex items-center justify-center">
-                      <div className="w-2.5 h-0.5 bg-primary" />
-                    </div>
-                  ) : (
-                    <Square className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </button>
-              </th>
-              <th>Nome</th>
-              <th>Projeto</th>
-              <th>Tipo de Bolsa</th>
-              <th>Mês Atual</th>
-              <th>Status Relatório</th>
-              <th>Status Pagamento</th>
-              <th>Avanço do Projeto</th>
-              <th className="w-12">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredScholars.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Carregando bolsistas...</span>
+          </div>
+        ) : (
+          <table className="table-institutional">
+            <thead>
               <tr>
-                <td colSpan={9} className="text-center py-8 text-muted-foreground">
-                  Nenhum bolsista encontrado com os filtros selecionados.
-                </td>
-              </tr>
-            ) : (
-              filteredScholars.map((scholar) => {
-                const isSelected = selectedIds.has(scholar.id);
-                return (
-                  <tr 
-                    key={scholar.id}
-                    className={cn(isSelected && "bg-primary/5")}
+                <th className="w-12">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="p-1 rounded hover:bg-muted transition-colors"
+                    title={allFilteredSelected ? "Desmarcar todos" : "Selecionar todos"}
                   >
-                    <td>
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelectOne(scholar.id)}
-                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-medium text-primary">
-                            {scholar.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
-                          </span>
-                        </div>
-                        <span className="font-medium text-foreground">{scholar.name}</span>
+                    {allFilteredSelected ? (
+                      <CheckSquare className="w-5 h-5 text-primary" />
+                    ) : someFilteredSelected ? (
+                      <div className="w-5 h-5 border-2 border-primary rounded flex items-center justify-center">
+                        <div className="w-2.5 h-0.5 bg-primary" />
                       </div>
-                    </td>
-                    <td className="text-muted-foreground">{scholar.project}</td>
-                    <td className="text-muted-foreground">{scholar.scholarshipType}</td>
-                    <td className="text-muted-foreground">{scholar.currentMonth}</td>
-                    <td>
-                      <StatusBadge status={scholar.reportStatus} config={reportStatusConfig[scholar.reportStatus]} />
-                    </td>
-                    <td>
-                      <StatusBadge status={scholar.paymentStatus} config={paymentStatusConfig[scholar.paymentStatus]} />
-                    </td>
-                    <td className="min-w-[140px]">
-                      <ProgressBar value={scholar.projectProgress} />
-                    </td>
-                    <td>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="p-1.5 rounded hover:bg-muted transition-colors">
-                            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-popover">
-                          <DropdownMenuItem className="gap-2">
-                            <Eye className="w-4 h-4" />
-                            Ver detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
-                            <Edit className="w-4 h-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="gap-2 text-destructive focus:text-destructive"
-                            onClick={() => handleDeleteSingle(scholar)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                    ) : (
+                      <Square className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                </th>
+                <th>Bolsista</th>
+                <th>Projeto</th>
+                <th>Modalidade</th>
+                <th>Status</th>
+                <th>Pendências</th>
+                <th className="w-12">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredScholars.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-muted-foreground">
+                    {scholars.length === 0 
+                      ? "Nenhum bolsista cadastrado. Importe bolsistas via planilha."
+                      : "Nenhum bolsista encontrado com os filtros selecionados."
+                    }
+                  </td>
+                </tr>
+              ) : (
+                filteredScholars.map((scholar) => {
+                  const isSelected = selectedIds.has(scholar.userId);
+                  return (
+                    <tr 
+                      key={scholar.userId}
+                      className={cn(
+                        isSelected && "bg-primary/5",
+                        !scholar.isActive && "opacity-60"
+                      )}
+                    >
+                      <td>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelectOne(scholar.userId)}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-medium text-primary">
+                              {getInitials(scholar.fullName)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-foreground block">
+                              {scholar.fullName || "Sem nome"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {scholar.email}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="text-muted-foreground">
+                        {scholar.projectTitle ? (
+                          <div>
+                            <span className="block">{scholar.projectTitle}</span>
+                            {scholar.projectCode && (
+                              <span className="text-xs opacity-70">{scholar.projectCode}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="italic">Sem projeto</span>
+                        )}
+                      </td>
+                      <td className="text-muted-foreground">
+                        {scholar.modality ? getModalityLabel(scholar.modality) : "—"}
+                      </td>
+                      <td>
+                        {!scholar.isActive ? (
+                          <Badge variant="destructive" className="gap-1">
+                            <UserX className="w-3 h-3" />
+                            Desativado
+                          </Badge>
+                        ) : scholar.enrollmentStatus ? (
+                          <StatusBadge 
+                            status={scholar.enrollmentStatus} 
+                            config={enrollmentStatusConfig[scholar.enrollmentStatus]} 
+                          />
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            Sem Vínculo
+                          </Badge>
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          {scholar.pendingReports > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {scholar.pendingReports} relatório(s)
+                            </Badge>
+                          )}
+                          {scholar.pendingPayments > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {scholar.pendingPayments} pagamento(s)
+                            </Badge>
+                          )}
+                          {scholar.pendingReports === 0 && scholar.pendingPayments === 0 && (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1.5 rounded hover:bg-muted transition-colors">
+                              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover">
+                            <DropdownMenuItem className="gap-2">
+                              <Eye className="w-4 h-4" />
+                              Ver perfil
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2">
+                              <Edit className="w-4 h-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="gap-2 text-destructive focus:text-destructive"
+                              onClick={() => {
+                                setSelectedIds(new Set([scholar.userId]));
+                                setBulkDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Remover
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              {scholarToDelete ? (
-                <>
-                  Tem certeza que deseja excluir o bolsista <strong>{scholarToDelete.name}</strong>?
-                  Esta ação não pode ser desfeita.
-                </>
-              ) : (
-                <>
-                  Tem certeza que deseja excluir <strong>{selectedCount} bolsista(s)</strong> selecionado(s)?
-                  Esta ação não pode ser desfeita.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Bulk Removal Dialog */}
+      <BulkRemovalDialog
+        open={bulkDialogOpen}
+        onOpenChange={setBulkDialogOpen}
+        selectedUserIds={Array.from(selectedIds)}
+        onComplete={() => {
+          setSelectedIds(new Set());
+          fetchScholars();
+        }}
+      />
     </div>
   );
 }

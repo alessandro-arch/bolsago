@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { GraduationCap, Mail, Lock, User, Loader2, AlertCircle, CheckCircle, CreditCard } from "lucide-react";
+import { GraduationCap, Mail, Lock, User, Loader2, AlertCircle, CheckCircle, CreditCard, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { validateCPF, formatCPF, unformatCPF } from "@/lib/cpf-validator";
 
@@ -36,6 +37,8 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
   
   // Login form state
@@ -130,6 +133,32 @@ export default function Auth() {
     setSignupCPF(formatted);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    
+    if (!resetEmail || !resetEmail.includes("@")) {
+      setError("Por favor, insira um email válido.");
+      return;
+    }
+    
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    setLoading(false);
+    
+    if (error) {
+      setError("Erro ao enviar email de recuperação. Tente novamente.");
+      return;
+    }
+    
+    setSuccess("Email de recuperação enviado! Verifique sua caixa de entrada.");
+    setShowForgotPassword(false);
+    setResetEmail("");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -153,6 +182,68 @@ export default function Auth() {
           </CardHeader>
           
           <CardContent>
+            {showForgotPassword ? (
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(false); setError(null); setSuccess(null); }}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar ao login
+                </button>
+                
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Recuperar senha</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Digite seu email para receber um link de recuperação de senha.
+                  </p>
+                </div>
+                
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                {success && (
+                  <Alert className="border-success/50 bg-success/10">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    <AlertDescription className="text-success">{success}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      "Enviar link de recuperação"
+                    )}
+                  </Button>
+                </form>
+              </div>
+            ) : (
             <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "login" | "signup"); setError(null); setSuccess(null); }}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -204,10 +295,20 @@ export default function Auth() {
                         className="pl-10"
                         required
                       />
+                      </div>
                     </div>
-                  </div>
-                  
-                  <Button type="submit" className="w-full" disabled={loading}>
+                    
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                      >
+                        Esqueceu sua senha?
+                      </button>
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -319,6 +420,7 @@ export default function Auth() {
                 </form>
               </TabsContent>
             </Tabs>
+            )}
           </CardContent>
         </Card>
 

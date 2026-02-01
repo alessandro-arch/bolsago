@@ -171,18 +171,41 @@ export function AssignScholarToProjectDialog({
         },
       });
 
+      // Handle function invocation error - try to extract message from error context
       if (fnError) {
         console.error('Function error:', fnError);
-        setError('Erro de comunicação com o servidor. Tente novamente.');
+        
+        // Try to parse error message from the error context
+        let errorMessage = 'Erro de comunicação com o servidor. Tente novamente.';
+        try {
+          // fnError.context may contain the response body
+          if (fnError.context && typeof fnError.context === 'object') {
+            const ctx = fnError.context as { error?: string; code?: string };
+            if (ctx.error) {
+              errorMessage = ctx.error;
+              // Set field error based on code
+              if (ctx.code === 'DUPLICATE_ENROLLMENT') {
+                setFieldError('scholar');
+              } else if (ctx.code === 'SCHOLAR_HAS_ACTIVE_ENROLLMENT') {
+                setFieldError('scholar');
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing fnError context:', e);
+        }
+        
+        setError(errorMessage);
         return;
       }
 
-      if (data.error) {
+      // Handle error in response data
+      if (data?.error) {
         console.error('Backend error:', data.error, data.code);
         setError(data.error);
         
         // Highlight specific field based on error code
-        if (data.code === 'MISSING_SCHOLAR_ID' || data.code === 'SCHOLAR_HAS_ACTIVE_ENROLLMENT') {
+        if (data.code === 'MISSING_SCHOLAR_ID' || data.code === 'SCHOLAR_HAS_ACTIVE_ENROLLMENT' || data.code === 'DUPLICATE_ENROLLMENT') {
           setFieldError('scholar');
         } else if (data.code === 'MISSING_START_DATE' || data.code === 'DATE_OUT_OF_PROJECT_RANGE') {
           setFieldError('startDate');
@@ -192,7 +215,7 @@ export function AssignScholarToProjectDialog({
         return;
       }
 
-      toast.success(data.message || `Bolsista ${data.scholar_name} vinculado com sucesso!`);
+      toast.success(data?.message || `Bolsista ${data?.scholar_name || selectedScholar?.full_name} vinculado com sucesso!`);
       onOpenChange(false);
       onSuccess();
     } catch (err) {

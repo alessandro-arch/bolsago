@@ -109,9 +109,9 @@ export function ScholarSummaryCards({ enrollment, stats, approvedReportsCount, l
     }).format(value);
   };
 
-  // Get modality label - prefer enrollment modality, fallback to project
-  const modalityCode = enrollment.modality;
-  const modalityLabel = getModalityLabel(modalityCode);
+  // Get modality from project (source of truth from manager)
+  const modalityFromProject = enrollment.project?.modalidade_bolsa;
+  const modalityLabel = modalityFromProject || getModalityLabel(enrollment.modality);
 
   // Build cards with real data
   const summaryCards: ScholarSummaryCard[] = [
@@ -125,7 +125,7 @@ export function ScholarSummaryCards({ enrollment, stats, approvedReportsCount, l
     {
       title: "Tipo de Bolsa",
       value: modalityLabel.length > 25 ? modalityLabel.substring(0, 22) + "..." : modalityLabel,
-      subtitle: modalityCode.toUpperCase(),
+      subtitle: enrollment.modality.toUpperCase(),
       icon: <GraduationCap className="w-5 h-5" />,
       iconBgClass: "bg-primary/10 text-primary",
     },

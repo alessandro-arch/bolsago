@@ -57,15 +57,24 @@ function formatCurrency(value: number): string {
 }
 
 export function ScholarStats({
-  totalForecast,
-  totalReceived,
-  totalInstallments,
-  paidInstallments,
-  reportsSent,
-  pendingReports,
-  grantValue,
+  totalForecast = 0,
+  totalReceived = 0,
+  totalInstallments = 0,
+  paidInstallments = 0,
+  reportsSent = 0,
+  pendingReports = 0,
+  grantValue = 0,
   loading = false,
 }: ScholarStatsProps) {
+  // Safe defaults for all numeric values
+  const safeTotalForecast = totalForecast ?? 0;
+  const safeTotalReceived = totalReceived ?? 0;
+  const safeTotalInstallments = totalInstallments ?? 0;
+  const safePaidInstallments = paidInstallments ?? 0;
+  const safeReportsSent = reportsSent ?? 0;
+  const safePendingReports = pendingReports ?? 0;
+  const safeGrantValue = grantValue ?? 0;
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -88,31 +97,31 @@ export function ScholarStats({
   const stats: ScholarStatCardProps[] = [
     {
       title: "Total Previsto",
-      value: totalForecast > 0 ? formatCurrency(totalForecast) : "—",
-      subtitle: totalInstallments > 0 
-        ? `${totalInstallments} parcelas de ${formatCurrency(grantValue)}`
+      value: safeTotalForecast > 0 ? formatCurrency(safeTotalForecast) : "—",
+      subtitle: safeTotalInstallments > 0 
+        ? `${safeTotalInstallments} parcelas de ${formatCurrency(safeGrantValue)}`
         : "Sem parcelas definidas",
       icon: TrendingUp,
       color: "primary",
     },
     {
       title: "Total Recebido",
-      value: totalReceived > 0 ? formatCurrency(totalReceived) : "R$ 0",
-      subtitle: `${paidInstallments} parcela${paidInstallments !== 1 ? 's' : ''} paga${paidInstallments !== 1 ? 's' : ''}`,
+      value: safeTotalReceived > 0 ? formatCurrency(safeTotalReceived) : "R$ 0",
+      subtitle: `${safePaidInstallments} parcela${safePaidInstallments !== 1 ? 's' : ''} paga${safePaidInstallments !== 1 ? 's' : ''}`,
       icon: DollarSign,
       color: "success",
     },
     {
       title: "Relatórios Enviados",
-      value: reportsSent.toString(),
-      subtitle: totalInstallments > 0 ? `de ${totalInstallments} meses` : "Sem período definido",
+      value: String(safeReportsSent),
+      subtitle: safeTotalInstallments > 0 ? `de ${safeTotalInstallments} meses` : "Sem período definido",
       icon: FileText,
       color: "info",
     },
     {
       title: "Pendentes de Envio",
-      value: pendingReports.toString(),
-      subtitle: pendingReports === 1 ? "mês atual" : pendingReports > 1 ? "meses pendentes" : "em dia",
+      value: String(safePendingReports),
+      subtitle: safePendingReports === 1 ? "mês atual" : safePendingReports > 1 ? "meses pendentes" : "em dia",
       icon: AlertCircle,
       color: "warning",
     },

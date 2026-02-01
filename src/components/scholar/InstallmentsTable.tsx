@@ -9,8 +9,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  Search
+  Search,
+  CalendarClock,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,8 +32,9 @@ import {
 import { cn } from "@/lib/utils";
 import { ReportVersionsDialog, type ReportVersion } from "./ReportVersionsDialog";
 
-type ReportStatus = "pending" | "submitted" | "under_review" | "approved" | "rejected";
-type PaymentStatus = "blocked" | "eligible" | "processing" | "paid";
+type ReportStatus = "pending" | "submitted" | "under_review" | "approved" | "rejected" | "future";
+type PaymentStatus = "blocked" | "eligible" | "processing" | "paid" | "future";
+type MonthStatus = "past" | "current" | "future";
 
 interface Installment {
   id: string;
@@ -45,7 +47,11 @@ interface Installment {
   feedback?: string;
   isFirstInstallment?: boolean;
   versions?: ReportVersion[];
+  monthStatus: MonthStatus;
 }
+
+// Current month simulation: October 2024 (month 10)
+const CURRENT_INSTALLMENT_NUMBER = 10;
 
 const installments: Installment[] = [
   { 
@@ -57,6 +63,7 @@ const installments: Installment[] = [
     paymentStatus: "paid", 
     paymentDate: "10/02/2024",
     isFirstInstallment: true,
+    monthStatus: "past",
     versions: [
       { id: "v1", version: 1, submittedAt: "05/01/2024", status: "approved" }
     ]
@@ -69,6 +76,7 @@ const installments: Installment[] = [
     reportStatus: "approved", 
     paymentStatus: "paid", 
     paymentDate: "08/03/2024",
+    monthStatus: "past",
     versions: [
       { id: "v1", version: 1, submittedAt: "08/02/2024", status: "approved" }
     ]
@@ -81,6 +89,7 @@ const installments: Installment[] = [
     reportStatus: "approved", 
     paymentStatus: "paid", 
     paymentDate: "10/04/2024",
+    monthStatus: "past",
     versions: [
       { id: "v1", version: 1, submittedAt: "09/03/2024", status: "approved" }
     ]
@@ -93,6 +102,7 @@ const installments: Installment[] = [
     reportStatus: "approved", 
     paymentStatus: "paid", 
     paymentDate: "09/05/2024",
+    monthStatus: "past",
     versions: [
       { id: "v1", version: 1, submittedAt: "10/04/2024", status: "approved" }
     ]
@@ -105,6 +115,7 @@ const installments: Installment[] = [
     reportStatus: "approved", 
     paymentStatus: "paid", 
     paymentDate: "10/06/2024",
+    monthStatus: "past",
     versions: [
       { id: "v1", version: 1, submittedAt: "10/05/2024", status: "approved" }
     ]
@@ -117,6 +128,7 @@ const installments: Installment[] = [
     reportStatus: "approved", 
     paymentStatus: "paid", 
     paymentDate: "08/07/2024",
+    monthStatus: "past",
     versions: [
       { id: "v1", version: 1, submittedAt: "09/06/2024", status: "approved" }
     ]
@@ -129,6 +141,7 @@ const installments: Installment[] = [
     reportStatus: "approved", 
     paymentStatus: "paid", 
     paymentDate: "09/08/2024",
+    monthStatus: "past",
     versions: [
       { id: "v2", version: 2, submittedAt: "08/07/2024", status: "approved" },
       { id: "v1", version: 1, submittedAt: "05/07/2024", status: "rejected", feedback: "Faltou descrição das atividades da segunda quinzena." }
@@ -139,10 +152,12 @@ const installments: Installment[] = [
     number: 8, 
     referenceMonth: "Agosto/2024", 
     value: 700, 
-    reportStatus: "under_review", 
-    paymentStatus: "blocked",
+    reportStatus: "approved", 
+    paymentStatus: "paid",
+    paymentDate: "10/09/2024",
+    monthStatus: "past",
     versions: [
-      { id: "v1", version: 1, submittedAt: "10/08/2024", status: "under_review" }
+      { id: "v1", version: 1, submittedAt: "10/08/2024", status: "approved" }
     ]
   },
   { 
@@ -153,6 +168,7 @@ const installments: Installment[] = [
     reportStatus: "rejected", 
     paymentStatus: "blocked", 
     feedback: "Relatório incompleto. Faltam informações sobre as atividades realizadas na segunda quinzena do mês.",
+    monthStatus: "past",
     versions: [
       { id: "v1", version: 1, submittedAt: "10/09/2024", status: "rejected", feedback: "Relatório incompleto. Faltam informações sobre as atividades realizadas na segunda quinzena do mês." }
     ]
@@ -162,27 +178,27 @@ const installments: Installment[] = [
     number: 10, 
     referenceMonth: "Outubro/2024", 
     value: 700, 
-    reportStatus: "submitted", 
+    reportStatus: "pending", 
     paymentStatus: "blocked",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "10/10/2024", status: "under_review" }
-    ]
+    monthStatus: "current"
   },
   { 
     id: "11", 
     number: 11, 
     referenceMonth: "Novembro/2024", 
     value: 700, 
-    reportStatus: "pending", 
-    paymentStatus: "blocked" 
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "12", 
     number: 12, 
     referenceMonth: "Dezembro/2024", 
     value: 700, 
-    reportStatus: "pending", 
-    paymentStatus: "blocked" 
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
 ];
 
@@ -192,13 +208,15 @@ const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clo
   under_review: { label: "Em Análise", icon: Search, className: "bg-primary/10 text-primary" },
   approved: { label: "Aprovado", icon: CheckCircle, className: "bg-success/10 text-success" },
   rejected: { label: "Devolvido", icon: XCircle, className: "bg-destructive/10 text-destructive" },
+  future: { label: "Aguardando", icon: CalendarClock, className: "bg-muted text-muted-foreground" },
 };
 
 const paymentStatusConfig: Record<PaymentStatus, { label: string; className: string }> = {
-  blocked: { label: "Bloqueado", className: "bg-muted text-muted-foreground" },
+  blocked: { label: "Bloqueado", className: "bg-destructive/10 text-destructive" },
   eligible: { label: "Apto", className: "bg-success/10 text-success" },
   processing: { label: "Processando", className: "bg-info/10 text-info" },
-  paid: { label: "Pago", className: "bg-primary/10 text-primary" },
+  paid: { label: "Pago", className: "bg-success/10 text-success" },
+  future: { label: "Futuro", className: "bg-muted text-muted-foreground" },
 };
 
 function formatCurrency(value: number) {
@@ -217,15 +235,45 @@ function StatusBadge({ status, config }: { status: string; config: { label: stri
   );
 }
 
+function MonthIndicator({ monthStatus }: { monthStatus: MonthStatus }) {
+  if (monthStatus === "current") {
+    return (
+      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-primary text-primary-foreground">
+        MÊS ATUAL
+      </span>
+    );
+  }
+  if (monthStatus === "future") {
+    return (
+      <span className="px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
+        FUTURO
+      </span>
+    );
+  }
+  return null;
+}
+
 function InstallmentActions({ installment }: { installment: Installment }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
 
-  const canSubmitReport = installment.reportStatus === "pending";
+  const isFuture = installment.monthStatus === "future";
+  const isCurrent = installment.monthStatus === "current";
+  const canSubmitReport = (isCurrent && installment.reportStatus === "pending");
   const canResubmit = installment.reportStatus === "rejected";
   const canViewFeedback = installment.reportStatus === "rejected" && installment.feedback;
   const canDownloadReceipt = installment.paymentStatus === "paid";
   const hasVersions = installment.versions && installment.versions.length > 0;
+
+  // Future months - no actions available
+  if (isFuture) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Lock className="w-4 h-4" />
+        <span className="text-xs">Aguardando período</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -279,7 +327,7 @@ function InstallmentActions({ installment }: { installment: Installment }) {
                 </DialogHeader>
                 <div className="mt-4 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                    <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-destructive mb-1">Relatório Devolvido</p>
                       <p className="text-sm text-foreground">{installment.feedback}</p>
@@ -308,6 +356,12 @@ function InstallmentActions({ installment }: { installment: Installment }) {
               </DropdownMenuItem>
             </>
           )}
+
+          {!hasVersions && !canViewFeedback && !canDownloadReceipt && (
+            <DropdownMenuItem disabled className="text-muted-foreground">
+              Nenhuma ação disponível
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -325,11 +379,37 @@ function InstallmentActions({ installment }: { installment: Installment }) {
 }
 
 export function InstallmentsTable() {
+  const paidCount = installments.filter(i => i.paymentStatus === "paid").length;
+  const blockedCount = installments.filter(i => i.paymentStatus === "blocked").length;
+  const pendingReportCount = installments.filter(i => i.reportStatus === "pending" || i.reportStatus === "rejected").length;
+
   return (
     <div className="card-institutional overflow-hidden p-0">
       <div className="p-5 border-b border-border">
-        <h3 className="text-lg font-semibold text-foreground">Histórico de Parcelas</h3>
-        <p className="text-sm text-muted-foreground">Acompanhe o status de cada parcela da sua bolsa</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Histórico de Parcelas</h3>
+            <p className="text-sm text-muted-foreground">Acompanhe o status de cada parcela da sua bolsa</p>
+          </div>
+          
+          {/* Summary badges */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 text-sm">
+              <span className="w-2 h-2 rounded-full bg-success" />
+              <span className="text-muted-foreground">{paidCount} pagas</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm">
+              <span className="w-2 h-2 rounded-full bg-destructive" />
+              <span className="text-muted-foreground">{blockedCount} bloqueadas</span>
+            </div>
+            {pendingReportCount > 0 && (
+              <div className="flex items-center gap-1.5 text-sm">
+                <span className="w-2 h-2 rounded-full bg-warning" />
+                <span className="text-warning font-medium">{pendingReportCount} relatório(s) pendente(s)</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -346,10 +426,21 @@ export function InstallmentsTable() {
           </thead>
           <tbody>
             {installments.map((installment) => (
-              <tr key={installment.id}>
+              <tr 
+                key={installment.id}
+                className={cn(
+                  installment.monthStatus === "current" && "bg-primary/5",
+                  installment.monthStatus === "future" && "opacity-60"
+                )}
+              >
                 <td>
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+                    <span className={cn(
+                      "inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium",
+                      installment.monthStatus === "current" 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted"
+                    )}>
                       {installment.number}
                     </span>
                     {installment.isFirstInstallment && (
@@ -359,7 +450,12 @@ export function InstallmentsTable() {
                     )}
                   </div>
                 </td>
-                <td className="font-medium text-foreground">{installment.referenceMonth}</td>
+                <td>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-foreground">{installment.referenceMonth}</span>
+                    <MonthIndicator monthStatus={installment.monthStatus} />
+                  </div>
+                </td>
                 <td className="font-medium text-foreground">{formatCurrency(installment.value)}</td>
                 <td>
                   <StatusBadge 
@@ -385,6 +481,14 @@ export function InstallmentsTable() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Footer info */}
+      <div className="p-4 bg-muted/30 border-t border-border">
+        <p className="text-xs text-muted-foreground flex items-center gap-2">
+          <Clock className="w-3.5 h-3.5" />
+          O envio de relatório está disponível apenas para o mês atual ou para relatórios devolvidos que precisam de correção.
+        </p>
       </div>
     </div>
   );

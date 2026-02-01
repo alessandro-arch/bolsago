@@ -14,7 +14,10 @@ import {
   ShieldAlert,
   Key,
   Pencil,
-  Clock
+  Clock,
+  GraduationCap,
+  School,
+  Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,13 +35,18 @@ import { cn } from "@/lib/utils";
 import { EditScholarDataDialog } from "./EditScholarDataDialog";
 import { useScholarEnrollment } from "@/hooks/useScholarEnrollment";
 
+export interface PersonalData {
+  name: string;
+  cpf: string;
+  email: string;
+  phone: string;
+  institution: string;
+  academicLevel: string;
+  lattesUrl: string;
+}
+
 interface ScholarData {
-  personal: {
-    name: string;
-    cpf: string;
-    email: string;
-    phone: string;
-  };
+  personal: PersonalData;
   project: {
     name: string;
     proponent: string;
@@ -59,6 +67,15 @@ interface ScholarData {
   };
 }
 
+// Academic level options for display
+export const academicLevelLabels: Record<string, string> = {
+  ensino_medio_completo: "Ensino Médio Completo",
+  graduado: "Graduado",
+  mestrado: "Mestrado",
+  doutorado: "Doutorado",
+  pos_doutorado: "Pós-Doutorado",
+};
+
 // Initial empty data - only name, cpf and email come from registration
 const getInitialScholarData = (): ScholarData => ({
   personal: {
@@ -66,6 +83,9 @@ const getInitialScholarData = (): ScholarData => ({
     cpf: "", // Will be loaded from profile
     email: "", // Will be loaded from profile
     phone: "", // Empty - user must fill
+    institution: "", // Empty - user must fill
+    academicLevel: "", // Empty - user must fill
+    lattesUrl: "", // Empty - optional
   },
   project: {
     name: "",
@@ -269,25 +289,40 @@ export function ScholarDataCards() {
             <DataRow 
               icon={User} 
               label="Nome Completo" 
-              value={personalData.name} 
+              value={personalData.name || "—"} 
             />
             <DataRow 
               icon={CreditCard} 
               label="CPF" 
-              value={personalData.cpf}
-              masked
+              value={personalData.cpf || "—"}
+              masked={!!personalData.cpf}
               showSensitive={showSensitive}
-              maskedValue={maskCPF(personalData.cpf)}
+              maskedValue={personalData.cpf ? maskCPF(personalData.cpf) : "—"}
             />
             <DataRow 
               icon={Mail} 
               label="E-mail" 
-              value={personalData.email} 
+              value={personalData.email || "—"} 
             />
             <DataRow 
               icon={Phone} 
               label="Telefone" 
-              value={personalData.phone} 
+              value={personalData.phone || "—"} 
+            />
+            <DataRow 
+              icon={School} 
+              label="Instituição de Vínculo" 
+              value={personalData.institution || "—"} 
+            />
+            <DataRow 
+              icon={GraduationCap} 
+              label="Nível Acadêmico" 
+              value={personalData.academicLevel ? academicLevelLabels[personalData.academicLevel] || personalData.academicLevel : "—"} 
+            />
+            <DataRow 
+              icon={Link2} 
+              label="Currículo Lattes" 
+              value={personalData.lattesUrl || "—"} 
             />
           </div>
         </div>

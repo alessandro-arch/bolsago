@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
+import Import from "./pages/Import";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -41,6 +42,11 @@ const App = () => (
             <Route path="/perfil-bolsista" element={
               <ProtectedRoute>
                 <ScholarProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/importar" element={
+              <ProtectedRoute>
+                <Import />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

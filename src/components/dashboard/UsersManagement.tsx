@@ -39,6 +39,8 @@ interface UserWithRole {
   user_id: string;
   full_name: string | null;
   email: string | null;
+  cpf: string | null;
+  phone: string | null;
   avatar_url: string | null;
   role: AppRole;
   created_at: string;
@@ -69,7 +71,7 @@ export function UsersManagement() {
       // Fetch profiles with their roles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, user_id, full_name, email, avatar_url, created_at");
+        .select("id, user_id, full_name, email, cpf, phone, avatar_url, created_at");
 
       if (profilesError) throw profilesError;
 
@@ -96,6 +98,8 @@ export function UsersManagement() {
         user_id: profile.user_id,
         full_name: profile.full_name,
         email: profile.email,
+        cpf: profile.cpf,
+        phone: profile.phone,
         avatar_url: profile.avatar_url,
         role: rolesMap.get(profile.user_id) || "scholar",
         created_at: profile.created_at,
@@ -237,6 +241,7 @@ export function UsersManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Usuário</TableHead>
+                    <TableHead>CPF</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Cadastro</TableHead>
@@ -259,6 +264,9 @@ export function UsersManagement() {
                             </Avatar>
                             <span className="font-medium">{user.full_name || "Sem nome"}</span>
                           </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground font-mono text-sm">
+                          {user.cpf || "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {user.email || "-"}

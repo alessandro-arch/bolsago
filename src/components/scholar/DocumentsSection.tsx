@@ -14,62 +14,8 @@ interface InstitutionalDocument {
   fileFormat: string;
 }
 
-const documents: InstitutionalDocument[] = [
-  {
-    id: "1",
-    type: "manual",
-    title: "Manual de Preenchimento do Relatório Mensal",
-    description: "Guia completo com instruções passo a passo para preenchimento correto do relatório de atividades.",
-    updatedAt: "15/01/2026",
-    fileSize: "1.2 MB",
-    fileFormat: "PDF",
-  },
-  {
-    id: "2",
-    type: "template",
-    title: "Template do Relatório Mensal",
-    description: "Modelo oficial para elaboração do relatório mensal de atividades do bolsista.",
-    updatedAt: "10/01/2026",
-    fileSize: "256 KB",
-    fileFormat: "DOCX",
-  },
-  {
-    id: "3",
-    type: "institutional",
-    title: "Regulamento do Programa de Bolsas",
-    description: "Normas, direitos e deveres dos bolsistas vinculados ao programa institucional.",
-    updatedAt: "01/01/2026",
-    fileSize: "890 KB",
-    fileFormat: "PDF",
-  },
-  {
-    id: "4",
-    type: "institutional",
-    title: "Calendário de Prazos 2026",
-    description: "Datas importantes para envio de relatórios, renovações e demais obrigações.",
-    updatedAt: "05/01/2026",
-    fileSize: "145 KB",
-    fileFormat: "PDF",
-  },
-  {
-    id: "5",
-    type: "template",
-    title: "Modelo de Justificativa de Ausência",
-    description: "Formulário para casos de afastamento temporário das atividades.",
-    updatedAt: "01/12/2025",
-    fileSize: "98 KB",
-    fileFormat: "DOCX",
-  },
-  {
-    id: "6",
-    type: "institutional",
-    title: "FAQ - Perguntas Frequentes",
-    description: "Respostas para as dúvidas mais comuns sobre o programa de bolsas.",
-    updatedAt: "20/01/2026",
-    fileSize: "320 KB",
-    fileFormat: "PDF",
-  },
-];
+// Empty array - documents will be loaded from backend or storage
+const documents: InstitutionalDocument[] = [];
 
 const typeConfig: Record<DocumentType, { label: string; icon: typeof BookOpen; className: string }> = {
   manual: {
@@ -169,12 +115,24 @@ export function DocumentsSection() {
         </div>
       </div>
 
-      {/* Documents Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {documents.map((doc) => (
-          <DocumentCard key={doc.id} document={doc} />
-        ))}
-      </div>
+      {/* Documents Grid or Empty State */}
+      {documents.length === 0 ? (
+        <div className="card-institutional flex flex-col items-center justify-center py-12">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+            <FileText className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="font-medium text-foreground mb-1">Nenhum documento disponível</p>
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            Manuais, templates e documentos institucionais serão exibidos aqui quando disponíveis.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {documents.map((doc) => (
+            <DocumentCard key={doc.id} document={doc} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

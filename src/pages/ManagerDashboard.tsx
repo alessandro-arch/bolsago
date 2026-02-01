@@ -6,7 +6,6 @@ import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFilte
 import { ProjectsList } from "@/components/projects";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { BankDataManagement } from "@/components/dashboard/BankDataManagement";
-import { AuditTrailViewer } from "@/components/admin/AuditTrailViewer";
 import { AdminMasterModeProvider } from "@/contexts/AdminMasterModeContext";
 
 const ManagerDashboard = () => {
@@ -38,11 +37,6 @@ const ManagerDashboard = () => {
             {/* Projects Management Section */}
             <div className="animate-fade-in">
               <ProjectsList />
-            </div>
-
-            {/* Audit Trail Section - Admin Only */}
-            <div className="animate-fade-in">
-              <AuditTrailViewer />
             </div>
           </main>
           <Footer />

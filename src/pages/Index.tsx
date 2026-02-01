@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { ManagerGreeting } from "@/components/dashboard/ManagerGreeting";
 import { KPICards } from "@/components/dashboard/KPICards";
+import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
 import { WorkflowBanner } from "@/components/dashboard/WorkflowBanner";
 import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
 
@@ -28,6 +29,11 @@ const Index = () => {
           {/* KPI Cards */}
           <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
             <KPICards />
+          </div>
+
+          {/* Alerts Banner */}
+          <div className="animate-fade-in" style={{ animationDelay: "125ms" }}>
+            <AlertsBanner />
           </div>
 
           {/* Workflow Banner */}

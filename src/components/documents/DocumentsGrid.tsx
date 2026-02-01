@@ -13,72 +13,8 @@ interface Document {
   size: string;
 }
 
-const documents: Document[] = [
-  {
-    id: "1",
-    type: "manual",
-    title: "Manual do Bolsista",
-    description: "Guia completo com todas as orientações para bolsistas, incluindo direitos, deveres e procedimentos.",
-    updatedAt: "15/01/2026",
-    size: "2.4 MB",
-  },
-  {
-    id: "2",
-    type: "template",
-    title: "Modelo de Relatório Mensal",
-    description: "Template padrão para elaboração do relatório mensal de atividades.",
-    updatedAt: "10/01/2026",
-    size: "156 KB",
-  },
-  {
-    id: "3",
-    type: "termo",
-    title: "Termo de Compromisso",
-    description: "Documento oficial de vínculo entre o bolsista e a instituição.",
-    updatedAt: "05/01/2026",
-    size: "89 KB",
-  },
-  {
-    id: "4",
-    type: "template",
-    title: "Modelo de Plano de Trabalho",
-    description: "Template para elaboração do plano de trabalho semestral.",
-    updatedAt: "20/01/2026",
-    size: "245 KB",
-  },
-  {
-    id: "5",
-    type: "manual",
-    title: "Guia de Prestação de Contas",
-    description: "Orientações sobre como realizar a prestação de contas da bolsa.",
-    updatedAt: "12/01/2026",
-    size: "1.8 MB",
-  },
-  {
-    id: "6",
-    type: "termo",
-    title: "Termo de Confidencialidade",
-    description: "Documento de sigilo para projetos com informações sensíveis.",
-    updatedAt: "08/01/2026",
-    size: "67 KB",
-  },
-  {
-    id: "7",
-    type: "template",
-    title: "Modelo de Relatório Final",
-    description: "Template para elaboração do relatório final de atividades da bolsa.",
-    updatedAt: "25/01/2026",
-    size: "312 KB",
-  },
-  {
-    id: "8",
-    type: "manual",
-    title: "FAQ - Perguntas Frequentes",
-    description: "Documento com as dúvidas mais comuns dos bolsistas e suas respostas.",
-    updatedAt: "18/01/2026",
-    size: "890 KB",
-  },
-];
+// Empty array - documents will be loaded from backend or storage
+const documents: Document[] = [];
 
 const typeConfig: Record<DocumentType, { label: string; icon: typeof FileText; className: string }> = {
   manual: { 
@@ -146,12 +82,24 @@ function DocumentCard({ document }: { document: Document }) {
 export function DocumentsGrid() {
   return (
     <div className="space-y-6">
-      {/* Documents Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {documents.map((document) => (
-          <DocumentCard key={document.id} document={document} />
-        ))}
-      </div>
+      {/* Documents Grid or Empty State */}
+      {documents.length === 0 ? (
+        <div className="card-institutional flex flex-col items-center justify-center py-12">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+            <FileText className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="font-medium text-foreground mb-1">Nenhum documento disponível</p>
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            Os documentos serão exibidos aqui após serem carregados pelo administrador do sistema.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {documents.map((document) => (
+            <DocumentCard key={document.id} document={document} />
+          ))}
+        </div>
+      )}
 
       {/* Important Notice */}
       <div className="card-institutional bg-warning/5 border-warning/20">

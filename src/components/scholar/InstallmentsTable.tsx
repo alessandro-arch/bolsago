@@ -53,117 +53,8 @@ interface Installment {
 // Current month simulation: January 2026 (month 1)
 const CURRENT_INSTALLMENT_NUMBER = 1;
 
-const installments: Installment[] = [
-  { 
-    id: "1", 
-    number: 1, 
-    referenceMonth: "Janeiro/2026", 
-    value: 700, 
-    reportStatus: "pending", 
-    paymentStatus: "blocked",
-    isFirstInstallment: true,
-    monthStatus: "current"
-  },
-  { 
-    id: "2", 
-    number: 2, 
-    referenceMonth: "Fevereiro/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "3", 
-    number: 3, 
-    referenceMonth: "Março/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "4", 
-    number: 4, 
-    referenceMonth: "Abril/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "5", 
-    number: 5, 
-    referenceMonth: "Maio/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "6", 
-    number: 6, 
-    referenceMonth: "Junho/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "7", 
-    number: 7, 
-    referenceMonth: "Julho/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "8", 
-    number: 8, 
-    referenceMonth: "Agosto/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "9", 
-    number: 9, 
-    referenceMonth: "Setembro/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "10", 
-    number: 10, 
-    referenceMonth: "Outubro/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "11", 
-    number: 11, 
-    referenceMonth: "Novembro/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-  { 
-    id: "12", 
-    number: 12, 
-    referenceMonth: "Dezembro/2026", 
-    value: 700, 
-    reportStatus: "future", 
-    paymentStatus: "future",
-    monthStatus: "future"
-  },
-];
+// Empty array - data will be loaded from backend based on scholar's grant term
+const installments: Installment[] = [];
 
 const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning" },
@@ -388,7 +279,24 @@ export function InstallmentsTable() {
             </tr>
           </thead>
           <tbody>
-            {installments.map((installment) => (
+            {installments.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Nenhuma parcela registrada</p>
+                      <p className="text-sm text-muted-foreground">
+                        As parcelas serão exibidas após o vínculo com o termo de concessão.
+                      </p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              installments.map((installment) => (
               <tr 
                 key={installment.id}
                 className={cn(
@@ -441,7 +349,8 @@ export function InstallmentsTable() {
                   <InstallmentActions installment={installment} />
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </div>

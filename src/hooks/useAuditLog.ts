@@ -12,14 +12,20 @@ export type AuditAction =
   | "create_enrollment"
   | "delete_enrollment"
   | "approve_report"
-  | "reject_report";
+  | "reject_report"
+  | "create_project"
+  | "update_project"
+  | "archive_project"
+  | "delete_project"
+  | "assign_scholar_to_project";
 
 export type EntityType = 
   | "user"
   | "enrollment"
   | "payment"
   | "report"
-  | "user_role";
+  | "user_role"
+  | "project";
 
 interface AuditLogParams {
   action: AuditAction;

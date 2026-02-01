@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CheckCircle2, XCircle, AlertTriangle, UserPlus, Users, AlertOctagon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -21,12 +22,27 @@ interface DataPreviewTableProps {
   rows: ParsedRow[];
   importType: ImportType;
   onActionChange?: (rowNumber: number, action: DuplicateAction) => void;
+  selectedRows?: Set<number>;
+  onRowSelectionChange?: (rowNumber: number, selected: boolean) => void;
+  onSelectAllValid?: (selected: boolean) => void;
 }
 
-export function DataPreviewTable({ rows, importType, onActionChange }: DataPreviewTableProps) {
+export function DataPreviewTable({ 
+  rows, 
+  importType, 
+  onActionChange,
+  selectedRows,
+  onRowSelectionChange,
+  onSelectAllValid,
+}: DataPreviewTableProps) {
   const config = IMPORT_TYPES[importType];
   const allFields = [...config.requiredFields, ...config.optionalFields];
   const showDuplicateColumn = importType === 'scholars';
+  const showSelectionColumn = selectedRows !== undefined;
+
+  const validRows = rows.filter(r => r.isValid);
+  const allValidSelected = validRows.length > 0 && validRows.every(r => selectedRows?.has(r.rowNumber));
+  const someValidSelected = validRows.some(r => selectedRows?.has(r.rowNumber));
 
   const getStatusIcon = (row: ParsedRow) => {
     if (!row.isValid) {
@@ -87,6 +103,25 @@ export function DataPreviewTable({ rows, importType, onActionChange }: DataPrevi
       <Table>
         <TableHeader className="sticky top-0 bg-card z-10">
           <TableRow>
+            {showSelectionColumn && (
+              <TableHead className="w-12">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={allValidSelected}
+                        onCheckedChange={(checked) => onSelectAllValid?.(!!checked)}
+                        aria-label="Selecionar todos os válidos"
+                        className={someValidSelected && !allValidSelected ? 'data-[state=checked]:bg-primary/50' : ''}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Selecionar todos os válidos
+                  </TooltipContent>
+                </Tooltip>
+              </TableHead>
+            )}
             <TableHead className="w-16">Linha</TableHead>
             <TableHead className="w-24">Status</TableHead>
             {showDuplicateColumn && (
@@ -109,6 +144,18 @@ export function DataPreviewTable({ rows, importType, onActionChange }: DataPrevi
               key={row.rowNumber}
               className={getRowBackground(row)}
             >
+              {showSelectionColumn && (
+                <TableCell>
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      checked={selectedRows?.has(row.rowNumber) ?? false}
+                      onCheckedChange={(checked) => onRowSelectionChange?.(row.rowNumber, !!checked)}
+                      disabled={!row.isValid}
+                      aria-label={`Selecionar linha ${row.rowNumber}`}
+                    />
+                  </div>
+                </TableCell>
+              )}
               <TableCell className="font-mono text-sm">{row.rowNumber}</TableCell>
               <TableCell>
                 <Tooltip>
@@ -146,6 +193,9 @@ export function DataPreviewTable({ rows, importType, onActionChange }: DataPrevi
                     )}
                     {row.isValid && row.warnings.length === 0 && row.duplicateInfo?.status === 'new' && (
                       <span className="text-success">Novo registro - será importado</span>
+                    )}
+                    {row.isValid && row.warnings.length === 0 && !row.duplicateInfo && (
+                      <span className="text-success">Registro válido</span>
                     )}
                   </TooltipContent>
                 </Tooltip>

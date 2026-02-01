@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Footer } from '@/components/layout/Footer';
@@ -9,11 +9,13 @@ import { ImportSummary } from '@/components/import/ImportSummary';
 import { ImportResultReport } from '@/components/import/ImportResultReport';
 import { useSpreadsheetParser } from '@/hooks/useSpreadsheetParser';
 import { useDuplicateChecker } from '@/hooks/useDuplicateChecker';
-import { ImportType, ImportPreview, ImportResult, ParsedRow, DuplicateAction, IMPORT_TYPES } from '@/types/import';
+import { useUserRole } from '@/hooks/useUserRole';
+import { ImportType, ImportPreview, ImportResult, DuplicateAction, IMPORT_TYPES } from '@/types/import';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { unformatCPF, validateCPF } from '@/lib/cpf-validator';
@@ -23,7 +25,8 @@ import {
   Upload, 
   AlertCircle,
   Loader2,
-  Download
+  Download,
+  ShieldAlert
 } from 'lucide-react';
 
 type Step = 'select-type' | 'upload' | 'preview' | 'importing' | 'result';
@@ -35,14 +38,30 @@ export default function Import() {
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importProgress, setImportProgress] = useState(0);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [showSelectionWarning, setShowSelectionWarning] = useState(false);
 
   const { parseFile, isLoading: isParsing, error: parseError } = useSpreadsheetParser();
   const { checkDuplicates, isChecking } = useDuplicateChecker();
+  const { hasManagerAccess, loading: roleLoading } = useUserRole();
   const { toast } = useToast();
+
+  // Check if user can process specific import types
+  const canProcessImport = (type: ImportType | null): boolean => {
+    if (!type) return false;
+    // Projects and enrollments require manager access
+    if (type === 'projects' || type === 'enrollments') {
+      return hasManagerAccess;
+    }
+    // Other types also require manager access for now
+    return hasManagerAccess;
+  };
 
   const handleTypeSelect = (type: ImportType) => {
     setSelectedType(type);
     setCurrentStep('upload');
+    setSelectedRows(new Set());
+    setShowSelectionWarning(false);
   };
 
   const handleFileSelect = async (file: File) => {
@@ -68,11 +87,30 @@ export default function Import() {
           duplicateRows,
           conflictRows,
         });
+
+        // Auto-select new valid rows for scholars
+        const validRowNumbers = checkedRows
+          .filter(r => r.isValid && r.duplicateInfo?.status === 'new')
+          .map(r => r.rowNumber);
+        setSelectedRows(new Set(validRowNumbers));
       } else {
-        setPreview(parsedPreview);
+        // For other import types (projects, bank_accounts, enrollments)
+        // Auto-select all valid rows
+        const validRowNumbers = parsedPreview.rows
+          .filter(r => r.isValid)
+          .map(r => r.rowNumber);
+        setSelectedRows(new Set(validRowNumbers));
+        
+        setPreview({
+          ...parsedPreview,
+          newRows: parsedPreview.validRows,
+          duplicateRows: 0,
+          conflictRows: 0,
+        });
       }
       
       setCurrentStep('preview');
+      setShowSelectionWarning(false);
     } catch {
       toast({
         title: 'Erro ao processar arquivo',
@@ -100,31 +138,82 @@ export default function Import() {
         return row;
       }),
     });
+
+    // Update selection based on action
+    if (action === 'update' || action === 'import') {
+      setSelectedRows(prev => new Set([...prev, rowNumber]));
+    } else if (action === 'skip') {
+      setSelectedRows(prev => {
+        const next = new Set(prev);
+        next.delete(rowNumber);
+        return next;
+      });
+    }
+  };
+
+  const handleRowSelectionChange = (rowNumber: number, selected: boolean) => {
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(rowNumber);
+      } else {
+        next.delete(rowNumber);
+      }
+      return next;
+    });
+    setShowSelectionWarning(false);
+  };
+
+  const handleSelectAllValid = (selected: boolean) => {
+    if (!preview) return;
+    
+    if (selected) {
+      const validRowNumbers = preview.rows
+        .filter(r => r.isValid)
+        .map(r => r.rowNumber);
+      setSelectedRows(new Set(validRowNumbers));
+    } else {
+      setSelectedRows(new Set());
+    }
+    setShowSelectionWarning(false);
   };
 
   const handleImport = useCallback(async () => {
     if (!preview || !selectedType || !selectedFile) return;
+
+    // Check if any rows are selected
+    if (selectedRows.size === 0) {
+      setShowSelectionWarning(true);
+      toast({
+        title: 'Nenhum registro selecionado',
+        description: 'Selecione ao menos um registro válido para processar.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setCurrentStep('importing');
     setImportProgress(0);
 
     const startedAt = new Date().toISOString();
     
-    // Get rows to process based on their status and action
-    const validRows = preview.rows.filter(r => r.isValid);
-    const invalidRows = preview.rows.filter(r => !r.isValid);
-    
-    // Separate by action
-    const rowsToImport = validRows.filter(r => 
-      r.duplicateInfo?.status === 'new' || r.duplicateInfo?.action === 'import'
+    // Get rows to process based on selection
+    const rowsToProcess = preview.rows.filter(r => 
+      r.isValid && selectedRows.has(r.rowNumber)
     );
-    const rowsToUpdate = validRows.filter(r => 
+    const invalidRows = preview.rows.filter(r => !r.isValid);
+    const skippedByUser = preview.rows.filter(r => 
+      r.isValid && !selectedRows.has(r.rowNumber)
+    );
+    
+    // Separate by action for scholars
+    const rowsToImport = rowsToProcess.filter(r => 
+      !r.duplicateInfo || r.duplicateInfo?.status === 'new' || r.duplicateInfo?.action === 'import'
+    );
+    const rowsToUpdate = rowsToProcess.filter(r => 
+      r.duplicateInfo && 
       (r.duplicateInfo?.status === 'duplicate' || r.duplicateInfo?.status === 'conflict') && 
       r.duplicateInfo?.action === 'update'
-    );
-    const rowsToSkip = validRows.filter(r => 
-      (r.duplicateInfo?.status === 'duplicate' || r.duplicateInfo?.status === 'conflict') && 
-      r.duplicateInfo?.action === 'skip'
     );
     
     const importedRecords: ImportResult['importedRecords'] = [];
@@ -141,12 +230,12 @@ export default function Import() {
       });
     });
 
-    // Add skipped rows
-    rowsToSkip.forEach(row => {
+    // Add user-skipped rows
+    skippedByUser.forEach(row => {
       skippedRecords.push({
         rowNumber: row.rowNumber,
         data: row.data,
-        reason: row.duplicateInfo?.conflictReason || 'Ignorado pelo gestor',
+        reason: row.duplicateInfo?.conflictReason || 'Não selecionado para importação',
       });
     });
 
@@ -160,7 +249,6 @@ export default function Import() {
 
       try {
         if (selectedType === 'scholars') {
-          // For now, simulate - in production would create user via edge function
           const email = String(row.data.email || '');
           const cpf = String(row.data.cpf || '');
           
@@ -186,6 +274,66 @@ export default function Import() {
             rowNumber: row.rowNumber,
             data: row.data,
           });
+        } else if (selectedType === 'projects') {
+          // Process project import
+          const code = String(row.data.code || '');
+          const title = String(row.data.title || '');
+          const proponentName = String(row.data.proponent_name || '');
+          const modalidadeBolsa = String(row.data.modalidade_bolsa || '');
+          const valorMensal = Number(row.data.valor_mensal);
+          const startDate = String(row.data.start_date || '');
+          const endDate = String(row.data.end_date || '');
+          const orientador = row.data.orientador ? String(row.data.orientador) : null;
+
+          // Validate required fields
+          const errors: string[] = [];
+          if (!code) errors.push('Código é obrigatório');
+          if (!title) errors.push('Título é obrigatório');
+          if (!proponentName) errors.push('Nome do proponente é obrigatório');
+          if (!modalidadeBolsa) errors.push('Modalidade da bolsa é obrigatória');
+          if (isNaN(valorMensal) || valorMensal <= 0) errors.push('Valor mensal deve ser um número positivo');
+          if (!startDate) errors.push('Data de início é obrigatória');
+          if (!endDate) errors.push('Data de término é obrigatória');
+
+          if (errors.length > 0) {
+            rejectedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+              reasons: errors,
+            });
+            continue;
+          }
+
+          // Insert into database
+          const { error } = await supabase
+            .from('projects')
+            .insert({
+              code,
+              title,
+              proponent_name: proponentName,
+              modalidade_bolsa: modalidadeBolsa,
+              valor_mensal: valorMensal,
+              start_date: startDate,
+              end_date: endDate,
+              orientador,
+            });
+
+          if (error) {
+            let reason = error.message;
+            if (error.code === '23505') {
+              reason = `Projeto com código "${code}" já existe`;
+            }
+            rejectedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+              reasons: [reason],
+            });
+          } else {
+            importedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+            });
+          }
         } else {
           // Other import types - basic validation
           importedRecords.push({
@@ -214,7 +362,7 @@ export default function Import() {
           const updateData: Record<string, unknown> = {
             full_name: row.data.full_name,
             phone: row.data.phone || null,
-            origin: 'import', // Mark as imported on update too
+            origin: 'import',
           };
 
           const { error } = await supabase
@@ -278,7 +426,7 @@ export default function Import() {
       description: `${result.importedCount} novo(s), ${result.updatedCount} atualizado(s), ${result.skippedCount} ignorado(s), ${result.rejectedCount} rejeitado(s)`,
       variant: result.rejectedCount > 0 ? 'destructive' : 'default',
     });
-  }, [preview, selectedType, selectedFile, toast]);
+  }, [preview, selectedType, selectedFile, selectedRows, toast]);
 
   const handleNewImport = () => {
     setCurrentStep('select-type');
@@ -287,6 +435,8 @@ export default function Import() {
     setPreview(null);
     setImportResult(null);
     setImportProgress(0);
+    setSelectedRows(new Set());
+    setShowSelectionWarning(false);
   };
 
   const downloadTemplate = () => {
@@ -318,20 +468,11 @@ export default function Import() {
     }
   };
 
-  // Check if there are pending decisions for duplicates/conflicts
-  const hasPendingDecisions = preview?.rows.some(r => 
-    r.isValid && 
-    (r.duplicateInfo?.status === 'duplicate' || r.duplicateInfo?.status === 'conflict') &&
-    r.duplicateInfo?.action === 'skip'
-  );
-
-  const getImportableCount = () => {
-    if (!preview) return 0;
-    return preview.rows.filter(r => 
-      r.isValid && 
-      (r.duplicateInfo?.status === 'new' || r.duplicateInfo?.action === 'update')
-    ).length;
+  const getSelectedCount = () => {
+    return selectedRows.size;
   };
+
+  const hasPermission = canProcessImport(selectedType);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -445,12 +586,34 @@ export default function Import() {
               <div className="space-y-6">
                 <ImportSummary preview={preview} />
 
+                {/* Permission warning */}
+                {!roleLoading && !hasPermission && (
+                  <Alert variant="destructive">
+                    <ShieldAlert className="h-4 w-4" />
+                    <AlertDescription>
+                      Você não tem permissão para processar importações de {IMPORT_TYPES[selectedType].label.toLowerCase()}. 
+                      Apenas Gestores ou Administradores podem realizar esta ação.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Selection warning */}
+                {showSelectionWarning && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Selecione ao menos um registro válido para processar.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Pré-visualização dos Dados</CardTitle>
                     <CardDescription>
                       Revise os dados antes de confirmar a importação. 
                       {selectedType === 'scholars' && ' Para registros duplicados ou em conflito, escolha a ação desejada.'}
+                      {' '}Use os checkboxes para selecionar os registros a processar.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -458,6 +621,9 @@ export default function Import() {
                       rows={preview.rows} 
                       importType={selectedType}
                       onActionChange={handleRowActionChange}
+                      selectedRows={selectedRows}
+                      onRowSelectionChange={handleRowSelectionChange}
+                      onSelectAllValid={handleSelectAllValid}
                     />
                   </CardContent>
                 </Card>
@@ -468,7 +634,7 @@ export default function Import() {
                     <div>
                       <p className="font-medium text-foreground">Atenção</p>
                       <p className="text-sm text-muted-foreground">
-                        {preview.invalidRows} registro(s) contêm erros e serão ignorados na importação.
+                        {preview.invalidRows} registro(s) contêm erros e não podem ser selecionados.
                       </p>
                     </div>
                   </div>
@@ -488,18 +654,23 @@ export default function Import() {
                   </div>
                 )}
 
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <Button variant="outline" onClick={() => setCurrentStep('upload')}>
                     <ChevronLeft className="w-4 h-4 mr-2" />
                     Voltar
                   </Button>
-                  <Button 
-                    onClick={handleImport}
-                    disabled={getImportableCount() === 0}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Processar {getImportableCount()} Registro(s)
-                  </Button>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-muted-foreground">
+                      {getSelectedCount()} de {preview.validRows} registro(s) selecionado(s)
+                    </span>
+                    <Button 
+                      onClick={handleImport}
+                      disabled={!hasPermission || roleLoading}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Processar {getSelectedCount()} Registro(s)
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

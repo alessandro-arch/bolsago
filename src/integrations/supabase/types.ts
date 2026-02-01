@@ -332,7 +332,18 @@ export type Database = {
     Enums: {
       app_role: "admin" | "manager" | "scholar"
       enrollment_status: "active" | "suspended" | "completed" | "cancelled"
-      grant_modality: "ic" | "masters" | "phd" | "postdoc" | "technical"
+      grant_modality:
+        | "ict"
+        | "ext"
+        | "ens"
+        | "ino"
+        | "dct_a"
+        | "dct_b"
+        | "dct_c"
+        | "postdoc"
+        | "senior"
+        | "prod"
+        | "visitor"
       payment_status: "pending" | "eligible" | "paid" | "cancelled"
     }
     CompositeTypes: {
@@ -463,7 +474,19 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "manager", "scholar"],
       enrollment_status: ["active", "suspended", "completed", "cancelled"],
-      grant_modality: ["ic", "masters", "phd", "postdoc", "technical"],
+      grant_modality: [
+        "ict",
+        "ext",
+        "ens",
+        "ino",
+        "dct_a",
+        "dct_b",
+        "dct_c",
+        "postdoc",
+        "senior",
+        "prod",
+        "visitor",
+      ],
       payment_status: ["pending", "eligible", "paid", "cancelled"],
     },
   },

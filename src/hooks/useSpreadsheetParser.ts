@@ -68,7 +68,7 @@ export function useSpreadsheetParser() {
         errors.push('Total de parcelas deve ser um número inteiro positivo');
       }
 
-      const validModalities = ['ic', 'masters', 'phd', 'postdoc', 'technical'];
+      const validModalities = ['ict', 'ext', 'ens', 'ino', 'dct_a', 'dct_b', 'dct_c', 'postdoc', 'senior', 'prod', 'visitor'];
       const modality = String(row.modality || '').toLowerCase();
       if (modality && !validModalities.includes(modality)) {
         warnings.push(`Modalidade "${row.modality}" não reconhecida. Use: ${validModalities.join(', ')}`);

@@ -40,11 +40,17 @@ interface AssignScholarshipDialogProps {
 }
 
 const MODALITY_LABELS: Record<GrantModality, string> = {
-  ic: "Iniciação Científica",
-  masters: "Mestrado",
-  phd: "Doutorado",
-  postdoc: "Pós-Doutorado",
-  technical: "Apoio Técnico",
+  ict: "Bolsa de Iniciação Científica e Tecnológica",
+  ext: "Bolsa de Extensão",
+  ens: "Bolsa de Apoio ao Ensino",
+  ino: "Bolsa de Inovação",
+  dct_a: "Bolsa de Desenvolvimento Científico e Tecnológico (Nível A)",
+  dct_b: "Bolsa de Desenvolvimento Científico e Tecnológico (Nível B)",
+  dct_c: "Bolsa de Desenvolvimento Científico e Tecnológico (Nível C)",
+  postdoc: "Bolsa de Pós-doutorado",
+  senior: "Bolsa de Cientista Sênior",
+  prod: "Bolsa de Produtividade em Pesquisa",
+  visitor: "Bolsa de Pesquisador Visitante (Estrangeiro)",
 };
 
 export function AssignScholarshipDialog({

@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { GraduationCap, Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { GraduationCap, Mail, Lock, User, Loader2, AlertCircle, CheckCircle, CreditCard } from "lucide-react";
 import { z } from "zod";
+import { validateCPF, formatCPF, unformatCPF } from "@/lib/cpf-validator";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -17,6 +18,9 @@ const loginSchema = z.object({
 
 const signupSchema = z.object({
   fullName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  cpf: z.string().refine((val) => validateCPF(val), {
+    message: "CPF inválido. Verifique os dígitos.",
+  }),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
   confirmPassword: z.string(),
@@ -40,6 +44,7 @@ export default function Auth() {
   
   // Signup form state
   const [signupName, setSignupName] = useState("");
+  const [signupCPF, setSignupCPF] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
@@ -85,6 +90,7 @@ export default function Auth() {
     
     const validation = signupSchema.safeParse({
       fullName: signupName,
+      cpf: signupCPF,
       email: signupEmail,
       password: signupPassword,
       confirmPassword: signupConfirmPassword,
@@ -96,12 +102,15 @@ export default function Auth() {
     }
     
     setLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
+    const cleanCPF = unformatCPF(signupCPF);
+    const { error } = await signUp(signupEmail, signupPassword, signupName, cleanCPF);
     setLoading(false);
     
     if (error) {
       if (error.message.includes("User already registered")) {
         setError("Este email já está cadastrado. Tente fazer login.");
+      } else if (error.message.includes("cpf") || error.message.includes("CPF")) {
+        setError("Este CPF já está cadastrado no sistema.");
       } else {
         setError("Erro ao criar conta. Tente novamente.");
       }
@@ -110,9 +119,15 @@ export default function Auth() {
     
     setSuccess("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.");
     setSignupName("");
+    setSignupCPF("");
     setSignupEmail("");
     setSignupPassword("");
     setSignupConfirmPassword("");
+  };
+
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCPF(e.target.value);
+    setSignupCPF(formatted);
   };
 
   return (
@@ -221,6 +236,26 @@ export default function Auth() {
                         required
                       />
                     </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-cpf">CPF</Label>
+                    <div className="relative">
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="signup-cpf"
+                        type="text"
+                        placeholder="000.000.000-00"
+                        value={signupCPF}
+                        onChange={handleCPFChange}
+                        className="pl-10"
+                        maxLength={14}
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      O CPF será seu identificador e não poderá ser alterado posteriormente.
+                    </p>
                   </div>
                   
                   <div className="space-y-2">

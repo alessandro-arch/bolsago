@@ -6,6 +6,31 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Structured error response helper
+function errorResponse(
+  status: number,
+  errorCode: string,
+  message: string,
+  details?: Record<string, unknown>
+) {
+  return new Response(
+    JSON.stringify({
+      error: errorCode,
+      message,
+      ...(details && { details }),
+    }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+// Success response helper
+function successResponse(data: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -15,10 +40,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Não autorizado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(401, "unauthorized", "Token de autenticação não fornecido.");
     }
 
     // Create client with user's token for auth check
@@ -34,10 +56,7 @@ Deno.serve(async (req) => {
     
     if (claimsError || !claimsData?.claims) {
       console.error("Claims error:", claimsError);
-      return new Response(
-        JSON.stringify({ error: "Token inválido" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(401, "invalid_token", "Token de autenticação inválido ou expirado.");
     }
 
     const userId = claimsData.claims.sub;
@@ -52,38 +71,33 @@ Deno.serve(async (req) => {
 
     if (roleError) {
       console.error("Role check failed:", roleError);
-      return new Response(
-        JSON.stringify({ error: "Erro ao verificar permissões" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(500, "server_error", "Erro ao verificar permissões do usuário.");
     }
 
     const isAdmin = roleData?.role === "admin";
     const isManager = roleData?.role === "manager" || isAdmin;
 
     if (!isManager) {
-      return new Response(
-        JSON.stringify({ error: "Apenas gestores podem gerenciar usuários" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(403, "forbidden", "Apenas gestores podem gerenciar usuários.");
     }
 
     // Get request body
-    const { action, userIds } = await req.json();
+    let body: { action?: string; userIds?: string[] };
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse(400, "invalid_request", "Corpo da requisição inválido.");
+    }
+
+    const { action, userIds } = body;
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Lista de usuários inválida" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(400, "invalid_request", "Lista de usuários inválida ou vazia.");
     }
 
     // Prevent self-action
     if (userIds.includes(userId)) {
-      return new Response(
-        JSON.stringify({ error: "Você não pode executar esta ação na própria conta" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(400, "self_action", "Você não pode executar esta ação na própria conta.");
     }
 
     // Create admin client for privileged operations
@@ -94,7 +108,7 @@ Deno.serve(async (req) => {
 
     const results = {
       success: [] as string[],
-      failed: [] as { id: string; error: string }[],
+      failed: [] as { id: string; error: string; code: string }[],
     };
 
     if (action === "deactivate" || action === "reactivate") {
@@ -104,6 +118,19 @@ Deno.serve(async (req) => {
 
       for (const targetUserId of userIds) {
         try {
+          // Check if user exists
+          const { data: profile, error: profileCheckError } = await supabaseAdmin
+            .from("profiles")
+            .select("id, is_active")
+            .eq("user_id", targetUserId)
+            .single();
+
+          if (profileCheckError || !profile) {
+            console.error(`User not found: ${targetUserId}`);
+            results.failed.push({ id: targetUserId, error: "Usuário não encontrado.", code: "not_found" });
+            continue;
+          }
+
           // Update profile is_active status
           const { error: profileError } = await supabaseAdmin
             .from("profiles")
@@ -112,7 +139,7 @@ Deno.serve(async (req) => {
 
           if (profileError) {
             console.error(`Error updating profile for ${targetUserId}:`, profileError);
-            results.failed.push({ id: targetUserId, error: profileError.message });
+            results.failed.push({ id: targetUserId, error: profileError.message, code: "update_failed" });
             continue;
           }
 
@@ -134,33 +161,40 @@ Deno.serve(async (req) => {
           results.success.push(targetUserId);
         } catch (err) {
           console.error(`Unexpected error ${action}ing user ${targetUserId}:`, err);
-          results.failed.push({ id: targetUserId, error: String(err) });
+          results.failed.push({ id: targetUserId, error: String(err), code: "server_error" });
         }
       }
 
       const actionLabel = isActive ? "reativado(s)" : "desativado(s)";
-      return new Response(
-        JSON.stringify({
-          message: `${results.success.length} usuário(s) ${actionLabel} com sucesso`,
-          results,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return successResponse({
+        message: `${results.success.length} usuário(s) ${actionLabel} com sucesso`,
+        results,
+      });
     }
 
     if (action === "delete") {
       // Only admins can permanently delete
       if (!isAdmin) {
-        return new Response(
-          JSON.stringify({ error: "Apenas administradores podem excluir usuários permanentemente" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse(403, "forbidden", "Apenas administradores podem excluir usuários permanentemente.");
       }
 
       console.log("Permanently deleting users:", userIds);
 
       for (const targetUserId of userIds) {
         try {
+          // Check if user exists
+          const { data: profile, error: profileCheckError } = await supabaseAdmin
+            .from("profiles")
+            .select("id")
+            .eq("user_id", targetUserId)
+            .single();
+
+          if (profileCheckError || !profile) {
+            console.error(`User not found: ${targetUserId}`);
+            results.failed.push({ id: targetUserId, error: "Usuário não encontrado.", code: "not_found" });
+            continue;
+          }
+
           // Check for linked records
           const { data: enrollments } = await supabaseAdmin
             .from("enrollments")
@@ -180,13 +214,21 @@ Deno.serve(async (req) => {
             .eq("user_id", targetUserId)
             .limit(1);
 
-          if ((enrollments && enrollments.length > 0) || 
-              (payments && payments.length > 0) || 
-              (reports && reports.length > 0)) {
-            console.log(`User ${targetUserId} has linked records, cannot delete`);
+          const hasEnrollments = enrollments && enrollments.length > 0;
+          const hasPayments = payments && payments.length > 0;
+          const hasReports = reports && reports.length > 0;
+
+          if (hasEnrollments || hasPayments || hasReports) {
+            const linkedTypes: string[] = [];
+            if (hasEnrollments) linkedTypes.push("matrículas");
+            if (hasPayments) linkedTypes.push("pagamentos");
+            if (hasReports) linkedTypes.push("relatórios");
+
+            console.log(`User ${targetUserId} has linked records: ${linkedTypes.join(", ")}`);
             results.failed.push({ 
               id: targetUserId, 
-              error: "Usuário possui registros vinculados (matrículas, pagamentos ou relatórios). Desative o usuário ao invés de excluir." 
+              error: `Usuário possui ${linkedTypes.join(", ")} vinculado(s). Desative em vez de excluir.`,
+              code: "has_dependencies"
             });
             continue;
           }
@@ -205,36 +247,35 @@ Deno.serve(async (req) => {
 
           if (authDeleteError) {
             console.error("Error deleting auth user", targetUserId, authDeleteError);
-            results.failed.push({ id: targetUserId, error: authDeleteError.message });
+            results.failed.push({ id: targetUserId, error: authDeleteError.message, code: "auth_delete_failed" });
           } else {
             console.log("Successfully deleted user:", targetUserId);
             results.success.push(targetUserId);
           }
         } catch (err) {
           console.error("Unexpected error deleting user", targetUserId, err);
-          results.failed.push({ id: targetUserId, error: String(err) });
+          results.failed.push({ id: targetUserId, error: "Falha interna ao excluir usuário.", code: "server_error" });
         }
       }
 
-      return new Response(
-        JSON.stringify({
-          message: `${results.success.length} usuário(s) excluído(s) permanentemente`,
-          results,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // If all failed due to dependencies, return 409
+      if (results.success.length === 0 && results.failed.every(f => f.code === "has_dependencies")) {
+        return errorResponse(409, "has_dependencies", 
+          "Usuário(s) possui(em) registros vinculados. Desative em vez de excluir.",
+          { failed: results.failed }
+        );
+      }
+
+      return successResponse({
+        message: `${results.success.length} usuário(s) excluído(s) permanentemente`,
+        results,
+      });
     }
 
-    return new Response(
-      JSON.stringify({ error: "Ação inválida. Use: deactivate, reactivate ou delete" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(400, "invalid_action", "Ação inválida. Use: deactivate, reactivate ou delete.");
 
   } catch (error) {
     console.error("Unexpected error:", error);
-    return new Response(
-      JSON.stringify({ error: "Erro interno do servidor" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(500, "server_error", "Falha interna do servidor.");
   }
 });

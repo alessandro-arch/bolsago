@@ -146,17 +146,25 @@ export function useScholarProfile(): UseScholarProfileReturn {
 
     try {
       // If CPF is locked, don't allow updating it
+      // Convert empty strings to null for optional fields to satisfy database constraints
+      const normalizeValue = (value: string | undefined | null): string | null => {
+        if (value === undefined || value === null || value.trim() === "") {
+          return null;
+        }
+        return value;
+      };
+
       const updateData: Record<string, string | null> = {
-        full_name: data.name ?? personalData.name,
-        phone: data.phone ?? personalData.phone,
-        institution: data.institution ?? personalData.institution,
-        academic_level: data.academicLevel ?? personalData.academicLevel,
-        lattes_url: data.lattesUrl ?? personalData.lattesUrl,
+        full_name: normalizeValue(data.name ?? personalData.name),
+        phone: normalizeValue(data.phone ?? personalData.phone),
+        institution: normalizeValue(data.institution ?? personalData.institution),
+        academic_level: normalizeValue(data.academicLevel ?? personalData.academicLevel),
+        lattes_url: normalizeValue(data.lattesUrl ?? personalData.lattesUrl),
       };
 
       // Only include CPF if it's not locked (first time filling)
       if (!cpfLocked && data.cpf) {
-        updateData.cpf = data.cpf;
+        updateData.cpf = normalizeValue(data.cpf);
       }
 
       const { error: updateError } = await supabase

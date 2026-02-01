@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckSquare, Square, UserX, Loader2, X, RefreshCw, Calendar, Upload } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckSquare, Square, UserX, Loader2, X, RefreshCw, Calendar, Upload, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAdminMasterMode } from "@/contexts/AdminMasterModeContext";
 import { BulkRemovalDialog } from "./BulkRemovalDialog";
+import { AdminEditScholarDialog } from "@/components/admin/AdminEditScholarDialog";
 import { getModalityLabel } from "@/lib/modality-labels";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -37,6 +39,7 @@ interface ScholarData {
   fullName: string | null;
   email: string | null;
   cpf: string | null;
+  phone: string | null;
   isActive: boolean;
   projectTitle: string | null;
   projectCode: string | null;
@@ -79,6 +82,7 @@ function StatusBadge({ status, config }: { status: string; config: { label: stri
 
 export function ScholarsTableFiltered() {
   const { hasManagerAccess, isAdmin } = useUserRole();
+  const { isAdminMasterMode } = useAdminMasterMode();
   const [scholars, setScholars] = useState<ScholarData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,6 +92,8 @@ export function ScholarsTableFiltered() {
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [originFilter, setOriginFilter] = useState<OriginFilter>("Todos");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("Todos");
+  const [adminEditDialogOpen, setAdminEditDialogOpen] = useState(false);
+  const [selectedScholarForEdit, setSelectedScholarForEdit] = useState<ScholarData | null>(null);
 
   const fetchScholars = async () => {
     setLoading(true);
@@ -111,7 +117,7 @@ export function ScholarsTableFiltered() {
       // Fetch profiles for scholars
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email, cpf, is_active, origin, created_at")
+        .select("user_id, full_name, email, cpf, phone, is_active, origin, created_at")
         .in("user_id", scholarUserIds);
 
       if (profilesError) throw profilesError;
@@ -182,6 +188,7 @@ export function ScholarsTableFiltered() {
           fullName: profile.full_name,
           email: profile.email,
           cpf: profile.cpf,
+          phone: profile.phone,
           isActive: profile.is_active,
           projectTitle: project?.title || null,
           projectCode: project?.code || null,
@@ -655,6 +662,21 @@ export function ScholarsTableFiltered() {
                               <Edit className="w-4 h-4" />
                               Editar
                             </DropdownMenuItem>
+                            {isAdmin && isAdminMasterMode && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="gap-2 text-destructive focus:text-destructive"
+                                  onClick={() => {
+                                    setSelectedScholarForEdit(scholar);
+                                    setAdminEditDialogOpen(true);
+                                  }}
+                                >
+                                  <ShieldAlert className="w-4 h-4" />
+                                  Editar Perfil (Admin)
+                                </DropdownMenuItem>
+                              </>
+                            )}
                             {isAdmin && (
                               <>
                                 <DropdownMenuSeparator />
@@ -691,6 +713,14 @@ export function ScholarsTableFiltered() {
           setSelectedIds(new Set());
           fetchScholars();
         }}
+      />
+
+      {/* Admin Edit Scholar Dialog */}
+      <AdminEditScholarDialog
+        open={adminEditDialogOpen}
+        onOpenChange={setAdminEditDialogOpen}
+        scholar={selectedScholarForEdit}
+        onSuccess={fetchScholars}
       />
     </div>
   );

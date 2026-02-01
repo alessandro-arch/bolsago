@@ -1,16 +1,9 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
-import { ManagerGreeting } from "@/components/dashboard/ManagerGreeting";
+import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
 import { KPICards } from "@/components/dashboard/KPICards";
-import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
 import { WorkflowBanner } from "@/components/dashboard/WorkflowBanner";
-import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
-
-const daySummary = {
-  pendingReports: 34,
-  paymentsToRelease: 142,
-  newScholars: 5,
-};
+import { InstallmentsTable } from "@/components/scholar/InstallmentsTable";
 
 const Index = () => {
   return (
@@ -21,9 +14,9 @@ const Index = () => {
         <Header />
         
         <main className="flex-1 p-6 overflow-auto">
-          {/* Manager Greeting */}
+          {/* Scholar Greeting */}
           <div className="animate-fade-in">
-            <ManagerGreeting managerName="Dr. Ricardo" summary={daySummary} />
+            <ScholarGreeting />
           </div>
 
           {/* KPI Cards */}
@@ -31,19 +24,14 @@ const Index = () => {
             <KPICards />
           </div>
 
-          {/* Alerts Banner */}
-          <div className="animate-fade-in" style={{ animationDelay: "125ms" }}>
-            <AlertsBanner />
-          </div>
-
           {/* Workflow Banner */}
           <div className="animate-fade-in" style={{ animationDelay: "150ms" }}>
             <WorkflowBanner />
           </div>
 
-          {/* Scholars Table */}
+          {/* Installments Table */}
           <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
-            <ScholarsTableFiltered />
+            <InstallmentsTable />
           </div>
         </main>
       </div>

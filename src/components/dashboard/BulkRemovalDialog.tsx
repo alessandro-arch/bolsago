@@ -12,10 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, AlertTriangle, Trash2, UserX, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, AlertTriangle, Trash2, UserX, CheckCircle2, XCircle, AlertCircle, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuditLog } from "@/hooks/useAuditLog";
 
 interface UserEligibility {
   userId: string;
@@ -55,6 +58,10 @@ export function BulkRemovalDialog({
   const [deactivateIneligible, setDeactivateIneligible] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [confirmationInput, setConfirmationInput] = useState("");
+  const { logAction } = useAuditLog();
+
+  const CONFIRMATION_WORD = "REMOVER";
 
   const eligibleForDeletion = eligibilityData.filter(u => u.canDelete);
   const ineligibleForDeletion = eligibilityData.filter(u => !u.canDelete);
@@ -68,6 +75,7 @@ export function BulkRemovalDialog({
       setDeactivateIneligible(false);
       setShowResult(false);
       setResult(null);
+      setConfirmationInput("");
     }
   }, [open, selectedUserIds]);
 
@@ -205,18 +213,48 @@ export function BulkRemovalDialog({
         actionResult.ignoredNames = ineligibleForDeletion.map(u => u.fullName || u.email || "Usuário");
       }
 
-      // Log the action for audit
+      // Log the action to audit_logs table
+      if (actionResult.deleted > 0) {
+        await logAction({
+          action: "bulk_delete",
+          entityType: "user",
+          details: {
+            total_selected: selectedUserIds.length,
+            deleted_count: actionResult.deleted,
+            deleted_names: actionResult.deletedNames,
+          },
+          previousValue: {
+            user_ids: eligibleForDeletion.map(u => u.userId),
+          },
+          newValue: null,
+        });
+      }
+
+      if (actionResult.deactivated > 0) {
+        await logAction({
+          action: "bulk_deactivate",
+          entityType: "user",
+          details: {
+            total_selected: selectedUserIds.length,
+            deactivated_count: actionResult.deactivated,
+            deactivated_names: actionResult.deactivatedNames,
+          },
+          previousValue: {
+            status: "active",
+            user_ids: ineligibleForDeletion.map(u => u.userId),
+          },
+          newValue: {
+            status: "inactive",
+          },
+        });
+      }
+
       console.info("[BULK_ACTION_AUDIT]", {
         timestamp: new Date().toISOString(),
         totalSelected: selectedUserIds.length,
         deleted: actionResult.deleted,
         deactivated: actionResult.deactivated,
         ignored: actionResult.ignored,
-        userIds: {
-          deleted: eligibleForDeletion.filter(u => actionResult.deletedNames.includes(u.fullName || u.email || "")).map(u => u.userId),
-          deactivated: ineligibleForDeletion.filter(u => actionResult.deactivatedNames.includes(u.fullName || u.email || "")).map(u => u.userId),
-          ignored: actionResult.ignoredNames,
-        },
       });
 
       setResult(actionResult);
@@ -427,6 +465,28 @@ export function BulkRemovalDialog({
                       Marque a opção acima para desativar os usuários.
                     </p>
                   )}
+
+                  {/* Confirmation input for critical action */}
+                  {(eligibleForDeletion.length > 0 || deactivateIneligible) && (
+                    <div className="mt-4 p-4 rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Shield className="w-4 h-4 text-destructive" />
+                        <span className="text-sm font-medium text-destructive">Confirmação de Segurança</span>
+                      </div>
+                      <Label htmlFor="confirm-removal" className="text-sm text-muted-foreground">
+                        Digite <span className="font-mono font-bold text-foreground">{CONFIRMATION_WORD}</span> para confirmar:
+                      </Label>
+                      <Input
+                        id="confirm-removal"
+                        value={confirmationInput}
+                        onChange={(e) => setConfirmationInput(e.target.value)}
+                        placeholder={CONFIRMATION_WORD}
+                        className="mt-2 font-mono"
+                        autoComplete="off"
+                        disabled={processing}
+                      />
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -441,7 +501,8 @@ export function BulkRemovalDialog({
             disabled={
               loading || 
               processing || 
-              (eligibleForDeletion.length === 0 && !deactivateIneligible)
+              (eligibleForDeletion.length === 0 && !deactivateIneligible) ||
+              confirmationInput.toUpperCase() !== CONFIRMATION_WORD
             }
             className="gap-2"
           >

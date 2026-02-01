@@ -37,6 +37,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
   Users, 
   Search, 
@@ -485,7 +491,7 @@ export function UsersManagement() {
                       Reativar ({selectedUsers.filter(u => !u.is_active).length})
                     </Button>
                   )}
-                  {isAdmin && (
+                  {isAdmin ? (
                     <Button 
                       variant="destructive" 
                       size="sm" 
@@ -495,6 +501,27 @@ export function UsersManagement() {
                       <Trash2 className="w-4 h-4" />
                       Excluir ({selectedCount})
                     </Button>
+                  ) : (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0}>
+                            <Button 
+                              variant="destructive" 
+                              size="sm" 
+                              disabled
+                              className="gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Excluir ({selectedCount})
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Apenas administradores podem executar esta ação</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               )}
@@ -671,7 +698,7 @@ export function UsersManagement() {
                                       Reativar usuário
                                     </DropdownMenuItem>
                                   )}
-                                  {isAdmin && (
+                                  {isAdmin ? (
                                     <DropdownMenuItem 
                                       className="gap-2 text-destructive focus:text-destructive"
                                       onClick={() => openActionDialog("delete", user.user_id)}
@@ -679,6 +706,25 @@ export function UsersManagement() {
                                       <Trash2 className="w-4 h-4" />
                                       Excluir permanentemente
                                     </DropdownMenuItem>
+                                  ) : (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="w-full">
+                                            <DropdownMenuItem 
+                                              disabled
+                                              className="gap-2 text-muted-foreground cursor-not-allowed"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                              Excluir permanentemente
+                                            </DropdownMenuItem>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left">
+                                          <p>Apenas administradores podem executar esta ação</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </>
                               )}

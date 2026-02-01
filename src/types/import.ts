@@ -22,9 +22,9 @@ export const IMPORT_TYPES: Record<ImportType, ImportTypeConfig> = {
   },
   projects: {
     label: 'Projetos',
-    description: 'Projetos de pesquisa e bolsas',
-    requiredFields: ['code', 'title', 'proponent_name', 'start_date', 'end_date'],
-    optionalFields: ['description', 'proponent_email', 'proponent_cpf', 'modalities'],
+    description: 'Projetos de pesquisa e bolsas (modelo ICCA)',
+    requiredFields: ['code', 'title', 'proponent_name', 'modalidade_bolsa', 'valor_mensal', 'start_date', 'end_date'],
+    optionalFields: ['orientador'],
   },
   enrollments: {
     label: 'Vínculos',

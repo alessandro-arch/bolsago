@@ -2,7 +2,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
 import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
-import { WorkflowBanner } from "@/components/dashboard/WorkflowBanner";
+import { ScholarWorkflowBanner } from "@/components/scholar/ScholarWorkflowBanner";
 import { InstallmentsTable } from "@/components/scholar/InstallmentsTable";
 
 const Index = () => {
@@ -26,7 +26,7 @@ const Index = () => {
 
           {/* Workflow Banner */}
           <div className="animate-fade-in" style={{ animationDelay: "150ms" }}>
-            <WorkflowBanner />
+            <ScholarWorkflowBanner />
           </div>
 
           {/* Installments Table */}

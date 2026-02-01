@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   User, 
   Mail, 
@@ -10,7 +10,9 @@ import {
   X,
   GraduationCap,
   School,
-  Link2
+  Link2,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface PersonalData {
   name: string;
@@ -56,7 +59,9 @@ interface EditScholarDataDialogProps {
   type: "personal" | "bank";
   personalData?: PersonalData;
   bankData?: BankData;
-  onSave: (data: PersonalData | BankData) => void;
+  cpfLocked?: boolean;
+  onSave: (data: PersonalData | BankData) => Promise<{ success: boolean; error?: string }>;
+  saving?: boolean;
 }
 
 const banks = [
@@ -92,7 +97,9 @@ export function EditScholarDataDialog({
   type,
   personalData,
   bankData,
+  cpfLocked = false,
   onSave,
+  saving: externalSaving = false,
 }: EditScholarDataDialogProps) {
   const [formData, setFormData] = useState<PersonalData | BankData>(
     type === "personal" 
@@ -101,12 +108,27 @@ export function EditScholarDataDialog({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lattesError, setLattesError] = useState("");
+  const [formError, setFormError] = useState("");
+
+  // Reset form when dialog opens with new data
+  useEffect(() => {
+    if (open) {
+      if (type === "personal" && personalData) {
+        setFormData(personalData);
+      } else if (type === "bank" && bankData) {
+        setFormData(bankData);
+      }
+      setFormError("");
+      setLattesError("");
+    }
+  }, [open, type, personalData, bankData]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field === "lattesUrl") {
       setLattesError("");
     }
+    setFormError("");
   };
 
   const validateLattesUrl = (url: string): boolean => {
@@ -121,6 +143,7 @@ export function EditScholarDataDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
     
     // Validate Lattes URL if provided
     if (type === "personal") {
@@ -133,19 +156,27 @@ export function EditScholarDataDialog({
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    onSave(formData);
-    setIsSubmitting(false);
-    onOpenChange(false);
-    
-    toast({
-      title: "Dados atualizados",
-      description: type === "personal" 
-        ? "Seus dados pessoais foram atualizados com sucesso."
-        : "Seus dados bancários foram atualizados com sucesso. A validação será realizada em até 48h.",
-    });
+    try {
+      const result = await onSave(formData);
+      
+      if (result.success) {
+        toast.success(
+          type === "personal" 
+            ? "Dados pessoais atualizados com sucesso!"
+            : "Dados bancários atualizados com sucesso. A validação será realizada em até 48h."
+        );
+        onOpenChange(false);
+      } else {
+        setFormError(result.error || "Erro ao salvar dados. Tente novamente.");
+        toast.error(result.error || "Erro ao salvar dados");
+      }
+    } catch (err) {
+      console.error("Error saving data:", err);
+      setFormError("Erro inesperado. Tente novamente.");
+      toast.error("Erro inesperado ao salvar dados");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatCPF = (value: string) => {
@@ -168,6 +199,8 @@ export function EditScholarDataDialog({
       .replace(/(\d{5})(\d)/, "$1-$2");
   };
 
+  const isSaving = isSubmitting || externalSaving;
+
   if (type === "personal") {
     const data = formData as PersonalData;
     return (
@@ -180,9 +213,16 @@ export function EditScholarDataDialog({
                 Editar Dados Pessoais
               </DialogTitle>
               <DialogDescription>
-                Atualize suas informações pessoais. O CPF não pode ser alterado.
+                Atualize suas informações pessoais. Os dados serão salvos no sistema.
               </DialogDescription>
             </DialogHeader>
+
+            {formError && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{formError}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
@@ -195,6 +235,7 @@ export function EditScholarDataDialog({
                   value={data.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   placeholder="Seu nome completo"
+                  required
                 />
               </div>
 
@@ -203,16 +244,33 @@ export function EditScholarDataDialog({
                   <CreditCard className="w-4 h-4" />
                   CPF
                 </Label>
-              <Input
-                  id="cpf"
-                  value={data.cpf}
-                  readOnly
-                  disabled
-                  className="bg-muted cursor-not-allowed opacity-70"
-                />
-                <p className="text-xs text-muted-foreground">
-                  O CPF não pode ser alterado pelo bolsista. Caso necessário, solicite ao gestor responsável.
-                </p>
+                {cpfLocked ? (
+                  <>
+                    <Input
+                      id="cpf"
+                      value={data.cpf}
+                      readOnly
+                      disabled
+                      className="bg-muted cursor-not-allowed opacity-70"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      O CPF não pode ser alterado pelo bolsista. Caso necessário, solicite ao gestor responsável.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      id="cpf"
+                      value={data.cpf}
+                      onChange={(e) => handleChange("cpf", formatCPF(e.target.value))}
+                      placeholder="000.000.000-00"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Atenção: Após salvar, o CPF não poderá ser alterado.
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -224,9 +282,13 @@ export function EditScholarDataDialog({
                   id="email"
                   type="email"
                   value={data.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                  placeholder="seu.email@exemplo.com"
+                  readOnly
+                  disabled
+                  className="bg-muted cursor-not-allowed opacity-70"
                 />
+                <p className="text-xs text-muted-foreground">
+                  O e-mail é vinculado à sua conta e não pode ser alterado.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -299,13 +361,22 @@ export function EditScholarDataDialog({
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
                 <X className="w-4 h-4 mr-2" />
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                <Save className="w-4 h-4 mr-2" />
-                {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar Alterações
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -329,13 +400,20 @@ export function EditScholarDataDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {formError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="bankName" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 Banco
               </Label>
-              <Select value={data.bankName} onValueChange={(value) => handleChange("bankName", value)}>
+              <Select value={data.bankName} onValueChange={(value) => handleChange("bankName", value)} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o banco" />
                 </SelectTrigger>
@@ -360,6 +438,7 @@ export function EditScholarDataDialog({
                   value={data.agency}
                   onChange={(e) => handleChange("agency", e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="0000-0"
+                  required
                 />
               </div>
 
@@ -373,6 +452,7 @@ export function EditScholarDataDialog({
                   value={data.account}
                   onChange={(e) => handleChange("account", e.target.value.replace(/\D/g, "").slice(0, 12))}
                   placeholder="00000-0"
+                  required
                 />
               </div>
             </div>
@@ -382,7 +462,7 @@ export function EditScholarDataDialog({
                 <CreditCard className="w-4 h-4" />
                 Tipo de Conta
               </Label>
-              <Select value={data.accountType} onValueChange={(value) => handleChange("accountType", value)}>
+              <Select value={data.accountType} onValueChange={(value) => handleChange("accountType", value)} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
@@ -421,13 +501,22 @@ export function EditScholarDataDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
               <X className="w-4 h-4 mr-2" />
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              <Save className="w-4 h-4 mr-2" />
-              {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

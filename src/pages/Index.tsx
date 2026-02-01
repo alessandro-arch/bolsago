@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
 import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
 import { ScholarWorkflowBanner } from "@/components/scholar/ScholarWorkflowBanner";
@@ -91,6 +92,7 @@ const Index = () => {
             </>
           )}
         </main>
+        <Footer />
       </div>
     </div>
   );

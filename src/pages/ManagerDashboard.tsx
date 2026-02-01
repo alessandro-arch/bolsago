@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { ManagerGreeting } from "@/components/dashboard/ManagerGreeting";
 import { ConsolidatedKPICards } from "@/components/dashboard/ConsolidatedKPICards";
 import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
@@ -57,6 +58,7 @@ const ManagerDashboard = () => {
             <UsersManagement />
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

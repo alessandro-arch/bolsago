@@ -173,9 +173,21 @@ export default function Auth() {
         </Card>
 
         {/* Footer info */}
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-2">
           <p className="text-xs text-muted-foreground">
             Ao acessar, você concorda com os termos de uso do sistema.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            © ICCA – Instituto de Inovação, Conhecimento e Ciências Aplicadas (
+            <a 
+              href="https://www.icca.org.br" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
+            >
+              www.icca.org.br
+            </a>
+            )
           </p>
         </div>
       </div>

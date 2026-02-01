@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckSquare, Square, UserX, Loader2, X, RefreshCw, Calendar, Upload, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ function StatusBadge({ status, config }: { status: string; config: { label: stri
 }
 
 export function ScholarsTableFiltered() {
+  const navigate = useNavigate();
   const { hasManagerAccess, isAdmin } = useUserRole();
   const { isAdminMasterMode } = useAdminMasterMode();
   const [scholars, setScholars] = useState<ScholarData[]>([]);
@@ -654,11 +656,17 @@ export function ScholarsTableFiltered() {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-popover">
-                            <DropdownMenuItem className="gap-2">
+                            <DropdownMenuItem 
+                              className="gap-2"
+                              onClick={() => navigate(`/perfil-bolsista/${scholar.userId}`)}
+                            >
                               <Eye className="w-4 h-4" />
                               Ver perfil
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2">
+                            <DropdownMenuItem 
+                              className="gap-2"
+                              onClick={() => navigate(`/perfil-bolsista/${scholar.userId}`)}
+                            >
                               <Edit className="w-4 h-4" />
                               Editar
                             </DropdownMenuItem>

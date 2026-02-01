@@ -14,6 +14,158 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_accounts: {
+        Row: {
+          account_number: string
+          account_type: string | null
+          agency: string
+          bank_code: string
+          bank_name: string
+          created_at: string
+          id: string
+          pix_key: string | null
+          pix_key_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_number: string
+          account_type?: string | null
+          agency: string
+          bank_code: string
+          bank_name: string
+          created_at?: string
+          id?: string
+          pix_key?: string | null
+          pix_key_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_number?: string
+          account_type?: string | null
+          agency?: string
+          bank_code?: string
+          bank_name?: string
+          created_at?: string
+          id?: string
+          pix_key?: string | null
+          pix_key_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      enrollments: {
+        Row: {
+          created_at: string
+          end_date: string
+          grant_value: number
+          id: string
+          modality: Database["public"]["Enums"]["grant_modality"]
+          observations: string | null
+          project_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["enrollment_status"]
+          total_installments: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          grant_value: number
+          id?: string
+          modality: Database["public"]["Enums"]["grant_modality"]
+          observations?: string | null
+          project_id: string
+          start_date: string
+          status?: Database["public"]["Enums"]["enrollment_status"]
+          total_installments: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          grant_value?: number
+          id?: string
+          modality?: Database["public"]["Enums"]["grant_modality"]
+          observations?: string | null
+          project_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["enrollment_status"]
+          total_installments?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          enrollment_id: string
+          id: string
+          installment_number: number
+          paid_at: string | null
+          reference_month: string
+          report_id: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          enrollment_id: string
+          id?: string
+          installment_number: number
+          paid_at?: string | null
+          reference_month: string
+          report_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          enrollment_id?: string
+          id?: string
+          installment_number?: number
+          paid_at?: string | null
+          reference_month?: string
+          report_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -47,6 +199,51 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          modalities: Database["public"]["Enums"]["grant_modality"][] | null
+          proponent_cpf: string | null
+          proponent_email: string | null
+          proponent_name: string
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          modalities?: Database["public"]["Enums"]["grant_modality"][] | null
+          proponent_cpf?: string | null
+          proponent_email?: string | null
+          proponent_name: string
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          modalities?: Database["public"]["Enums"]["grant_modality"][] | null
+          proponent_cpf?: string | null
+          proponent_email?: string | null
+          proponent_name?: string
+          start_date?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -131,6 +328,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "scholar"
+      enrollment_status: "active" | "suspended" | "completed" | "cancelled"
+      grant_modality: "ic" | "masters" | "phd" | "postdoc" | "technical"
+      payment_status: "pending" | "eligible" | "paid" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -259,6 +459,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "scholar"],
+      enrollment_status: ["active", "suspended", "completed", "cancelled"],
+      grant_modality: ["ic", "masters", "phd", "postdoc", "technical"],
+      payment_status: ["pending", "eligible", "paid", "cancelled"],
     },
   },
 } as const

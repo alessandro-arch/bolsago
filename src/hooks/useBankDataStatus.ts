@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type BankDataStatus = "not_filled" | "pending" | "validated" | "rejected";
+export type BankDataStatus = "not_filled" | "pending" | "under_review" | "validated" | "returned" | "rejected";
 
 interface BankData {
   bankName: string;
@@ -16,6 +16,8 @@ interface UseBankDataStatusReturn {
   status: BankDataStatus;
   bankData: BankData | null;
   loading: boolean;
+  lockedForEdit: boolean;
+  notesGestor: string | null;
   refetch: () => Promise<void>;
 }
 
@@ -24,6 +26,8 @@ export function useBankDataStatus(): UseBankDataStatusReturn {
   const [status, setStatus] = useState<BankDataStatus>("not_filled");
   const [bankData, setBankData] = useState<BankData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lockedForEdit, setLockedForEdit] = useState(false);
+  const [notesGestor, setNotesGestor] = useState<string | null>(null);
 
   const fetchBankData = async () => {
     if (!user?.id) {
@@ -42,13 +46,16 @@ export function useBankDataStatus(): UseBankDataStatusReturn {
         console.error("Error fetching bank data:", error);
         setStatus("not_filled");
         setBankData(null);
+        setLockedForEdit(false);
+        setNotesGestor(null);
       } else if (!data) {
         // No bank data found
         setStatus("not_filled");
         setBankData(null);
+        setLockedForEdit(false);
+        setNotesGestor(null);
       } else {
-        // Bank data exists - for now, set as pending since there's no validation_status column yet
-        // This can be updated when the validation workflow is implemented
+        // Bank data exists - use the validation_status from DB
         setBankData({
           bankName: data.bank_name,
           agency: data.agency,
@@ -56,13 +63,31 @@ export function useBankDataStatus(): UseBankDataStatusReturn {
           accountType: data.account_type || "",
           pixKey: data.pix_key || "",
         });
-        // Default to pending when data exists but no validation status is stored
-        setStatus("pending");
+        
+        // Map database status to our status type
+        const dbStatus = (data as any).validation_status as string | undefined;
+        if (dbStatus === 'pending') {
+          setStatus("pending");
+        } else if (dbStatus === 'under_review') {
+          setStatus("under_review");
+        } else if (dbStatus === 'validated') {
+          setStatus("validated");
+        } else if (dbStatus === 'returned') {
+          setStatus("returned");
+        } else {
+          // Default to pending for backwards compatibility
+          setStatus("pending");
+        }
+        
+        setLockedForEdit((data as any).locked_for_edit ?? false);
+        setNotesGestor((data as any).notes_gestor ?? null);
       }
     } catch (err) {
       console.error("Error in fetchBankData:", err);
       setStatus("not_filled");
       setBankData(null);
+      setLockedForEdit(false);
+      setNotesGestor(null);
     } finally {
       setLoading(false);
     }
@@ -76,6 +101,8 @@ export function useBankDataStatus(): UseBankDataStatusReturn {
     status,
     bankData,
     loading,
+    lockedForEdit,
+    notesGestor,
     refetch: fetchBankData,
   };
 }

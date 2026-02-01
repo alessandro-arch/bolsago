@@ -5,11 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { GraduationCap, AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
+import logoIcca from "@/assets/logo-icca.png";
 
 type AuthView = "login" | "signup" | "forgot-password" | "reset-password";
 
@@ -106,11 +107,13 @@ export default function Auth() {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <GraduationCap className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Portal do Bolsista</h1>
-          <p className="text-muted-foreground mt-2">
+          <img 
+            src={logoIcca} 
+            alt="ICCA - Instituto de Inovação, Conhecimento e Ciências Aplicadas" 
+            className="h-16 mx-auto mb-4"
+          />
+          <h1 className="text-xl font-bold text-foreground">Bolsa Conecta</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>

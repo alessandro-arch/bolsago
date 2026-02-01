@@ -27,17 +27,17 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     }
     
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    
+    // Always attempt to send the reset email
+    // We intentionally ignore errors to prevent email enumeration attacks
+    await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth?recovery=true`,
     });
+    
     setLoading(false);
     
-    if (error) {
-      setError("Erro ao enviar email de recuperação. Tente novamente.");
-      return;
-    }
-    
-    setSuccess("Email de recuperação enviado! Verifique sua caixa de entrada e clique no link para redefinir sua senha.");
+    // Always show generic success message to prevent revealing if email exists
+    setSuccess("Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha. O link expira em 1 hora.");
     setEmail("");
   };
 

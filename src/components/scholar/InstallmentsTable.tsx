@@ -9,7 +9,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +29,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { ReportVersionsDialog, type ReportVersion } from "./ReportVersionsDialog";
 
-type ReportStatus = "pending" | "submitted" | "approved" | "rejected";
-type PaymentStatus = "blocked" | "released" | "processing" | "paid";
+type ReportStatus = "pending" | "submitted" | "under_review" | "approved" | "rejected";
+type PaymentStatus = "blocked" | "eligible" | "processing" | "paid";
 
 interface Installment {
   id: string;
@@ -41,33 +43,160 @@ interface Installment {
   paymentStatus: PaymentStatus;
   paymentDate?: string;
   feedback?: string;
+  isFirstInstallment?: boolean;
+  versions?: ReportVersion[];
 }
 
 const installments: Installment[] = [
-  { id: "1", number: 1, referenceMonth: "Janeiro/2024", value: 700, reportStatus: "approved", paymentStatus: "paid", paymentDate: "10/02/2024" },
-  { id: "2", number: 2, referenceMonth: "Fevereiro/2024", value: 700, reportStatus: "approved", paymentStatus: "paid", paymentDate: "08/03/2024" },
-  { id: "3", number: 3, referenceMonth: "Março/2024", value: 700, reportStatus: "approved", paymentStatus: "paid", paymentDate: "10/04/2024" },
-  { id: "4", number: 4, referenceMonth: "Abril/2024", value: 700, reportStatus: "approved", paymentStatus: "paid", paymentDate: "09/05/2024" },
-  { id: "5", number: 5, referenceMonth: "Maio/2024", value: 700, reportStatus: "approved", paymentStatus: "paid", paymentDate: "10/06/2024" },
-  { id: "6", number: 6, referenceMonth: "Junho/2024", value: 700, reportStatus: "approved", paymentStatus: "paid", paymentDate: "08/07/2024" },
-  { id: "7", number: 7, referenceMonth: "Julho/2024", value: 700, reportStatus: "approved", paymentStatus: "paid", paymentDate: "09/08/2024" },
-  { id: "8", number: 8, referenceMonth: "Agosto/2024", value: 700, reportStatus: "submitted", paymentStatus: "processing" },
-  { id: "9", number: 9, referenceMonth: "Setembro/2024", value: 700, reportStatus: "rejected", paymentStatus: "blocked", feedback: "Relatório incompleto. Faltam informações sobre as atividades realizadas na segunda quinzena do mês." },
-  { id: "10", number: 10, referenceMonth: "Outubro/2024", value: 700, reportStatus: "pending", paymentStatus: "blocked" },
-  { id: "11", number: 11, referenceMonth: "Novembro/2024", value: 700, reportStatus: "pending", paymentStatus: "blocked" },
-  { id: "12", number: 12, referenceMonth: "Dezembro/2024", value: 700, reportStatus: "pending", paymentStatus: "blocked" },
+  { 
+    id: "1", 
+    number: 1, 
+    referenceMonth: "Janeiro/2024", 
+    value: 700, 
+    reportStatus: "approved", 
+    paymentStatus: "paid", 
+    paymentDate: "10/02/2024",
+    isFirstInstallment: true,
+    versions: [
+      { id: "v1", version: 1, submittedAt: "05/01/2024", status: "approved" }
+    ]
+  },
+  { 
+    id: "2", 
+    number: 2, 
+    referenceMonth: "Fevereiro/2024", 
+    value: 700, 
+    reportStatus: "approved", 
+    paymentStatus: "paid", 
+    paymentDate: "08/03/2024",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "08/02/2024", status: "approved" }
+    ]
+  },
+  { 
+    id: "3", 
+    number: 3, 
+    referenceMonth: "Março/2024", 
+    value: 700, 
+    reportStatus: "approved", 
+    paymentStatus: "paid", 
+    paymentDate: "10/04/2024",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "09/03/2024", status: "approved" }
+    ]
+  },
+  { 
+    id: "4", 
+    number: 4, 
+    referenceMonth: "Abril/2024", 
+    value: 700, 
+    reportStatus: "approved", 
+    paymentStatus: "paid", 
+    paymentDate: "09/05/2024",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "10/04/2024", status: "approved" }
+    ]
+  },
+  { 
+    id: "5", 
+    number: 5, 
+    referenceMonth: "Maio/2024", 
+    value: 700, 
+    reportStatus: "approved", 
+    paymentStatus: "paid", 
+    paymentDate: "10/06/2024",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "10/05/2024", status: "approved" }
+    ]
+  },
+  { 
+    id: "6", 
+    number: 6, 
+    referenceMonth: "Junho/2024", 
+    value: 700, 
+    reportStatus: "approved", 
+    paymentStatus: "paid", 
+    paymentDate: "08/07/2024",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "09/06/2024", status: "approved" }
+    ]
+  },
+  { 
+    id: "7", 
+    number: 7, 
+    referenceMonth: "Julho/2024", 
+    value: 700, 
+    reportStatus: "approved", 
+    paymentStatus: "paid", 
+    paymentDate: "09/08/2024",
+    versions: [
+      { id: "v2", version: 2, submittedAt: "08/07/2024", status: "approved" },
+      { id: "v1", version: 1, submittedAt: "05/07/2024", status: "rejected", feedback: "Faltou descrição das atividades da segunda quinzena." }
+    ]
+  },
+  { 
+    id: "8", 
+    number: 8, 
+    referenceMonth: "Agosto/2024", 
+    value: 700, 
+    reportStatus: "under_review", 
+    paymentStatus: "blocked",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "10/08/2024", status: "under_review" }
+    ]
+  },
+  { 
+    id: "9", 
+    number: 9, 
+    referenceMonth: "Setembro/2024", 
+    value: 700, 
+    reportStatus: "rejected", 
+    paymentStatus: "blocked", 
+    feedback: "Relatório incompleto. Faltam informações sobre as atividades realizadas na segunda quinzena do mês.",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "10/09/2024", status: "rejected", feedback: "Relatório incompleto. Faltam informações sobre as atividades realizadas na segunda quinzena do mês." }
+    ]
+  },
+  { 
+    id: "10", 
+    number: 10, 
+    referenceMonth: "Outubro/2024", 
+    value: 700, 
+    reportStatus: "submitted", 
+    paymentStatus: "blocked",
+    versions: [
+      { id: "v1", version: 1, submittedAt: "10/10/2024", status: "under_review" }
+    ]
+  },
+  { 
+    id: "11", 
+    number: 11, 
+    referenceMonth: "Novembro/2024", 
+    value: 700, 
+    reportStatus: "pending", 
+    paymentStatus: "blocked" 
+  },
+  { 
+    id: "12", 
+    number: 12, 
+    referenceMonth: "Dezembro/2024", 
+    value: 700, 
+    reportStatus: "pending", 
+    paymentStatus: "blocked" 
+  },
 ];
 
 const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning" },
   submitted: { label: "Enviado", icon: FileUp, className: "bg-info/10 text-info" },
+  under_review: { label: "Em Análise", icon: Search, className: "bg-primary/10 text-primary" },
   approved: { label: "Aprovado", icon: CheckCircle, className: "bg-success/10 text-success" },
-  rejected: { label: "Rejeitado", icon: XCircle, className: "bg-destructive/10 text-destructive" },
+  rejected: { label: "Devolvido", icon: XCircle, className: "bg-destructive/10 text-destructive" },
 };
 
 const paymentStatusConfig: Record<PaymentStatus, { label: string; className: string }> = {
   blocked: { label: "Bloqueado", className: "bg-muted text-muted-foreground" },
-  released: { label: "Liberado", className: "bg-success/10 text-success" },
+  eligible: { label: "Apto", className: "bg-success/10 text-success" },
   processing: { label: "Processando", className: "bg-info/10 text-info" },
   paid: { label: "Pago", className: "bg-primary/10 text-primary" },
 };
@@ -90,12 +219,13 @@ function StatusBadge({ status, config }: { status: string; config: { label: stri
 
 function InstallmentActions({ installment }: { installment: Installment }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
 
   const canSubmitReport = installment.reportStatus === "pending";
   const canResubmit = installment.reportStatus === "rejected";
   const canViewFeedback = installment.reportStatus === "rejected" && installment.feedback;
   const canDownloadReceipt = installment.paymentStatus === "paid";
-  const hasVersions = installment.reportStatus !== "pending";
+  const hasVersions = installment.versions && installment.versions.length > 0;
 
   return (
     <div className="flex items-center gap-2">
@@ -123,9 +253,12 @@ function InstallmentActions({ installment }: { installment: Installment }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {hasVersions && (
-            <DropdownMenuItem className="gap-2">
+            <DropdownMenuItem 
+              className="gap-2"
+              onSelect={() => setVersionsOpen(true)}
+            >
               <History className="w-4 h-4" />
-              Ver versões
+              Ver versões ({installment.versions?.length})
             </DropdownMenuItem>
           )}
           
@@ -148,7 +281,7 @@ function InstallmentActions({ installment }: { installment: Installment }) {
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium text-destructive mb-1">Relatório Rejeitado</p>
+                      <p className="font-medium text-destructive mb-1">Relatório Devolvido</p>
                       <p className="text-sm text-foreground">{installment.feedback}</p>
                     </div>
                   </div>
@@ -177,6 +310,16 @@ function InstallmentActions({ installment }: { installment: Installment }) {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Versions Dialog */}
+      {hasVersions && (
+        <ReportVersionsDialog
+          open={versionsOpen}
+          onOpenChange={setVersionsOpen}
+          referenceMonth={installment.referenceMonth}
+          versions={installment.versions || []}
+        />
+      )}
     </div>
   );
 }
@@ -205,9 +348,16 @@ export function InstallmentsTable() {
             {installments.map((installment) => (
               <tr key={installment.id}>
                 <td>
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
-                    {installment.number}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
+                      {installment.number}
+                    </span>
+                    {installment.isFirstInstallment && (
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                        Auto
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="font-medium text-foreground">{installment.referenceMonth}</td>
                 <td className="font-medium text-foreground">{formatCurrency(installment.value)}</td>

@@ -58,32 +58,33 @@ interface ScholarData {
   };
 }
 
-const scholarData: ScholarData = {
+// Initial empty data - only name, cpf and email come from registration
+const getInitialScholarData = (): ScholarData => ({
   personal: {
-    name: "Ana Carolina Silva",
-    cpf: "123.456.789-00",
-    email: "ana.silva@email.com",
-    phone: "(11) 98765-4321",
+    name: "", // Will be loaded from profile
+    cpf: "", // Will be loaded from profile
+    email: "", // Will be loaded from profile
+    phone: "", // Empty - user must fill
   },
   project: {
-    name: "IA Aplicada à Saúde",
-    proponent: "Dr. Ricardo Mendes",
-    startDate: "01/01/2026",
-    endDate: "31/12/2026",
-    totalValue: 8400,
-    monthlyValue: 700,
-    installments: 12,
-    progress: 75,
+    name: "",
+    proponent: "",
+    startDate: "",
+    endDate: "",
+    totalValue: 0,
+    monthlyValue: 0,
+    installments: 0,
+    progress: 0,
   },
   bank: {
-    bankName: "Banco do Brasil",
-    agency: "1234-5",
-    account: "12345-6",
-    accountType: "Conta Corrente",
-    pixKey: "ana.silva@email.com",
-    validationStatus: "validated",
+    bankName: "",
+    agency: "",
+    account: "",
+    accountType: "",
+    pixKey: "",
+    validationStatus: "pending",
   },
-};
+});
 
 function maskCPF(cpf: string): string {
   return cpf.replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, "***.$2.***-**");
@@ -177,19 +178,23 @@ export function ScholarDataCards() {
   const [showSensitive, setShowSensitive] = useState(false);
   const [editPersonalOpen, setEditPersonalOpen] = useState(false);
   const [editBankOpen, setEditBankOpen] = useState(false);
-  const [personalData, setPersonalData] = useState(scholarData.personal);
-  const [bankData, setBankData] = useState(scholarData.bank);
+  
+  // Initialize with empty data - only name, cpf and email will be loaded from profile
+  const initialData = getInitialScholarData();
+  const [personalData, setPersonalData] = useState(initialData.personal);
+  const [bankData, setBankData] = useState(initialData.bank);
+  const [projectData] = useState(initialData.project);
 
   const validationConfig = validationStatusConfig[bankData.validationStatus];
   const ValidationIcon = validationConfig.icon;
 
-  const handleSavePersonal = (data: typeof scholarData.personal) => {
-    setPersonalData(data as typeof scholarData.personal);
+  const handleSavePersonal = (data: typeof initialData.personal) => {
+    setPersonalData(data as typeof initialData.personal);
   };
 
-  const handleSaveBank = (data: typeof scholarData.bank) => {
+  const handleSaveBank = (data: typeof initialData.bank) => {
     setBankData({
-      ...data as typeof scholarData.bank,
+      ...data as typeof initialData.bank,
       validationStatus: "pending", // Reset to pending after edit
     });
   };
@@ -298,42 +303,44 @@ export function ScholarDataCards() {
             <DataRow 
               icon={Briefcase} 
               label="Nome do Projeto" 
-              value={scholarData.project.name} 
+              value={projectData.name || "—"} 
             />
             <DataRow 
               icon={User} 
               label="Proponente" 
-              value={scholarData.project.proponent} 
+              value={projectData.proponent || "—"} 
             />
             <DataRow 
               icon={Calendar} 
               label="Início" 
-              value={scholarData.project.startDate} 
+              value={projectData.startDate || "—"} 
             />
             <DataRow 
               icon={Calendar} 
               label="Fim" 
-              value={scholarData.project.endDate} 
+              value={projectData.endDate || "—"} 
             />
             <DataRow 
               icon={DollarSign} 
               label="Valor Total" 
-              value={formatCurrency(scholarData.project.totalValue)} 
+              value={projectData.totalValue ? formatCurrency(projectData.totalValue) : "—"} 
             />
             <DataRow 
               icon={DollarSign} 
               label="Parcela Mensal" 
-              value={formatCurrency(scholarData.project.monthlyValue)} 
+              value={projectData.monthlyValue ? formatCurrency(projectData.monthlyValue) : "—"} 
             />
             <DataRow 
               icon={Calendar} 
               label="Parcelas" 
-              value={`${scholarData.project.installments} meses`} 
+              value={projectData.installments ? `${projectData.installments} meses` : "—"} 
             />
             
-            <div className="pt-3">
-              <ProgressBar value={scholarData.project.progress} />
-            </div>
+            {projectData.progress > 0 && (
+              <div className="pt-3">
+                <ProgressBar value={projectData.progress} />
+              </div>
+            )}
           </div>
         </div>
 

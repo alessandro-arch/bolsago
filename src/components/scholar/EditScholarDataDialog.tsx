@@ -165,14 +165,15 @@ export function EditScholarDataDialog({
                   <CreditCard className="w-4 h-4" />
                   CPF
                 </Label>
-                <Input
+              <Input
                   id="cpf"
                   value={data.cpf}
+                  readOnly
                   disabled
-                  className="bg-muted cursor-not-allowed"
+                  className="bg-muted cursor-not-allowed opacity-70"
                 />
                 <p className="text-xs text-muted-foreground">
-                  O CPF não pode ser alterado. Entre em contato com o gestor se necessário.
+                  O CPF não pode ser alterado pelo bolsista. Caso necessário, solicite ao gestor responsável.
                 </p>
               </div>
 

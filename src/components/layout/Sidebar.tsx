@@ -18,6 +18,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
+import logoIcca from "@/assets/logo-icca.png";
 
 interface NavItem {
   name: string;
@@ -63,16 +64,25 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-border">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">BolsaGestão</span>
+          <div className="flex items-center gap-3">
+            <img 
+              src={logoIcca} 
+              alt="ICCA" 
+              className="h-8 w-auto"
+            />
+          </div>
+        )}
+        {collapsed && (
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto">
+            <GraduationCap className="w-5 h-5 text-primary-foreground" />
           </div>
         )}
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+          className={cn(
+            "p-1.5 rounded-lg hover:bg-muted transition-colors",
+            collapsed && "absolute right-1"
+          )}
         >
           {collapsed ? (
             <Menu className="w-5 h-5 text-muted-foreground" />
@@ -82,18 +92,23 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Role Badge */}
-      {!collapsed && !loading && (
-        <div className="px-4 py-2 border-b border-border">
-          <span className={cn(
-            "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
-            hasManagerAccess 
-              ? "bg-primary/10 text-primary" 
-              : "bg-info/10 text-info"
-          )}>
-            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-            {hasManagerAccess ? "Gestor" : "Bolsista"}
+      {/* Platform Name & Role Badge */}
+      {!collapsed && (
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Bolsa Conecta
           </span>
+          {!loading && (
+            <span className={cn(
+              "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+              hasManagerAccess 
+                ? "bg-primary/10 text-primary" 
+                : "bg-info/10 text-info"
+            )}>
+              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+              {hasManagerAccess ? "Gestor" : "Bolsista"}
+            </span>
+          )}
         </div>
       )}
 

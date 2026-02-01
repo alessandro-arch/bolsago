@@ -10,6 +10,7 @@ import { AuditExportSection } from "@/components/dashboard/AuditExportSection";
 import { PaymentsSummary } from "@/components/dashboard/PaymentsSummary";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { AdminBanner } from "@/components/admin/AdminBanner";
+import { ProjectsList } from "@/components/projects/ProjectsList";
 
 const ManagerDashboard = () => {
   return (
@@ -46,18 +47,23 @@ const ManagerDashboard = () => {
             <AuditExportSection />
           </div>
 
-          {/* Scholars Table with Advanced Filters */}
+          {/* Projects Management */}
           <div className="animate-fade-in" style={{ animationDelay: "225ms" }}>
+            <ProjectsList />
+          </div>
+
+          {/* Scholars Table with Advanced Filters */}
+          <div className="animate-fade-in" style={{ animationDelay: "250ms" }}>
             <ScholarsTableFiltered />
           </div>
 
           {/* Payments Summary */}
-          <div className="animate-fade-in" style={{ animationDelay: "250ms" }}>
+          <div className="animate-fade-in" style={{ animationDelay: "275ms" }}>
             <PaymentsSummary />
           </div>
 
           {/* Users Management */}
-          <div className="animate-fade-in" style={{ animationDelay: "275ms" }}>
+          <div className="animate-fade-in" style={{ animationDelay: "300ms" }}>
             <UsersManagement />
           </div>
         </main>

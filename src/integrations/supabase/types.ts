@@ -272,6 +272,7 @@ export type Database = {
           orientador: string | null
           proponent_name: string
           start_date: string
+          status: Database["public"]["Enums"]["project_status"]
           title: string
           updated_at: string
           valor_mensal: number
@@ -285,6 +286,7 @@ export type Database = {
           orientador?: string | null
           proponent_name: string
           start_date: string
+          status?: Database["public"]["Enums"]["project_status"]
           title: string
           updated_at?: string
           valor_mensal: number
@@ -298,6 +300,7 @@ export type Database = {
           orientador?: string | null
           proponent_name?: string
           start_date?: string
+          status?: Database["public"]["Enums"]["project_status"]
           title?: string
           updated_at?: string
           valor_mensal?: number
@@ -399,6 +402,7 @@ export type Database = {
         | "prod"
         | "visitor"
       payment_status: "pending" | "eligible" | "paid" | "cancelled"
+      project_status: "active" | "inactive" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -542,6 +546,7 @@ export const Constants = {
         "visitor",
       ],
       payment_status: ["pending", "eligible", "paid", "cancelled"],
+      project_status: ["active", "inactive", "archived"],
     },
   },
 } as const

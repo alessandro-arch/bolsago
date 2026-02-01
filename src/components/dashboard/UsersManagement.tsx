@@ -23,12 +23,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, Search, MoreHorizontal, Shield, GraduationCap, UserX, RefreshCw } from "lucide-react";
+import { Users, Search, MoreHorizontal, Shield, GraduationCap, UserX, RefreshCw, Clock, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { AssignScholarshipDialog } from "./AssignScholarshipDialog";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -49,13 +51,17 @@ const ROLE_CONFIG: Record<AppRole, { label: string; variant: "default" | "second
   scholar: { label: "Bolsista", variant: "outline", icon: <GraduationCap className="w-3 h-3" /> },
 };
 
-type FilterType = "all" | AppRole | "egresso";
+type FilterType = "all" | AppRole | "egresso" | "awaiting";
 
 export function UsersManagement() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<FilterType>("all");
+  
+  // Dialog state
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -118,8 +124,14 @@ export function UsersManagement() {
     if (!matchesSearch) return false;
 
     if (roleFilter === "all") return true;
+    if (roleFilter === "awaiting") {
+      return user.role === "scholar" && !user.has_active_enrollment;
+    }
     if (roleFilter === "egresso") {
       return user.role === "scholar" && !user.has_active_enrollment;
+    }
+    if (roleFilter === "scholar") {
+      return user.role === "scholar" && user.has_active_enrollment;
     }
     return user.role === roleFilter;
   });
@@ -134,142 +146,180 @@ export function UsersManagement() {
       return ROLE_CONFIG[user.role];
     }
     if (user.role === "scholar" && !user.has_active_enrollment) {
-      return { label: "Egresso", variant: "outline" as const, icon: <UserX className="w-3 h-3" /> };
+      return { label: "Aguardando Atribuição", variant: "outline" as const, icon: <Clock className="w-3 h-3" /> };
     }
     return ROLE_CONFIG.scholar;
+  };
+
+  const isAwaitingAssignment = (user: UserWithRole) => {
+    return user.role === "scholar" && !user.has_active_enrollment;
+  };
+
+  const handleAssignScholarship = (user: UserWithRole) => {
+    setSelectedUser(user);
+    setAssignDialogOpen(true);
   };
 
   const stats = {
     total: users.length,
     managers: users.filter(u => u.role === "manager" || u.role === "admin").length,
     scholars: users.filter(u => u.role === "scholar" && u.has_active_enrollment).length,
-    egressos: users.filter(u => u.role === "scholar" && !u.has_active_enrollment).length,
+    awaiting: users.filter(u => u.role === "scholar" && !u.has_active_enrollment).length,
   };
 
   return (
-    <Card className="mt-6">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Users className="w-5 h-5 text-primary" />
+    <>
+      <Card className="mt-6">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Usuários da Plataforma</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {stats.total} usuários • {stats.managers} gestores • {stats.scholars} bolsistas ativos • {stats.awaiting} aguardando atribuição
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg">Usuários da Plataforma</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {stats.total} usuários • {stats.managers} gestores • {stats.scholars} bolsistas • {stats.egressos} egressos
+            <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {/* Filters */}
+          <div className="flex gap-4 mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as FilterType)}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Filtrar por tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="admin">Administradores</SelectItem>
+                <SelectItem value="manager">Gestores</SelectItem>
+                <SelectItem value="scholar">Bolsistas Ativos</SelectItem>
+                <SelectItem value="awaiting">Aguardando Atribuição</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Table */}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Users className="w-12 h-12 text-muted-foreground/50 mb-4" />
+              <h3 className="font-medium text-muted-foreground">Nenhum usuário encontrado</h3>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                {searchTerm || roleFilter !== "all" 
+                  ? "Tente ajustar os filtros de busca"
+                  : "Importe dados via planilha para adicionar usuários"}
               </p>
             </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
-        </div>
-      </CardHeader>
+          ) : (
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Cadastro</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => {
+                    const status = getUserStatus(user);
+                    const awaiting = isAwaitingAssignment(user);
+                    return (
+                      <TableRow key={user.id} className={awaiting ? "bg-warning/5" : ""}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={user.avatar_url || undefined} />
+                              <AvatarFallback className="text-xs">
+                                {getInitials(user.full_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{user.full_name || "Sem nome"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {user.email || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={status.variant} 
+                            className={`gap-1 ${awaiting ? "bg-warning/10 text-warning border-warning/20" : ""}`}
+                          >
+                            {status.icon}
+                            {status.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {awaiting && (
+                                <>
+                                  <DropdownMenuItem 
+                                    className="gap-2 text-primary"
+                                    onClick={() => handleAssignScholarship(user)}
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    Atribuir Bolsa
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
+                              <DropdownMenuItem>Editar perfil</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <CardContent>
-        {/* Filters */}
-        <div className="flex gap-4 mb-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as FilterType)}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filtrar por tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="admin">Administradores</SelectItem>
-              <SelectItem value="manager">Gestores</SelectItem>
-              <SelectItem value="scholar">Bolsistas Ativos</SelectItem>
-              <SelectItem value="egresso">Egressos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Table */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Users className="w-12 h-12 text-muted-foreground/50 mb-4" />
-            <h3 className="font-medium text-muted-foreground">Nenhum usuário encontrado</h3>
-            <p className="text-sm text-muted-foreground/70 mt-1">
-              {searchTerm || roleFilter !== "all" 
-                ? "Tente ajustar os filtros de busca"
-                : "Importe dados via planilha para adicionar usuários"}
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Cadastro</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => {
-                  const status = getUserStatus(user);
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-8 h-8">
-                            <AvatarImage src={user.avatar_url || undefined} />
-                            <AvatarFallback className="text-xs">
-                              {getInitials(user.full_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{user.full_name || "Sem nome"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {user.email || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={status.variant} className="gap-1">
-                          {status.icon}
-                          {status.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString("pt-BR")}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                            <DropdownMenuItem>Editar perfil</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {/* Assign Scholarship Dialog */}
+      {selectedUser && (
+        <AssignScholarshipDialog
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          userId={selectedUser.user_id}
+          userName={selectedUser.full_name}
+          onSuccess={fetchUsers}
+        />
+      )}
+    </>
   );
 }

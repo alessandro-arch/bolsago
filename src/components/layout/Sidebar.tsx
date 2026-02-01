@@ -12,7 +12,8 @@ import {
   Menu,
   Receipt,
   UserCircle,
-  Upload
+  Upload,
+  FolderOpen
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -31,6 +32,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: "Meu Painel", icon: LayoutDashboard, href: "/" },
   { name: "Painel Gestor", icon: Users, href: "/painel-gestor", managerOnly: true },
+  { name: "Projetos Temáticos", icon: FolderOpen, href: "/projetos-tematicos", managerOnly: true },
   { name: "Importar Dados", icon: Upload, href: "/importar", managerOnly: true },
   { name: "Meu Perfil", icon: UserCircle, href: "/perfil-bolsista" },
   { name: "Meus Pagamentos", icon: Receipt, href: "/pagamentos-relatorios" },

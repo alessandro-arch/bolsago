@@ -271,6 +271,7 @@ export type Database = {
           end_date: string
           id: string
           modalidade_bolsa: string | null
+          observacoes: string | null
           start_date: string
           status: Database["public"]["Enums"]["project_status"]
           title: string
@@ -285,6 +286,7 @@ export type Database = {
           end_date: string
           id?: string
           modalidade_bolsa?: string | null
+          observacoes?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["project_status"]
           title: string
@@ -299,6 +301,7 @@ export type Database = {
           end_date?: string
           id?: string
           modalidade_bolsa?: string | null
+          observacoes?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["project_status"]
           title?: string

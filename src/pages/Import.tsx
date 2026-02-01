@@ -214,6 +214,7 @@ export default function Import() {
           const updateData: Record<string, unknown> = {
             full_name: row.data.full_name,
             phone: row.data.phone || null,
+            origin: 'import', // Mark as imported on update too
           };
 
           const { error } = await supabase

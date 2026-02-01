@@ -7,7 +7,10 @@ import {
   Building2, 
   Key,
   Save,
-  X
+  X,
+  GraduationCap,
+  School,
+  Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,14 +32,17 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 
-interface PersonalData {
+export interface PersonalData {
   name: string;
   cpf: string;
   email: string;
   phone: string;
+  institution: string;
+  academicLevel: string;
+  lattesUrl: string;
 }
 
-interface BankData {
+export interface BankData {
   bankName: string;
   agency: string;
   account: string;
@@ -72,6 +78,14 @@ const accountTypes = [
   "Conta Salário",
 ];
 
+const academicLevels = [
+  { value: "ensino_medio_completo", label: "Ensino Médio Completo" },
+  { value: "graduado", label: "Graduado" },
+  { value: "mestrado", label: "Mestrado" },
+  { value: "doutorado", label: "Doutorado" },
+  { value: "pos_doutorado", label: "Pós-Doutorado" },
+];
+
 export function EditScholarDataDialog({
   open,
   onOpenChange,
@@ -82,17 +96,41 @@ export function EditScholarDataDialog({
 }: EditScholarDataDialogProps) {
   const [formData, setFormData] = useState<PersonalData | BankData>(
     type === "personal" 
-      ? personalData || { name: "", cpf: "", email: "", phone: "" }
+      ? personalData || { name: "", cpf: "", email: "", phone: "", institution: "", academicLevel: "", lattesUrl: "" }
       : bankData || { bankName: "", agency: "", account: "", accountType: "", pixKey: "" }
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lattesError, setLattesError] = useState("");
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === "lattesUrl") {
+      setLattesError("");
+    }
+  };
+
+  const validateLattesUrl = (url: string): boolean => {
+    if (!url) return true; // Optional field
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === "http:" || urlObj.protocol === "https:";
+    } catch {
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate Lattes URL if provided
+    if (type === "personal") {
+      const data = formData as PersonalData;
+      if (data.lattesUrl && !validateLattesUrl(data.lattesUrl)) {
+        setLattesError("URL inválida. Informe uma URL válida (ex: http://lattes.cnpq.br/...)");
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
     
     // Simulate API call
@@ -202,6 +240,61 @@ export function EditScholarDataDialog({
                   onChange={(e) => handleChange("phone", formatPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="institution" className="flex items-center gap-2">
+                  <School className="w-4 h-4" />
+                  Instituição de Vínculo
+                </Label>
+                <Input
+                  id="institution"
+                  value={data.institution}
+                  onChange={(e) => handleChange("institution", e.target.value)}
+                  placeholder="Ex: Universidade Vila Velha, UFES, IFES..."
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="academicLevel" className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  Nível Acadêmico Atual
+                </Label>
+                <Select value={data.academicLevel} onValueChange={(value) => handleChange("academicLevel", value)} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o nível acadêmico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicLevels.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lattesUrl" className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4" />
+                  Link do Currículo Lattes
+                </Label>
+                <Input
+                  id="lattesUrl"
+                  type="url"
+                  value={data.lattesUrl}
+                  onChange={(e) => handleChange("lattesUrl", e.target.value)}
+                  placeholder="http://lattes.cnpq.br/..."
+                  className={lattesError ? "border-destructive" : ""}
+                />
+                {lattesError ? (
+                  <p className="text-xs text-destructive">{lattesError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Informe o link do seu Currículo Lattes (se aplicável)
+                  </p>
+                )}
               </div>
             </div>
 

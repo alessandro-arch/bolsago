@@ -168,37 +168,46 @@ export type Database = {
       }
       profiles: {
         Row: {
+          academic_level: string | null
           avatar_url: string | null
           cpf: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          institution: string | null
           is_active: boolean
+          lattes_url: string | null
           phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          academic_level?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          institution?: string | null
           is_active?: boolean
+          lattes_url?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          academic_level?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          institution?: string | null
           is_active?: boolean
+          lattes_url?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string

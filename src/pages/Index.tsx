@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
 import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
 import { ScholarWorkflowBanner } from "@/components/scholar/ScholarWorkflowBanner";
+import { GrantTermSection } from "@/components/scholar/GrantTermSection";
 import { InstallmentsTable } from "@/components/scholar/InstallmentsTable";
 
 const Index = () => {
@@ -27,6 +28,11 @@ const Index = () => {
           {/* Workflow Banner */}
           <div className="animate-fade-in" style={{ animationDelay: "150ms" }}>
             <ScholarWorkflowBanner />
+          </div>
+
+          {/* Grant Term Section */}
+          <div className="animate-fade-in" style={{ animationDelay: "175ms" }}>
+            <GrantTermSection />
           </div>
 
           {/* Installments Table */}

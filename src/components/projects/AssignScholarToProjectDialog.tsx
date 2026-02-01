@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,13 +17,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, UserPlus } from 'lucide-react';
-import { useAuditLog } from '@/hooks/useAuditLog';
-import type { Database } from '@/integrations/supabase/types';
-
-type GrantModality = Database['public']['Enums']['grant_modality'];
+import { Loader2, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -48,20 +45,6 @@ interface AssignScholarToProjectDialogProps {
   onSuccess: () => void;
 }
 
-const MODALITY_MAP: Record<string, GrantModality> = {
-  'ict': 'ict',
-  'ext': 'ext',
-  'ens': 'ens',
-  'ino': 'ino',
-  'dct_a': 'dct_a',
-  'dct_b': 'dct_b',
-  'dct_c': 'dct_c',
-  'postdoc': 'postdoc',
-  'senior': 'senior',
-  'prod': 'prod',
-  'visitor': 'visitor',
-};
-
 export function AssignScholarToProjectDialog({
   open,
   onOpenChange,
@@ -74,14 +57,16 @@ export function AssignScholarToProjectDialog({
   const [selectedScholarId, setSelectedScholarId] = useState('');
   const [startDate, setStartDate] = useState(project.start_date);
   const [endDate, setEndDate] = useState(project.end_date);
-  const { logAction } = useAuditLog();
+  const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
-  // Fetch available scholars (those without active enrollment in this project)
+  // Fetch available scholars (those without active enrollment)
   useEffect(() => {
     async function fetchScholars() {
       setLoadingScholars(true);
+      setError(null);
       try {
-        // Get all scholars
+        // Get all active profiles
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id, full_name, email')
@@ -99,26 +84,25 @@ export function AssignScholarToProjectDialog({
 
         const scholarUserIds = new Set(roles?.map(r => r.user_id) || []);
 
-        // Get existing enrollments for this project
-        const { data: existingEnrollments, error: enrollmentsError } = await supabase
+        // Get scholars with ANY active enrollment (exclusivity rule)
+        const { data: activeEnrollments, error: enrollmentsError } = await supabase
           .from('enrollments')
           .select('user_id')
-          .eq('project_id', project.id)
           .eq('status', 'active');
 
         if (enrollmentsError) throw enrollmentsError;
 
-        const enrolledUserIds = new Set(existingEnrollments?.map(e => e.user_id) || []);
+        const enrolledUserIds = new Set(activeEnrollments?.map(e => e.user_id) || []);
 
-        // Filter to scholars not already enrolled in this project
+        // Filter to scholars without any active enrollment
         const availableScholars = (profiles || []).filter(
           p => scholarUserIds.has(p.user_id) && !enrolledUserIds.has(p.user_id)
         );
 
         setScholars(availableScholars);
-      } catch (error) {
-        console.error('Error fetching scholars:', error);
-        toast.error('Erro ao carregar bolsistas');
+      } catch (err) {
+        console.error('Error fetching scholars:', err);
+        setError('Erro ao carregar bolsistas disponíveis.');
       } finally {
         setLoadingScholars(false);
       }
@@ -129,6 +113,8 @@ export function AssignScholarToProjectDialog({
       setSelectedScholarId('');
       setStartDate(project.start_date);
       setEndDate(project.end_date);
+      setError(null);
+      setFieldError(null);
     }
   }, [open, project.id, project.start_date, project.end_date]);
 
@@ -143,78 +129,75 @@ export function AssignScholarToProjectDialog({
     return 1;
   };
 
+  const selectedScholar = scholars.find(s => s.user_id === selectedScholarId);
+
   const handleSubmit = async () => {
+    setError(null);
+    setFieldError(null);
+
+    // Client-side validation
     if (!selectedScholarId) {
-      toast.error('Selecione um bolsista');
+      setFieldError('scholar');
+      setError('Selecione um bolsista.');
+      return;
+    }
+
+    if (!startDate) {
+      setFieldError('startDate');
+      setError('Informe a data de início.');
+      return;
+    }
+
+    if (!endDate) {
+      setFieldError('endDate');
+      setError('Informe a data de término.');
       return;
     }
 
     if (new Date(endDate) <= new Date(startDate)) {
-      toast.error('A data de término deve ser posterior à data de início');
+      setFieldError('endDate');
+      setError('A data de término deve ser posterior à data de início.');
       return;
     }
 
     setLoading(true);
     try {
-      const totalInstallments = calculateInstallments();
-      const modality = MODALITY_MAP[project.modalidade_bolsa || ''] || 'ict';
-
-      // Create enrollment
-      const { data: enrollment, error: enrollmentError } = await supabase
-        .from('enrollments')
-        .insert({
-          user_id: selectedScholarId,
+      const { data, error: fnError } = await supabase.functions.invoke('assign-scholar-to-project', {
+        body: {
+          scholar_id: selectedScholarId,
           project_id: project.id,
-          modality,
-          grant_value: project.valor_mensal,
           start_date: startDate,
           end_date: endDate,
-          total_installments: totalInstallments,
-          status: 'active',
-        })
-        .select()
-        .single();
-
-      if (enrollmentError) throw enrollmentError;
-
-      // Create first payment (auto-eligible)
-      const startMonth = new Date(startDate);
-      const referenceMonth = `${startMonth.getFullYear()}-${String(startMonth.getMonth() + 1).padStart(2, '0')}`;
-
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          user_id: selectedScholarId,
-          enrollment_id: enrollment.id,
-          installment_number: 1,
-          reference_month: referenceMonth,
-          amount: project.valor_mensal,
-          status: 'eligible',
-        });
-
-      if (paymentError) throw paymentError;
-
-      // Log audit
-      await logAction({
-        action: 'assign_scholar_to_project',
-        entityType: 'enrollment',
-        entityId: enrollment.id,
-        newValue: {
-          project_id: project.id,
-          project_code: project.code,
-          user_id: selectedScholarId,
-          modality,
-          grant_value: project.valor_mensal,
         },
       });
 
-      const selectedScholar = scholars.find(s => s.user_id === selectedScholarId);
-      toast.success(`Bolsista ${selectedScholar?.full_name || ''} vinculado com sucesso!`);
+      if (fnError) {
+        console.error('Function error:', fnError);
+        setError('Erro de comunicação com o servidor. Tente novamente.');
+        return;
+      }
+
+      if (data.error) {
+        console.error('Backend error:', data.error, data.code);
+        setError(data.error);
+        
+        // Highlight specific field based on error code
+        if (data.code === 'MISSING_SCHOLAR_ID' || data.code === 'SCHOLAR_HAS_ACTIVE_ENROLLMENT') {
+          setFieldError('scholar');
+        } else if (data.code === 'MISSING_START_DATE' || data.code === 'DATE_OUT_OF_PROJECT_RANGE') {
+          setFieldError('startDate');
+        } else if (data.code === 'MISSING_END_DATE' || data.code === 'INVALID_DATE_RANGE') {
+          setFieldError('endDate');
+        }
+        return;
+      }
+
+      toast.success(data.message || `Bolsista ${data.scholar_name} vinculado com sucesso!`);
       onOpenChange(false);
       onSuccess();
-    } catch (error) {
-      console.error('Error assigning scholar:', error);
-      toast.error('Erro ao vincular bolsista');
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setError('Erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -238,31 +221,49 @@ export function AssignScholarToProjectDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Project Info */}
-          <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Project Info Summary */}
+          <div className="p-3 rounded-lg bg-muted/50 space-y-2 border">
             <p className="text-sm font-medium">{project.title}</p>
-            <p className="text-xs text-muted-foreground">
-              Valor mensal: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.valor_mensal)}
-            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <span>Código: {project.code}</span>
+              <span>Modalidade: {project.modalidade_bolsa || 'N/A'}</span>
+              <span>
+                Valor: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.valor_mensal)}
+              </span>
+              <span>Período: {project.start_date} a {project.end_date}</span>
+            </div>
           </div>
 
           {/* Scholar Selection */}
           <div className="space-y-2">
-            <Label>Bolsista *</Label>
+            <Label className={fieldError === 'scholar' ? 'text-destructive' : ''}>
+              Bolsista *
+            </Label>
             {loadingScholars ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Carregando bolsistas...
+                Carregando bolsistas disponíveis...
               </div>
             ) : scholars.length === 0 ? (
               <div className="p-4 rounded-lg bg-muted/50 border border-dashed text-center">
                 <p className="text-sm text-muted-foreground">
-                  Nenhum bolsista disponível para atribuição
+                  Nenhum bolsista disponível para atribuição.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Todos os bolsistas já possuem subprojetos ativos.
                 </p>
               </div>
             ) : (
               <Select value={selectedScholarId} onValueChange={setSelectedScholarId}>
-                <SelectTrigger>
+                <SelectTrigger className={fieldError === 'scholar' ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Selecione um bolsista" />
                 </SelectTrigger>
                 <SelectContent>
@@ -282,26 +283,59 @@ export function AssignScholarToProjectDialog({
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Data de Início *</Label>
+              <Label className={fieldError === 'startDate' ? 'text-destructive' : ''}>
+                Data de Início *
+              </Label>
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className={fieldError === 'startDate' ? 'border-destructive' : ''}
+                min={project.start_date}
+                max={project.end_date}
               />
             </div>
             <div className="space-y-2">
-              <Label>Data de Término *</Label>
+              <Label className={fieldError === 'endDate' ? 'text-destructive' : ''}>
+                Data de Término *
+              </Label>
               <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                className={fieldError === 'endDate' ? 'border-destructive' : ''}
+                min={project.start_date}
+                max={project.end_date}
               />
             </div>
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Total de parcelas: {calculateInstallments()}
+            Total de parcelas calculado: <strong>{calculateInstallments()}</strong>
           </p>
+
+          {/* Summary before confirmation */}
+          {selectedScholarId && (
+            <div className="p-3 rounded-lg bg-accent/50 border">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">
+                    Resumo do Vínculo
+                  </p>
+                  <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                    <li>Bolsista: {selectedScholar?.full_name || 'N/A'}</li>
+                    <li>Subprojeto: {project.code} - {project.title}</li>
+                    <li>Período: {startDate} a {endDate}</li>
+                    <li>
+                      Valor mensal: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.valor_mensal)}
+                    </li>
+                    <li>Parcelas: {calculateInstallments()}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -310,7 +344,7 @@ export function AssignScholarToProjectDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={loading || scholars.length === 0}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Confirmar Vínculo
+            {loading ? 'Processando...' : 'Confirmar Vínculo'}
           </Button>
         </DialogFooter>
       </DialogContent>

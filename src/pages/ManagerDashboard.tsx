@@ -5,6 +5,7 @@ import { AdminBanner } from "@/components/admin/AdminBanner";
 import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
 import { ProjectsList } from "@/components/projects";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
+import { BankDataManagement } from "@/components/dashboard/BankDataManagement";
 
 const ManagerDashboard = () => {
   return (
@@ -19,6 +20,11 @@ const ManagerDashboard = () => {
           {/* Users Management Section */}
           <div className="animate-fade-in">
             <UsersManagement />
+          </div>
+          
+          {/* Bank Data Management Section */}
+          <div className="animate-fade-in">
+            <BankDataManagement />
           </div>
           
           {/* Scholars Management Section */}

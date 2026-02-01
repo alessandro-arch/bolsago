@@ -1,7 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
-import { KPICards } from "@/components/dashboard/KPICards";
+import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
 import { WorkflowBanner } from "@/components/dashboard/WorkflowBanner";
 import { InstallmentsTable } from "@/components/scholar/InstallmentsTable";
 
@@ -19,9 +19,9 @@ const Index = () => {
             <ScholarGreeting />
           </div>
 
-          {/* KPI Cards */}
+          {/* Summary Cards */}
           <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-            <KPICards />
+            <ScholarSummaryCards />
           </div>
 
           {/* Workflow Banner */}

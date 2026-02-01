@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Key,
-  TrendingUp
+  TrendingUp,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { EditScholarDataDialog } from "./EditScholarDataDialog";
 
 interface ScholarData {
   personal: {
@@ -173,9 +175,24 @@ const validationStatusConfig = {
 
 export function ScholarDataCards() {
   const [showSensitive, setShowSensitive] = useState(false);
+  const [editPersonalOpen, setEditPersonalOpen] = useState(false);
+  const [editBankOpen, setEditBankOpen] = useState(false);
+  const [personalData, setPersonalData] = useState(scholarData.personal);
+  const [bankData, setBankData] = useState(scholarData.bank);
 
-  const validationConfig = validationStatusConfig[scholarData.bank.validationStatus];
+  const validationConfig = validationStatusConfig[bankData.validationStatus];
   const ValidationIcon = validationConfig.icon;
+
+  const handleSavePersonal = (data: typeof scholarData.personal) => {
+    setPersonalData(data as typeof scholarData.personal);
+  };
+
+  const handleSaveBank = (data: typeof scholarData.bank) => {
+    setBankData({
+      ...data as typeof scholarData.bank,
+      validationStatus: "pending", // Reset to pending after edit
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -223,36 +240,47 @@ export function ScholarDataCards() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Personal Data */}
         <div className="card-institutional">
-          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <User className="w-5 h-5 text-primary" />
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-foreground">Dados Pessoais</h3>
             </div>
-            <h3 className="font-semibold text-foreground">Dados Pessoais</h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1.5 text-primary hover:text-primary"
+              onClick={() => setEditPersonalOpen(true)}
+            >
+              <Pencil className="w-4 h-4" />
+              Editar
+            </Button>
           </div>
 
           <div className="space-y-0">
             <DataRow 
               icon={User} 
               label="Nome Completo" 
-              value={scholarData.personal.name} 
+              value={personalData.name} 
             />
             <DataRow 
               icon={CreditCard} 
               label="CPF" 
-              value={scholarData.personal.cpf}
+              value={personalData.cpf}
               masked
               showSensitive={showSensitive}
-              maskedValue={maskCPF(scholarData.personal.cpf)}
+              maskedValue={maskCPF(personalData.cpf)}
             />
             <DataRow 
               icon={Mail} 
               label="E-mail" 
-              value={scholarData.personal.email} 
+              value={personalData.email} 
             />
             <DataRow 
               icon={Phone} 
               label="Telefone" 
-              value={scholarData.personal.phone} 
+              value={personalData.phone} 
             />
           </div>
         </div>
@@ -311,44 +339,55 @@ export function ScholarDataCards() {
 
         {/* Bank Data */}
         <div className="card-institutional">
-          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-success" />
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-success" />
+              </div>
+              <h3 className="font-semibold text-foreground">Dados Bancários</h3>
             </div>
-            <h3 className="font-semibold text-foreground">Dados Bancários</h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1.5 text-success hover:text-success"
+              onClick={() => setEditBankOpen(true)}
+            >
+              <Pencil className="w-4 h-4" />
+              Editar
+            </Button>
           </div>
 
           <div className="space-y-0">
             <DataRow 
               icon={Building2} 
               label="Banco" 
-              value={scholarData.bank.bankName} 
+              value={bankData.bankName} 
             />
             <DataRow 
               icon={Building2} 
               label="Agência" 
-              value={scholarData.bank.agency} 
+              value={bankData.agency} 
             />
             <DataRow 
               icon={CreditCard} 
               label="Conta" 
-              value={scholarData.bank.account}
+              value={bankData.account}
               masked
               showSensitive={showSensitive}
-              maskedValue={maskAccount(scholarData.bank.account)}
+              maskedValue={maskAccount(bankData.account)}
             />
             <DataRow 
               icon={CreditCard} 
               label="Tipo de Conta" 
-              value={scholarData.bank.accountType} 
+              value={bankData.accountType} 
             />
             <DataRow 
               icon={Key} 
               label="Chave Pix" 
-              value={scholarData.bank.pixKey}
+              value={bankData.pixKey}
               masked
               showSensitive={showSensitive}
-              maskedValue={maskPixKey(scholarData.bank.pixKey)}
+              maskedValue={maskPixKey(bankData.pixKey)}
             />
             
             {/* Validation Status */}
@@ -365,6 +404,22 @@ export function ScholarDataCards() {
           </div>
         </div>
       </div>
+
+      {/* Edit Dialogs */}
+      <EditScholarDataDialog
+        open={editPersonalOpen}
+        onOpenChange={setEditPersonalOpen}
+        type="personal"
+        personalData={personalData}
+        onSave={handleSavePersonal}
+      />
+      <EditScholarDataDialog
+        open={editBankOpen}
+        onOpenChange={setEditBankOpen}
+        type="bank"
+        bankData={bankData}
+        onSave={handleSaveBank}
+      />
     </div>
   );
 }

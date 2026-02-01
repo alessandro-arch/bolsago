@@ -7,7 +7,6 @@ import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
 import { ScholarWorkflowBanner } from "@/components/scholar/ScholarWorkflowBanner";
 import { GrantTermSection } from "@/components/scholar/GrantTermSection";
 import { DocumentsSection } from "@/components/scholar/DocumentsSection";
-import { InstallmentsTable } from "@/components/scholar/InstallmentsTable";
 import { AwaitingAssignmentBanner } from "@/components/scholar/AwaitingAssignmentBanner";
 import { BankDataPendingBanner } from "@/components/scholar/BankDataPendingBanner";
 import { BankDataValidationBanner } from "@/components/scholar/BankDataValidationBanner";
@@ -82,13 +81,6 @@ const Index = () => {
               <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
                 <DocumentsSection />
               </div>
-
-              {/* Installments Table - Only show if bank data is validated */}
-              {bankStatus === "validated" && (
-                <div className="animate-fade-in" style={{ animationDelay: "210ms" }}>
-                  <InstallmentsTable />
-                </div>
-              )}
             </>
           )}
         </main>

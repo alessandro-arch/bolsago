@@ -1,0 +1,188 @@
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type Enrollment = Database["public"]["Tables"]["enrollments"]["Row"];
+type Payment = Database["public"]["Tables"]["payments"]["Row"];
+type Report = Database["public"]["Tables"]["reports"]["Row"];
+type Project = Database["public"]["Tables"]["projects"]["Row"];
+
+export interface EnrollmentWithProject extends Enrollment {
+  project: Project | null;
+}
+
+export interface PaymentWithReport extends Payment {
+  report?: Report | null;
+}
+
+export interface ScholarPaymentsData {
+  enrollment: EnrollmentWithProject | null;
+  payments: PaymentWithReport[];
+  reports: Report[];
+  stats: {
+    totalForecast: number;
+    totalReceived: number;
+    totalInstallments: number;
+    paidInstallments: number;
+    reportsSent: number;
+    pendingReports: number;
+  };
+}
+
+interface UseScholarPaymentsReturn {
+  data: ScholarPaymentsData | null;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+export function useScholarPayments(): UseScholarPaymentsReturn {
+  const { user } = useAuth();
+  const [data, setData] = useState<ScholarPaymentsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!user) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Fetch active enrollment with project data
+      const { data: enrollmentData, error: enrollmentError } = await supabase
+        .from("enrollments")
+        .select(`
+          *,
+          project:projects(*)
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (enrollmentError) {
+        console.error("Error fetching enrollment:", enrollmentError);
+        setError("Erro ao carregar dados do vínculo");
+        setLoading(false);
+        return;
+      }
+
+      // If no active enrollment, return empty state
+      if (!enrollmentData) {
+        setData({
+          enrollment: null,
+          payments: [],
+          reports: [],
+          stats: {
+            totalForecast: 0,
+            totalReceived: 0,
+            totalInstallments: 0,
+            paidInstallments: 0,
+            reportsSent: 0,
+            pendingReports: 0,
+          },
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fetch payments for this enrollment
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("enrollment_id", enrollmentData.id)
+        .order("installment_number", { ascending: true });
+
+      if (paymentsError) {
+        console.error("Error fetching payments:", paymentsError);
+      }
+
+      // 3. Fetch reports for this user
+      const { data: reportsData, error: reportsError } = await supabase
+        .from("reports")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("reference_month", { ascending: true });
+
+      if (reportsError) {
+        console.error("Error fetching reports:", reportsError);
+      }
+
+      const payments = paymentsData || [];
+      const reports = reportsData || [];
+
+      // Map reports to payments by reference_month
+      const paymentsWithReports: PaymentWithReport[] = payments.map(payment => {
+        const report = reports.find(r => r.reference_month === payment.reference_month);
+        return { ...payment, report };
+      });
+
+      // Calculate stats
+      const totalInstallments = enrollmentData.total_installments;
+      const grantValue = Number(enrollmentData.grant_value);
+      const totalForecast = grantValue * totalInstallments;
+      
+      const paidPayments = payments.filter(p => p.status === "paid");
+      const totalReceived = paidPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const paidInstallments = paidPayments.length;
+      
+      const reportsSent = reports.filter(r => 
+        r.status === "under_review" || r.status === "approved" || r.status === "rejected"
+      ).length;
+
+      // Pending reports = months that passed without approved report
+      const now = new Date();
+      const startDate = new Date(enrollmentData.start_date);
+      let monthsPassed = 0;
+      
+      // Calculate how many months have passed since start
+      const currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      
+      if (currentDate >= startMonth) {
+        monthsPassed = (currentDate.getFullYear() - startMonth.getFullYear()) * 12 + 
+                       (currentDate.getMonth() - startMonth.getMonth()) + 1;
+        // Cap at total installments
+        monthsPassed = Math.min(monthsPassed, totalInstallments);
+      }
+      
+      const approvedReports = reports.filter(r => r.status === "approved").length;
+      const pendingReports = Math.max(0, monthsPassed - approvedReports);
+
+      setData({
+        enrollment: enrollmentData as EnrollmentWithProject,
+        payments: paymentsWithReports,
+        reports,
+        stats: {
+          totalForecast,
+          totalReceived,
+          totalInstallments,
+          paidInstallments,
+          reportsSent,
+          pendingReports,
+        },
+      });
+    } catch (err) {
+      console.error("Error fetching scholar payments:", err);
+      setError("Erro ao carregar dados de pagamentos");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return {
+    data,
+    loading,
+    error,
+    refresh: fetchData,
+  };
+}

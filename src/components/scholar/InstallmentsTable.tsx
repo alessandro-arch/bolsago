@@ -11,7 +11,8 @@ import {
   XCircle,
   Search,
   CalendarClock,
-  Lock
+  Lock,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,9 +32,12 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { ReportVersionsDialog, type ReportVersion } from "./ReportVersionsDialog";
+import type { PaymentWithReport } from "@/hooks/useScholarPayments";
+import { format, parseISO, isFuture, isThisMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type ReportStatus = "pending" | "submitted" | "under_review" | "approved" | "rejected" | "future";
-type PaymentStatus = "blocked" | "eligible" | "processing" | "paid" | "future";
+type PaymentStatus = "blocked" | "eligible" | "processing" | "paid" | "future" | "pending" | "cancelled";
 type MonthStatus = "past" | "current" | "future";
 
 interface Installment {
@@ -50,12 +54,6 @@ interface Installment {
   monthStatus: MonthStatus;
 }
 
-// Current month simulation: January 2026 (month 1)
-const CURRENT_INSTALLMENT_NUMBER = 1;
-
-// Empty array - data will be loaded from backend based on scholar's grant term
-const installments: Installment[] = [];
-
 const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clock; className: string }> = {
   pending: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning" },
   submitted: { label: "Enviado", icon: FileUp, className: "bg-info/10 text-info" },
@@ -67,10 +65,12 @@ const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clo
 
 const paymentStatusConfig: Record<PaymentStatus, { label: string; className: string }> = {
   blocked: { label: "Bloqueado", className: "bg-destructive/10 text-destructive" },
+  pending: { label: "Pendente", className: "bg-warning/10 text-warning" },
   eligible: { label: "Apto", className: "bg-success/10 text-success" },
   processing: { label: "Processando", className: "bg-info/10 text-info" },
   paid: { label: "Pago", className: "bg-success/10 text-success" },
   future: { label: "Futuro", className: "bg-muted text-muted-foreground" },
+  cancelled: { label: "Cancelado", className: "bg-destructive/10 text-destructive" },
 };
 
 function formatCurrency(value: number) {
@@ -111,7 +111,7 @@ function InstallmentActions({ installment }: { installment: Installment }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
 
-  const isFuture = installment.monthStatus === "future";
+  const isFutureMonth = installment.monthStatus === "future";
   const isCurrent = installment.monthStatus === "current";
   const canSubmitReport = (isCurrent && installment.reportStatus === "pending");
   const canResubmit = installment.reportStatus === "rejected";
@@ -120,7 +120,7 @@ function InstallmentActions({ installment }: { installment: Installment }) {
   const hasVersions = installment.versions && installment.versions.length > 0;
 
   // Future months - no actions available
-  if (isFuture) {
+  if (isFutureMonth) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground">
         <Lock className="w-4 h-4" />
@@ -232,10 +232,101 @@ function InstallmentActions({ installment }: { installment: Installment }) {
   );
 }
 
-export function InstallmentsTable() {
+interface InstallmentsTableProps {
+  payments: PaymentWithReport[];
+  grantValue: number;
+  startDate: string;
+  loading?: boolean;
+}
+
+function getMonthStatus(referenceMonth: string): MonthStatus {
+  try {
+    // Parse YYYY-MM format
+    const [year, month] = referenceMonth.split("-").map(Number);
+    const refDate = new Date(year, month - 1, 1);
+    const now = new Date();
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    if (refDate.getTime() === currentMonth.getTime()) {
+      return "current";
+    } else if (refDate > currentMonth) {
+      return "future";
+    }
+    return "past";
+  } catch {
+    return "past";
+  }
+}
+
+function formatReferenceMonth(refMonth: string): string {
+  try {
+    const [year, month] = refMonth.split("-").map(Number);
+    const date = new Date(year, month - 1, 1);
+    return format(date, "MMMM/yyyy", { locale: ptBR });
+  } catch {
+    return refMonth;
+  }
+}
+
+function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number): Installment {
+  const monthStatus = getMonthStatus(payment.reference_month);
+  
+  // Map report status
+  let reportStatus: ReportStatus = "pending";
+  if (monthStatus === "future") {
+    reportStatus = "future";
+  } else if (payment.report) {
+    const status = payment.report.status;
+    if (status === "under_review") reportStatus = "under_review";
+    else if (status === "approved") reportStatus = "approved";
+    else if (status === "rejected") reportStatus = "rejected";
+    else reportStatus = "submitted";
+  }
+
+  // Map payment status
+  let paymentStatus: PaymentStatus = payment.status as PaymentStatus;
+  if (monthStatus === "future") {
+    paymentStatus = "future";
+  }
+
+  return {
+    id: payment.id,
+    number: payment.installment_number,
+    referenceMonth: formatReferenceMonth(payment.reference_month),
+    value: Number(payment.amount),
+    reportStatus,
+    paymentStatus,
+    paymentDate: payment.paid_at ? format(parseISO(payment.paid_at), "dd/MM/yyyy") : undefined,
+    feedback: payment.report?.feedback || undefined,
+    isFirstInstallment: payment.installment_number === 1,
+    monthStatus,
+  };
+}
+
+export function InstallmentsTable({ 
+  payments, 
+  grantValue, 
+  startDate,
+  loading = false 
+}: InstallmentsTableProps) {
+  const installments = payments.map(p => mapPaymentToInstallment(p, grantValue));
+  
   const paidCount = installments.filter(i => i.paymentStatus === "paid").length;
-  const blockedCount = installments.filter(i => i.paymentStatus === "blocked").length;
+  const blockedCount = installments.filter(i => i.paymentStatus === "pending" || i.paymentStatus === "blocked").length;
   const pendingReportCount = installments.filter(i => i.reportStatus === "pending" || i.reportStatus === "rejected").length;
+
+  if (loading) {
+    return (
+      <div className="card-institutional overflow-hidden p-0">
+        <div className="p-5 border-b border-border">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <span className="text-muted-foreground">Carregando parcelas...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card-institutional overflow-hidden p-0">
@@ -323,7 +414,7 @@ export function InstallmentsTable() {
                 </td>
                 <td>
                   <div className="flex flex-col gap-1">
-                    <span className="font-medium text-foreground">{installment.referenceMonth}</span>
+                    <span className="font-medium text-foreground capitalize">{installment.referenceMonth}</span>
                     <MonthIndicator monthStatus={installment.monthStatus} />
                   </div>
                 </td>
@@ -338,7 +429,7 @@ export function InstallmentsTable() {
                   <div className="flex flex-col gap-1">
                     <StatusBadge 
                       status={installment.paymentStatus} 
-                      config={paymentStatusConfig[installment.paymentStatus]} 
+                      config={paymentStatusConfig[installment.paymentStatus] || paymentStatusConfig.pending} 
                     />
                     {installment.paymentDate && (
                       <span className="text-xs text-muted-foreground">{installment.paymentDate}</span>

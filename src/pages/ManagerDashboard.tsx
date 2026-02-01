@@ -1,16 +1,8 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { ManagerGreeting } from "@/components/dashboard/ManagerGreeting";
-import { ConsolidatedKPICards } from "@/components/dashboard/ConsolidatedKPICards";
-import { AlertsBanner } from "@/components/dashboard/AlertsBanner";
-import { BatchActionsPanel } from "@/components/dashboard/BatchActionsPanel";
-import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
-import { AuditExportSection } from "@/components/dashboard/AuditExportSection";
-import { PaymentsSummary } from "@/components/dashboard/PaymentsSummary";
-import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { AdminBanner } from "@/components/admin/AdminBanner";
-import { ProjectsList } from "@/components/projects/ProjectsList";
+import { LayoutDashboard } from "lucide-react";
 
 const ManagerDashboard = () => {
   return (
@@ -22,49 +14,16 @@ const ManagerDashboard = () => {
         <Header />
         
         <main className="flex-1 p-6 overflow-auto">
-          {/* Manager Greeting */}
-          <div className="animate-fade-in">
-            <ManagerGreeting />
-          </div>
-
-          {/* Consolidated KPI Cards with Drilldown */}
-          <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-            <ConsolidatedKPICards />
-          </div>
-
-          {/* Alerts Banner */}
-          <div className="animate-fade-in" style={{ animationDelay: "150ms" }}>
-            <AlertsBanner />
-          </div>
-
-          {/* Batch Actions Panel - Priority Queue */}
-          <div className="animate-fade-in" style={{ animationDelay: "175ms" }}>
-            <BatchActionsPanel />
-          </div>
-
-          {/* Audit & Export Section */}
-          <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
-            <AuditExportSection />
-          </div>
-
-          {/* Projects Management */}
-          <div className="animate-fade-in" style={{ animationDelay: "225ms" }}>
-            <ProjectsList />
-          </div>
-
-          {/* Scholars Table with Advanced Filters */}
-          <div className="animate-fade-in" style={{ animationDelay: "250ms" }}>
-            <ScholarsTableFiltered />
-          </div>
-
-          {/* Payments Summary */}
-          <div className="animate-fade-in" style={{ animationDelay: "275ms" }}>
-            <PaymentsSummary />
-          </div>
-
-          {/* Users Management */}
-          <div className="animate-fade-in" style={{ animationDelay: "300ms" }}>
-            <UsersManagement />
+          <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <LayoutDashboard className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Painel do Gestor
+            </h2>
+            <p className="text-muted-foreground max-w-md">
+              Os dashboards serão implementados em breve.
+            </p>
           </div>
         </main>
         <Footer />

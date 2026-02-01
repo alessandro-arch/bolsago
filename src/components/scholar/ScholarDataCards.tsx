@@ -43,6 +43,7 @@ interface ScholarData {
     endDate: string;
     totalValue: number;
     monthlyValue: number;
+    installments: number;
     progress: number;
   };
   bank: {
@@ -69,6 +70,7 @@ const scholarData: ScholarData = {
     endDate: "31/12/2024",
     totalValue: 8400,
     monthlyValue: 700,
+    installments: 12,
     progress: 75,
   },
   bank: {
@@ -294,6 +296,11 @@ export function ScholarDataCards() {
               icon={DollarSign} 
               label="Parcela Mensal" 
               value={formatCurrency(scholarData.project.monthlyValue)} 
+            />
+            <DataRow 
+              icon={Calendar} 
+              label="Parcelas" 
+              value={`${scholarData.project.installments} meses`} 
             />
             
             <div className="pt-3">

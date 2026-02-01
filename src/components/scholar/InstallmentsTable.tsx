@@ -12,7 +12,8 @@ import {
   Search,
   CalendarClock,
   Lock,
-  Loader2
+  Loader2,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,10 +31,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ReportVersionsDialog, type ReportVersion } from "./ReportVersionsDialog";
+import { ReportUploadDialog } from "./ReportUploadDialog";
 import type { PaymentWithReport } from "@/hooks/useScholarPayments";
-import { format, parseISO, isFuture, isThisMonth } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type ReportStatus = "pending" | "submitted" | "under_review" | "approved" | "rejected" | "future";
@@ -44,6 +52,7 @@ interface Installment {
   id: string;
   number: number;
   referenceMonth: string;
+  referenceMonthRaw: string;
   value: number;
   reportStatus: ReportStatus;
   paymentStatus: PaymentStatus;
@@ -52,10 +61,13 @@ interface Installment {
   isFirstInstallment?: boolean;
   versions?: ReportVersion[];
   monthStatus: MonthStatus;
+  enrollmentId: string;
+  hasReportUnderReview: boolean;
+  reportFileUrl?: string;
 }
 
 const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clock; className: string }> = {
-  pending: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning" },
+  pending: { label: "Pendente de Envio", icon: Clock, className: "bg-warning/10 text-warning" },
   submitted: { label: "Enviado", icon: FileUp, className: "bg-info/10 text-info" },
   under_review: { label: "Em Análise", icon: Search, className: "bg-primary/10 text-primary" },
   approved: { label: "Aprovado", icon: CheckCircle, className: "bg-success/10 text-success" },
@@ -66,7 +78,7 @@ const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clo
 const paymentStatusConfig: Record<PaymentStatus, { label: string; className: string }> = {
   blocked: { label: "Bloqueado", className: "bg-destructive/10 text-destructive" },
   pending: { label: "Pendente", className: "bg-warning/10 text-warning" },
-  eligible: { label: "Apto", className: "bg-success/10 text-success" },
+  eligible: { label: "Liberado", className: "bg-success/10 text-success" },
   processing: { label: "Processando", className: "bg-info/10 text-info" },
   paid: { label: "Pago", className: "bg-success/10 text-success" },
   future: { label: "Futuro", className: "bg-muted text-muted-foreground" },
@@ -107,17 +119,47 @@ function MonthIndicator({ monthStatus }: { monthStatus: MonthStatus }) {
   return null;
 }
 
-function InstallmentActions({ installment }: { installment: Installment }) {
+interface InstallmentActionsProps {
+  installment: Installment;
+  onRefresh: () => void;
+}
+
+function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const isFutureMonth = installment.monthStatus === "future";
   const isCurrent = installment.monthStatus === "current";
-  const canSubmitReport = (isCurrent && installment.reportStatus === "pending");
+  const canSubmitReport = isCurrent && installment.reportStatus === "pending";
   const canResubmit = installment.reportStatus === "rejected";
   const canViewFeedback = installment.reportStatus === "rejected" && installment.feedback;
   const canDownloadReceipt = installment.paymentStatus === "paid";
   const hasVersions = installment.versions && installment.versions.length > 0;
+  const hasReportUnderReview = installment.hasReportUnderReview;
+
+  // Determine if submit button should be disabled
+  const isSubmitDisabled = !canSubmitReport && !canResubmit;
+  
+  // Get tooltip message for disabled state
+  const getDisabledTooltip = (): string => {
+    if (hasReportUnderReview) {
+      return "Você já possui um relatório em análise para este mês";
+    }
+    if (installment.reportStatus === "approved") {
+      return "Relatório já aprovado";
+    }
+    if (installment.reportStatus === "under_review") {
+      return "Relatório em análise pelo gestor";
+    }
+    if (installment.monthStatus === "past" && installment.reportStatus === "pending") {
+      return "O prazo para envio deste relatório já passou";
+    }
+    if (isFutureMonth) {
+      return "Aguarde o período para envio";
+    }
+    return "Envio não disponível";
+  };
 
   // Future months - no actions available
   if (isFutureMonth) {
@@ -130,105 +172,164 @@ function InstallmentActions({ installment }: { installment: Installment }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {/* Primary Action Button */}
-      {canSubmitReport && (
-        <Button size="sm" className="gap-1.5">
-          <FileUp className="w-3.5 h-3.5" />
-          Enviar Relatório
-        </Button>
-      )}
-      
-      {canResubmit && (
-        <Button size="sm" variant="outline" className="gap-1.5 border-warning text-warning hover:bg-warning/10">
-          <RefreshCw className="w-3.5 h-3.5" />
-          Reenviar
-        </Button>
-      )}
+    <TooltipProvider>
+      <div className="flex items-center gap-2">
+        {/* Primary Action Button */}
+        {(canSubmitReport || canResubmit) ? (
+          <>
+            {canSubmitReport && (
+              <Button size="sm" className="gap-1.5" onClick={() => setUploadOpen(true)}>
+                <FileUp className="w-3.5 h-3.5" />
+                Enviar
+              </Button>
+            )}
+            
+            {canResubmit && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="gap-1.5 border-warning text-warning hover:bg-warning/10"
+                onClick={() => setUploadOpen(true)}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Reenviar
+              </Button>
+            )}
+          </>
+        ) : (
+          // Disabled state with tooltip
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="gap-1.5"
+                  disabled
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Enviar
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{getDisabledTooltip()}</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
-      {/* More Actions Dropdown */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="p-1.5 rounded hover:bg-muted transition-colors">
-            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {hasVersions && (
-            <DropdownMenuItem 
-              className="gap-2"
-              onSelect={() => setVersionsOpen(true)}
-            >
-              <History className="w-4 h-4" />
-              Ver versões ({installment.versions?.length})
-            </DropdownMenuItem>
-          )}
-          
-          {canViewFeedback && (
-            <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
-              <DialogTrigger asChild>
-                <DropdownMenuItem className="gap-2" onSelect={(e) => e.preventDefault()}>
-                  <FileSearch className="w-4 h-4" />
-                  Visualizar parecer
-                </DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Parecer - {installment.referenceMonth}</DialogTitle>
-                  <DialogDescription>
-                    Feedback do gestor sobre o relatório enviado
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="mt-4 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-destructive mb-1">Relatório Devolvido</p>
-                      <p className="text-sm text-foreground">{installment.feedback}</p>
+        {/* More Actions Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-1.5 rounded hover:bg-muted transition-colors">
+              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {hasVersions && (
+              <DropdownMenuItem 
+                className="gap-2"
+                onSelect={() => setVersionsOpen(true)}
+              >
+                <History className="w-4 h-4" />
+                Ver versões ({installment.versions?.length})
+              </DropdownMenuItem>
+            )}
+            
+            {installment.reportFileUrl && (
+              <DropdownMenuItem 
+                className="gap-2"
+                onSelect={() => window.open(installment.reportFileUrl, "_blank")}
+              >
+                <Download className="w-4 h-4" />
+                Baixar relatório
+              </DropdownMenuItem>
+            )}
+            
+            {canViewFeedback && (
+              <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem className="gap-2" onSelect={(e) => e.preventDefault()}>
+                    <FileSearch className="w-4 h-4" />
+                    Visualizar parecer
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Parecer - {installment.referenceMonth}</DialogTitle>
+                    <DialogDescription>
+                      Feedback do gestor sobre o relatório enviado
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="mt-4 p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-destructive mb-1">Relatório Devolvido</p>
+                        <p className="text-sm text-foreground">{installment.feedback}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="mt-4 flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setFeedbackOpen(false)}>
-                    Fechar
-                  </Button>
-                  <Button className="gap-1.5">
-                    <RefreshCw className="w-4 h-4" />
-                    Reenviar Relatório
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setFeedbackOpen(false)}>
+                      Fechar
+                    </Button>
+                    <Button 
+                      className="gap-1.5"
+                      onClick={() => {
+                        setFeedbackOpen(false);
+                        setUploadOpen(true);
+                      }}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Reenviar Relatório
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
 
-          {canDownloadReceipt && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2">
-                <Download className="w-4 h-4" />
-                Baixar comprovante
+            {canDownloadReceipt && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2">
+                  <Download className="w-4 h-4" />
+                  Baixar comprovante
+                </DropdownMenuItem>
+              </>
+            )}
+
+            {!hasVersions && !canViewFeedback && !canDownloadReceipt && !installment.reportFileUrl && (
+              <DropdownMenuItem disabled className="text-muted-foreground">
+                Nenhuma ação disponível
               </DropdownMenuItem>
-            </>
-          )}
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          {!hasVersions && !canViewFeedback && !canDownloadReceipt && (
-            <DropdownMenuItem disabled className="text-muted-foreground">
-              Nenhuma ação disponível
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        {/* Versions Dialog */}
+        {hasVersions && (
+          <ReportVersionsDialog
+            open={versionsOpen}
+            onOpenChange={setVersionsOpen}
+            referenceMonth={installment.referenceMonth}
+            versions={installment.versions || []}
+          />
+        )}
 
-      {/* Versions Dialog */}
-      {hasVersions && (
-        <ReportVersionsDialog
-          open={versionsOpen}
-          onOpenChange={setVersionsOpen}
-          referenceMonth={installment.referenceMonth}
-          versions={installment.versions || []}
+        {/* Upload Dialog */}
+        <ReportUploadDialog
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          referenceMonth={installment.referenceMonthRaw}
+          referenceMonthFormatted={installment.referenceMonth}
+          installmentNumber={installment.number}
+          enrollmentId={installment.enrollmentId}
+          isResubmit={canResubmit}
+          onSuccess={onRefresh}
         />
-      )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -237,6 +338,8 @@ interface InstallmentsTableProps {
   grantValue: number;
   startDate: string;
   loading?: boolean;
+  onRefresh?: () => void;
+  enrollmentId?: string;
 }
 
 function getMonthStatus(referenceMonth: string): MonthStatus {
@@ -268,16 +371,21 @@ function formatReferenceMonth(refMonth: string): string {
   }
 }
 
-function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number): Installment {
+function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number, enrollmentId: string): Installment {
   const monthStatus = getMonthStatus(payment.reference_month);
   
   // Map report status
   let reportStatus: ReportStatus = "pending";
+  let hasReportUnderReview = false;
+  
   if (monthStatus === "future") {
     reportStatus = "future";
   } else if (payment.report) {
     const status = payment.report.status;
-    if (status === "under_review") reportStatus = "under_review";
+    if (status === "under_review") {
+      reportStatus = "under_review";
+      hasReportUnderReview = true;
+    }
     else if (status === "approved") reportStatus = "approved";
     else if (status === "rejected") reportStatus = "rejected";
     else reportStatus = "submitted";
@@ -293,6 +401,7 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number)
     id: payment.id,
     number: payment.installment_number,
     referenceMonth: formatReferenceMonth(payment.reference_month),
+    referenceMonthRaw: payment.reference_month,
     value: Number(payment.amount),
     reportStatus,
     paymentStatus,
@@ -300,6 +409,9 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number)
     feedback: payment.report?.feedback || undefined,
     isFirstInstallment: payment.installment_number === 1,
     monthStatus,
+    enrollmentId,
+    hasReportUnderReview,
+    reportFileUrl: payment.report?.file_url,
   };
 }
 
@@ -307,17 +419,25 @@ export function InstallmentsTable({
   payments = [], 
   grantValue = 0, 
   startDate = "",
-  loading = false 
+  loading = false,
+  onRefresh,
+  enrollmentId = "",
 }: InstallmentsTableProps) {
   // Safe defaults - ensure payments is always an array
   const safePayments = payments ?? [];
   const safeGrantValue = grantValue ?? 0;
   
-  const installments = safePayments.map(p => mapPaymentToInstallment(p, safeGrantValue));
+  const installments = safePayments.map(p => mapPaymentToInstallment(p, safeGrantValue, enrollmentId));
   
   const paidCount = installments.filter(i => i.paymentStatus === "paid").length;
   const blockedCount = installments.filter(i => i.paymentStatus === "pending" || i.paymentStatus === "blocked").length;
   const pendingReportCount = installments.filter(i => i.reportStatus === "pending" || i.reportStatus === "rejected").length;
+
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
 
   if (loading) {
     return (
@@ -334,11 +454,33 @@ export function InstallmentsTable({
 
   return (
     <div className="card-institutional overflow-hidden p-0">
+      {/* Info Banner */}
+      <div className="p-4 bg-warning/5 border-b border-warning/20">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+            <Lock className="w-4 h-4 text-warning" />
+          </div>
+          <div>
+            <p className="font-medium text-foreground text-sm">
+              🔒 Como funciona o desbloqueio de valores
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Os valores dos pagamentos ficam bloqueados até o envio do relatório.
+            </p>
+            <p className="text-sm text-warning mt-2">
+              <strong>Regra:</strong> Envie o relatório do mês → O valor fica visível 🔓 → Após aprovação → Pagamento liberado
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="p-5 border-b border-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-foreground">Histórico de Parcelas</h3>
-            <p className="text-sm text-muted-foreground">Acompanhe o status de cada parcela da sua bolsa</p>
+            <p className="text-sm text-muted-foreground">
+              Gerencie o envio de relatórios para liberar seus pagamentos. O envio é liberado apenas para o mês de referência atual ou para relatórios rejeitados.
+            </p>
           </div>
           
           {/* Summary badges */}
@@ -422,7 +564,18 @@ export function InstallmentsTable({
                     <MonthIndicator monthStatus={installment.monthStatus} />
                   </div>
                 </td>
-                <td className="font-medium text-foreground">{formatCurrency(installment.value)}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    {installment.reportStatus === "approved" || installment.paymentStatus === "paid" ? (
+                      <span className="font-medium text-success">{formatCurrency(installment.value)}</span>
+                    ) : (
+                      <span className="font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5" />
+                        {formatCurrency(installment.value)}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <StatusBadge 
                     status={installment.reportStatus} 
@@ -441,7 +594,7 @@ export function InstallmentsTable({
                   </div>
                 </td>
                 <td>
-                  <InstallmentActions installment={installment} />
+                  <InstallmentActions installment={installment} onRefresh={handleRefresh} />
                 </td>
               </tr>
               ))
@@ -453,7 +606,7 @@ export function InstallmentsTable({
       {/* Footer info */}
       <div className="p-4 bg-muted/30 border-t border-border">
         <p className="text-xs text-muted-foreground flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5" />
+          <Info className="w-3.5 h-3.5" />
           O envio de relatório está disponível apenas para o mês atual ou para relatórios devolvidos que precisam de correção.
         </p>
       </div>

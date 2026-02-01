@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useScholarPayments } from "@/hooks/useScholarPayments";
 import { useScholarProfile } from "@/hooks/useScholarProfile";
+import { getModalityLabel } from "@/lib/modality-labels";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -19,28 +20,9 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function getModalityLabel(modality: string | null): string {
-  if (!modality) return "—";
-  
-  const modalityLabels: Record<string, string> = {
-    ict: "Iniciação Científica e Tecnológica",
-    ext: "Extensão",
-    ens: "Apoio ao Ensino",
-    ino: "Inovação",
-    dct_a: "DCT Nível A",
-    dct_b: "DCT Nível B",
-    dct_c: "DCT Nível C",
-    postdoc: "Pós-Doutorado",
-    senior: "Cientista Sênior",
-    prod: "Produtividade em Pesquisa",
-    visitor: "Pesquisador Visitante",
-  };
-  
-  return modalityLabels[modality] || modality;
-}
 
 const PaymentsReports = () => {
-  const { data, loading, error } = useScholarPayments();
+  const { data, loading, error, refresh } = useScholarPayments();
   const { personalData } = useScholarProfile();
 
   const hasEnrollment = !!data?.enrollment;
@@ -174,6 +156,8 @@ const PaymentsReports = () => {
                 grantValue={enrollment ? Number(enrollment.grant_value) : 0}
                 startDate={enrollment?.start_date || ""}
                 loading={loading}
+                onRefresh={refresh}
+                enrollmentId={enrollment?.id || ""}
               />
             </div>
           )}

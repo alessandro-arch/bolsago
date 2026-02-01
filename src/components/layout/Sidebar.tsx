@@ -96,7 +96,7 @@ export function Sidebar() {
       {!collapsed && (
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Bolsa Conecta
+            Portal do Bolsista ICCA
           </span>
           {!loading && (
             <span className={cn(

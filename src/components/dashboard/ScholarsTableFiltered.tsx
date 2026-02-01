@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckSquare, Square, UserX, Loader2, X, RefreshCw } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckSquare, Square, UserX, Loader2, X, RefreshCw, Calendar, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,9 @@ import type { Database } from "@/integrations/supabase/types";
 type EnrollmentStatus = Database["public"]["Enums"]["enrollment_status"];
 type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 
+type OriginFilter = "Todos" | "manual" | "import";
+type PeriodFilter = "Todos" | "today" | "7days" | "30days";
+
 interface ScholarData {
   userId: string;
   fullName: string | null;
@@ -42,6 +45,8 @@ interface ScholarData {
   enrollmentId: string | null;
   pendingReports: number;
   pendingPayments: number;
+  origin: string | null;
+  createdAt: string;
 }
 
 const enrollmentStatusConfig: Record<EnrollmentStatus, { label: string; className: string }> = {
@@ -49,6 +54,18 @@ const enrollmentStatusConfig: Record<EnrollmentStatus, { label: string; classNam
   suspended: { label: "Suspenso", className: "bg-warning/10 text-warning" },
   completed: { label: "Concluído", className: "bg-info/10 text-info" },
   cancelled: { label: "Cancelado", className: "bg-destructive/10 text-destructive" },
+};
+
+const originLabels: Record<string, string> = {
+  manual: "Manual",
+  import: "Importação",
+};
+
+const periodLabels: Record<PeriodFilter, string> = {
+  Todos: "Todos os períodos",
+  today: "Importados hoje",
+  "7days": "Últimos 7 dias",
+  "30days": "Últimos 30 dias",
 };
 
 function StatusBadge({ status, config }: { status: string; config: { label: string; className: string } }) {
@@ -69,6 +86,8 @@ export function ScholarsTableFiltered() {
   const [modalityFilter, setModalityFilter] = useState("Todos");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [originFilter, setOriginFilter] = useState<OriginFilter>("Todos");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("Todos");
 
   const fetchScholars = async () => {
     setLoading(true);
@@ -92,7 +111,7 @@ export function ScholarsTableFiltered() {
       // Fetch profiles for scholars
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email, cpf, is_active")
+        .select("user_id, full_name, email, cpf, is_active, origin, created_at")
         .in("user_id", scholarUserIds);
 
       if (profilesError) throw profilesError;
@@ -171,6 +190,8 @@ export function ScholarsTableFiltered() {
           enrollmentId: enrollment?.id || null,
           pendingReports: pendingReportsMap.get(profile.user_id) || 0,
           pendingPayments: pendingPaymentsMap.get(profile.user_id) || 0,
+          origin: profile.origin || 'manual',
+          createdAt: profile.created_at,
         };
       });
 
@@ -189,6 +210,11 @@ export function ScholarsTableFiltered() {
   }, []);
 
   const filteredScholars = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sevenDaysAgo = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(todayStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+
     return scholars.filter((scholar) => {
       const matchesSearch = 
         !searchTerm ||
@@ -209,17 +235,40 @@ export function ScholarsTableFiltered() {
         modalityFilter === "Todos" ||
         scholar.modality === modalityFilter;
       
-      return matchesSearch && matchesStatus && matchesModality;
+      const matchesOrigin = 
+        originFilter === "Todos" ||
+        scholar.origin === originFilter;
+      
+      // Period filter logic
+      let matchesPeriod = true;
+      if (periodFilter !== "Todos" && scholar.createdAt) {
+        const createdDate = new Date(scholar.createdAt);
+        switch (periodFilter) {
+          case "today":
+            matchesPeriod = createdDate >= todayStart;
+            break;
+          case "7days":
+            matchesPeriod = createdDate >= sevenDaysAgo;
+            break;
+          case "30days":
+            matchesPeriod = createdDate >= thirtyDaysAgo;
+            break;
+        }
+      }
+      
+      return matchesSearch && matchesStatus && matchesModality && matchesOrigin && matchesPeriod;
     });
-  }, [scholars, searchTerm, statusFilter, modalityFilter]);
+  }, [scholars, searchTerm, statusFilter, modalityFilter, originFilter, periodFilter]);
 
   const clearFilters = () => {
     setSearchTerm("");
     setStatusFilter("Todos");
     setModalityFilter("Todos");
+    setOriginFilter("Todos");
+    setPeriodFilter("Todos");
   };
 
-  const hasActiveFilters = searchTerm || statusFilter !== "Todos" || modalityFilter !== "Todos";
+  const hasActiveFilters = searchTerm || statusFilter !== "Todos" || modalityFilter !== "Todos" || originFilter !== "Todos" || periodFilter !== "Todos";
 
   // Selection logic
   const allFilteredSelected = filteredScholars.length > 0 && filteredScholars.every(s => selectedIds.has(s.userId));
@@ -385,6 +434,31 @@ export function ScholarsTableFiltered() {
                   {getModalityLabel(modality)}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={originFilter} onValueChange={(v) => setOriginFilter(v as OriginFilter)}>
+            <SelectTrigger className="w-[160px]">
+              <Upload className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Origem" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="Todos">Todas Origens</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+              <SelectItem value="import">Importação</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
+            <SelectTrigger className="w-[180px]">
+              <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="Todos">Todos os períodos</SelectItem>
+              <SelectItem value="today">Importados hoje</SelectItem>
+              <SelectItem value="7days">Últimos 7 dias</SelectItem>
+              <SelectItem value="30days">Últimos 30 dias</SelectItem>
             </SelectContent>
           </Select>
         </div>

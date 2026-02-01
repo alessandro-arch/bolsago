@@ -178,6 +178,7 @@ export type Database = {
           institution: string | null
           is_active: boolean
           lattes_url: string | null
+          origin: string | null
           phone: string | null
           updated_at: string
           user_id: string
@@ -193,6 +194,7 @@ export type Database = {
           institution?: string | null
           is_active?: boolean
           lattes_url?: string | null
+          origin?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -208,6 +210,7 @@ export type Database = {
           institution?: string | null
           is_active?: boolean
           lattes_url?: string | null
+          origin?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string

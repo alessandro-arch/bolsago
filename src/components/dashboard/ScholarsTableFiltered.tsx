@@ -476,15 +476,17 @@ export function ScholarsTableFiltered() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleBulkRemove}
-              className="gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Remover
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkRemove}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Remover
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -653,17 +655,21 @@ export function ScholarsTableFiltered() {
                               <Edit className="w-4 h-4" />
                               Editar
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="gap-2 text-destructive focus:text-destructive"
-                              onClick={() => {
-                                setSelectedIds(new Set([scholar.userId]));
-                                setBulkDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Remover
-                            </DropdownMenuItem>
+                            {isAdmin && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="gap-2 text-destructive focus:text-destructive"
+                                  onClick={() => {
+                                    setSelectedIds(new Set([scholar.userId]));
+                                    setBulkDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Remover
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>

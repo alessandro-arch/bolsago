@@ -1,11 +1,14 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { ScholarDataCards } from "@/components/scholar/ScholarDataCards";
-import { ArrowLeft, User } from "lucide-react";
+import { ArrowLeft, User, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useScholarEnrollment } from "@/hooks/useScholarEnrollment";
 
 const ScholarProfile = () => {
+  const { hasActiveEnrollment, loading } = useScholarEnrollment();
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar />
@@ -35,12 +38,21 @@ const ScholarProfile = () => {
                 <p className="text-muted-foreground">Visualize informações pessoais, do projeto e bancárias</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-success/10 text-success">
-                <span className="w-2 h-2 rounded-full bg-current" />
-                Bolsa Ativa
-              </span>
-            </div>
+            {!loading && (
+              <div className="flex items-center gap-2">
+                {hasActiveEnrollment ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-success/10 text-success">
+                    <span className="w-2 h-2 rounded-full bg-current" />
+                    Bolsa Ativa
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-warning/10 text-warning">
+                    <Clock className="w-4 h-4" />
+                    Aguardando Atribuição
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Scholar Data Cards */}

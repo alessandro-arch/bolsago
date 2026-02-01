@@ -1,9 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Calendar, BookOpen } from "lucide-react";
+import { Calendar, BookOpen, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export function ScholarGreeting() {
+interface ScholarGreetingProps {
+  hasActiveEnrollment: boolean;
+  loading: boolean;
+}
+
+export function ScholarGreeting({ hasActiveEnrollment, loading }: ScholarGreetingProps) {
   const { user } = useAuth();
   
   // Get user's name from metadata or email
@@ -40,25 +45,48 @@ export function ScholarGreeting() {
           </p>
           
           <p className="text-muted-foreground mt-2 max-w-xl">
-            Este é o seu painel de acompanhamento da bolsa, relatórios e pagamentos. 
-            Mantenha seus relatórios em dia para garantir a continuidade dos pagamentos.
+            {hasActiveEnrollment 
+              ? "Este é o seu painel de acompanhamento da bolsa, relatórios e pagamentos. Mantenha seus relatórios em dia para garantir a continuidade dos pagamentos."
+              : "Bem-vindo ao portal de bolsistas. Seu cadastro está completo e aguardando atribuição de bolsa pelo gestor."
+            }
           </p>
         </div>
         
-        <div className="flex-shrink-0">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/5 border border-primary/10">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Status da Bolsa</p>
-              <p className="text-sm font-semibold text-success flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-success" />
-                Ativa
-              </p>
+        {!loading && (
+          <div className="flex-shrink-0">
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+              hasActiveEnrollment 
+                ? "bg-primary/5 border-primary/10" 
+                : "bg-warning/5 border-warning/20"
+            }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                hasActiveEnrollment 
+                  ? "bg-primary/10" 
+                  : "bg-warning/10"
+              }`}>
+                {hasActiveEnrollment ? (
+                  <BookOpen className="w-5 h-5 text-primary" />
+                ) : (
+                  <Clock className="w-5 h-5 text-warning" />
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Status da Bolsa</p>
+                {hasActiveEnrollment ? (
+                  <p className="text-sm font-semibold text-success flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-success" />
+                    Ativa
+                  </p>
+                ) : (
+                  <p className="text-sm font-semibold text-warning flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-warning" />
+                    Aguardando Atribuição
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

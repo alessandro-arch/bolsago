@@ -133,6 +133,9 @@ export function useSpreadsheetParser() {
         totalRows: parsedRows.length,
         validRows: parsedRows.filter(r => r.isValid).length,
         invalidRows: parsedRows.filter(r => !r.isValid).length,
+        newRows: 0,
+        duplicateRows: 0,
+        conflictRows: 0,
         rows: parsedRows,
       };
 

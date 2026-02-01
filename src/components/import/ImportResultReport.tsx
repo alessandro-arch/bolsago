@@ -19,7 +19,9 @@ import {
   FileText,
   Clock,
   Hash,
-  FileSpreadsheet
+  FileSpreadsheet,
+  RefreshCw,
+  SkipForward
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -62,6 +64,26 @@ export function ImportResultReport({ result, onClose, onNewImport }: ImportResul
         String(record.rowNumber),
         'Importado',
         '',
+        ...allFields.map(f => String(record.data[f] ?? ''))
+      ]);
+    });
+
+    // Add updated records
+    result.updatedRecords.forEach(record => {
+      rows.push([
+        String(record.rowNumber),
+        'Atualizado',
+        '',
+        ...allFields.map(f => String(record.data[f] ?? ''))
+      ]);
+    });
+
+    // Add skipped records
+    result.skippedRecords.forEach(record => {
+      rows.push([
+        String(record.rowNumber),
+        'Ignorado',
+        record.reason,
         ...allFields.map(f => String(record.data[f] ?? ''))
       ]);
     });
@@ -108,7 +130,7 @@ export function ImportResultReport({ result, onClose, onNewImport }: ImportResul
                 {result.success ? 'Importação Concluída' : 'Importação Parcial'}
               </h2>
               <p className="text-muted-foreground">
-                {result.importedCount} registro(s) importado(s) com sucesso
+                {result.importedCount} novo(s), {result.updatedCount} atualizado(s), {result.skippedCount} ignorado(s)
                 {result.rejectedCount > 0 && `, ${result.rejectedCount} rejeitado(s)`}
               </p>
             </div>
@@ -127,13 +149,13 @@ export function ImportResultReport({ result, onClose, onNewImport }: ImportResul
       </Card>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <FileSpreadsheet className="w-8 h-8 text-muted-foreground" />
             <div>
               <p className="text-sm text-muted-foreground">Arquivo</p>
-              <p className="font-medium truncate max-w-[150px]" title={result.summary.fileName}>
+              <p className="font-medium truncate max-w-[100px]" title={result.summary.fileName}>
                 {result.summary.fileName}
               </p>
             </div>
@@ -152,12 +174,30 @@ export function ImportResultReport({ result, onClose, onNewImport }: ImportResul
 
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <Clock className="w-8 h-8 text-muted-foreground" />
+            <CheckCircle2 className="w-8 h-8 text-success" />
             <div>
-              <p className="text-sm text-muted-foreground">Início</p>
-              <p className="font-medium">
-                {format(new Date(result.summary.startedAt), 'HH:mm:ss', { locale: ptBR })}
-              </p>
+              <p className="text-sm text-muted-foreground">Novos</p>
+              <p className="font-medium text-success">{result.importedCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <RefreshCw className="w-8 h-8 text-blue-500" />
+            <div>
+              <p className="text-sm text-muted-foreground">Atualizados</p>
+              <p className="font-medium text-blue-500">{result.updatedCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <SkipForward className="w-8 h-8 text-amber-500" />
+            <div>
+              <p className="text-sm text-muted-foreground">Ignorados</p>
+              <p className="font-medium text-amber-500">{result.skippedCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -176,11 +216,19 @@ export function ImportResultReport({ result, onClose, onNewImport }: ImportResul
       </div>
 
       {/* Detailed results */}
-      <Tabs defaultValue="rejected" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="imported" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="imported" className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-success" />
-            Importados ({result.importedCount})
+            Novos ({result.importedCount})
+          </TabsTrigger>
+          <TabsTrigger value="updated" className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-blue-500" />
+            Atualizados ({result.updatedCount})
+          </TabsTrigger>
+          <TabsTrigger value="skipped" className="flex items-center gap-2">
+            <SkipForward className="w-4 h-4 text-amber-500" />
+            Ignorados ({result.skippedCount})
           </TabsTrigger>
           <TabsTrigger value="rejected" className="flex items-center gap-2">
             <XCircle className="w-4 h-4 text-destructive" />
@@ -196,7 +244,7 @@ export function ImportResultReport({ result, onClose, onNewImport }: ImportResul
             <CardContent>
               {result.importedRecords.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  Nenhum registro foi importado
+                  Nenhum registro novo foi importado
                 </p>
               ) : (
                 <ScrollArea className="h-[300px]">
@@ -223,6 +271,96 @@ export function ImportResultReport({ result, onClose, onNewImport }: ImportResul
                             <Badge className="bg-success text-success-foreground">
                               Importado
                             </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="updated">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Registros Atualizados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {result.updatedRecords.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhum registro foi atualizado
+                </p>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Linha</TableHead>
+                        {typeConfig.requiredFields.slice(0, 3).map(field => (
+                          <TableHead key={field}>{field}</TableHead>
+                        ))}
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {result.updatedRecords.map(record => (
+                        <TableRow key={record.rowNumber}>
+                          <TableCell className="font-mono">{record.rowNumber}</TableCell>
+                          {typeConfig.requiredFields.slice(0, 3).map(field => (
+                            <TableCell key={field} className="truncate max-w-[150px]">
+                              {String(record.data[field] ?? '—')}
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            <Badge className="bg-blue-500 text-white">
+                              Atualizado
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="skipped">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Registros Ignorados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {result.skippedRecords.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhum registro foi ignorado
+                </p>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Linha</TableHead>
+                        {typeConfig.requiredFields.slice(0, 2).map(field => (
+                          <TableHead key={field}>{field}</TableHead>
+                        ))}
+                        <TableHead>Motivo</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {result.skippedRecords.map(record => (
+                        <TableRow key={record.rowNumber} className="bg-amber-500/5">
+                          <TableCell className="font-mono">{record.rowNumber}</TableCell>
+                          {typeConfig.requiredFields.slice(0, 2).map(field => (
+                            <TableCell key={field} className="truncate max-w-[120px]">
+                              {String(record.data[field] ?? '—')}
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            <p className="text-sm text-amber-600">{record.reason}</p>
                           </TableCell>
                         </TableRow>
                       ))}

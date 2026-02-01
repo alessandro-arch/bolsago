@@ -8,18 +8,19 @@ import { DataPreviewTable } from '@/components/import/DataPreviewTable';
 import { ImportSummary } from '@/components/import/ImportSummary';
 import { ImportResultReport } from '@/components/import/ImportResultReport';
 import { useSpreadsheetParser } from '@/hooks/useSpreadsheetParser';
-import { ImportType, ImportPreview, ImportResult, IMPORT_TYPES } from '@/types/import';
+import { useDuplicateChecker } from '@/hooks/useDuplicateChecker';
+import { ImportType, ImportPreview, ImportResult, ParsedRow, DuplicateAction, IMPORT_TYPES } from '@/types/import';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { unformatCPF, validateCPF } from '@/lib/cpf-validator';
 import { 
   ChevronRight, 
   ChevronLeft, 
   Upload, 
-  FileCheck, 
   AlertCircle,
   Loader2,
   Download
@@ -36,6 +37,7 @@ export default function Import() {
   const [importProgress, setImportProgress] = useState(0);
 
   const { parseFile, isLoading: isParsing, error: parseError } = useSpreadsheetParser();
+  const { checkDuplicates, isChecking } = useDuplicateChecker();
   const { toast } = useToast();
 
   const handleTypeSelect = (type: ImportType) => {
@@ -50,7 +52,26 @@ export default function Import() {
     
     try {
       const parsedPreview = await parseFile(file, selectedType);
-      setPreview(parsedPreview);
+      
+      // For scholars import, check for duplicates
+      if (selectedType === 'scholars') {
+        const checkedRows = await checkDuplicates(parsedPreview.rows);
+        
+        const newRows = checkedRows.filter(r => r.isValid && r.duplicateInfo?.status === 'new').length;
+        const duplicateRows = checkedRows.filter(r => r.isValid && r.duplicateInfo?.status === 'duplicate').length;
+        const conflictRows = checkedRows.filter(r => r.isValid && r.duplicateInfo?.status === 'conflict').length;
+        
+        setPreview({
+          ...parsedPreview,
+          rows: checkedRows,
+          newRows,
+          duplicateRows,
+          conflictRows,
+        });
+      } else {
+        setPreview(parsedPreview);
+      }
+      
       setCurrentStep('preview');
     } catch {
       toast({
@@ -61,6 +82,26 @@ export default function Import() {
     }
   };
 
+  const handleRowActionChange = (rowNumber: number, action: DuplicateAction) => {
+    if (!preview) return;
+    
+    setPreview({
+      ...preview,
+      rows: preview.rows.map(row => {
+        if (row.rowNumber === rowNumber && row.duplicateInfo) {
+          return {
+            ...row,
+            duplicateInfo: {
+              ...row.duplicateInfo,
+              action,
+            },
+          };
+        }
+        return row;
+      }),
+    });
+  };
+
   const handleImport = useCallback(async () => {
     if (!preview || !selectedType || !selectedFile) return;
 
@@ -68,10 +109,27 @@ export default function Import() {
     setImportProgress(0);
 
     const startedAt = new Date().toISOString();
+    
+    // Get rows to process based on their status and action
     const validRows = preview.rows.filter(r => r.isValid);
     const invalidRows = preview.rows.filter(r => !r.isValid);
     
+    // Separate by action
+    const rowsToImport = validRows.filter(r => 
+      r.duplicateInfo?.status === 'new' || r.duplicateInfo?.action === 'import'
+    );
+    const rowsToUpdate = validRows.filter(r => 
+      (r.duplicateInfo?.status === 'duplicate' || r.duplicateInfo?.status === 'conflict') && 
+      r.duplicateInfo?.action === 'update'
+    );
+    const rowsToSkip = validRows.filter(r => 
+      (r.duplicateInfo?.status === 'duplicate' || r.duplicateInfo?.status === 'conflict') && 
+      r.duplicateInfo?.action === 'skip'
+    );
+    
     const importedRecords: ImportResult['importedRecords'] = [];
+    const updatedRecords: ImportResult['updatedRecords'] = [];
+    const skippedRecords: ImportResult['skippedRecords'] = [];
     const rejectedRecords: ImportResult['rejectedRecords'] = [];
 
     // Add invalid rows to rejected
@@ -83,56 +141,106 @@ export default function Import() {
       });
     });
 
-    // Process valid rows
-    for (let i = 0; i < validRows.length; i++) {
-      const row = validRows[i];
-      setImportProgress(Math.round(((i + 1) / validRows.length) * 100));
+    // Add skipped rows
+    rowsToSkip.forEach(row => {
+      skippedRecords.push({
+        rowNumber: row.rowNumber,
+        data: row.data,
+        reason: row.duplicateInfo?.conflictReason || 'Ignorado pelo gestor',
+      });
+    });
+
+    const totalToProcess = rowsToImport.length + rowsToUpdate.length;
+    let processed = 0;
+
+    // Process new records (import)
+    for (const row of rowsToImport) {
+      processed++;
+      setImportProgress(Math.round((processed / totalToProcess) * 100));
 
       try {
-        // For now, we simulate database insertion since tables may not exist yet
-        // In production, this would call the appropriate Supabase table
-        let insertError: Error | null = null;
-
-        // Simulate a small delay for realistic progress
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        // Basic validation that would happen at DB level
         if (selectedType === 'scholars') {
-          // Check if email format is valid
+          // For now, simulate - in production would create user via edge function
           const email = String(row.data.email || '');
+          const cpf = String(row.data.cpf || '');
+          
           if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            insertError = new Error('Email inválido ou ausente');
+            rejectedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+              reasons: ['Email inválido ou ausente'],
+            });
+            continue;
           }
-        } else if (selectedType === 'bank_accounts') {
-          const userEmail = String(row.data.user_email || '');
-          if (!userEmail) {
-            insertError = new Error('Email do bolsista não informado');
-          }
-        } else if (selectedType === 'projects') {
-          const code = String(row.data.code || '');
-          if (!code) {
-            insertError = new Error('Código do projeto não informado');
-          }
-        } else if (selectedType === 'enrollments') {
-          const userEmail = String(row.data.user_email || '');
-          const projectCode = String(row.data.project_code || '');
-          if (!userEmail || !projectCode) {
-            insertError = new Error('Email do bolsista ou código do projeto não informado');
-          }
-        }
 
-        if (insertError) {
-          rejectedRecords.push({
+          if (!cpf || !validateCPF(cpf)) {
+            rejectedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+              reasons: ['CPF inválido'],
+            });
+            continue;
+          }
+
+          importedRecords.push({
             rowNumber: row.rowNumber,
             data: row.data,
-            reasons: [insertError.message],
           });
         } else {
+          // Other import types - basic validation
           importedRecords.push({
             rowNumber: row.rowNumber,
             data: row.data,
           });
         }
+
+        await new Promise(resolve => setTimeout(resolve, 30));
+      } catch (err) {
+        rejectedRecords.push({
+          rowNumber: row.rowNumber,
+          data: row.data,
+          reasons: [err instanceof Error ? err.message : 'Erro desconhecido'],
+        });
+      }
+    }
+
+    // Process updates
+    for (const row of rowsToUpdate) {
+      processed++;
+      setImportProgress(Math.round((processed / totalToProcess) * 100));
+
+      try {
+        if (selectedType === 'scholars' && row.duplicateInfo?.existingProfileId) {
+          const updateData: Record<string, unknown> = {
+            full_name: row.data.full_name,
+            phone: row.data.phone || null,
+          };
+
+          const { error } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', row.duplicateInfo.existingProfileId);
+
+          if (error) {
+            rejectedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+              reasons: [error.message],
+            });
+          } else {
+            updatedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+            });
+          }
+        } else {
+          updatedRecords.push({
+            rowNumber: row.rowNumber,
+            data: row.data,
+          });
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 30));
       } catch (err) {
         rejectedRecords.push({
           rowNumber: row.rowNumber,
@@ -143,10 +251,14 @@ export default function Import() {
     }
 
     const result: ImportResult = {
-      success: importedRecords.length > 0,
+      success: importedRecords.length > 0 || updatedRecords.length > 0,
       importedCount: importedRecords.length,
+      updatedCount: updatedRecords.length,
+      skippedCount: skippedRecords.length,
       rejectedCount: rejectedRecords.length,
       importedRecords,
+      updatedRecords,
+      skippedRecords,
       rejectedRecords,
       summary: {
         startedAt,
@@ -162,7 +274,7 @@ export default function Import() {
 
     toast({
       title: result.success ? 'Importação concluída' : 'Importação com erros',
-      description: `${result.importedCount} registro(s) importado(s), ${result.rejectedCount} rejeitado(s)`,
+      description: `${result.importedCount} novo(s), ${result.updatedCount} atualizado(s), ${result.skippedCount} ignorado(s), ${result.rejectedCount} rejeitado(s)`,
       variant: result.rejectedCount > 0 ? 'destructive' : 'default',
     });
   }, [preview, selectedType, selectedFile, toast]);
@@ -203,6 +315,21 @@ export default function Import() {
       case 'result': return 4;
       default: return 1;
     }
+  };
+
+  // Check if there are pending decisions for duplicates/conflicts
+  const hasPendingDecisions = preview?.rows.some(r => 
+    r.isValid && 
+    (r.duplicateInfo?.status === 'duplicate' || r.duplicateInfo?.status === 'conflict') &&
+    r.duplicateInfo?.action === 'skip'
+  );
+
+  const getImportableCount = () => {
+    if (!preview) return 0;
+    return preview.rows.filter(r => 
+      r.isValid && 
+      (r.duplicateInfo?.status === 'new' || r.duplicateInfo?.action === 'update')
+    ).length;
   };
 
   return (
@@ -282,10 +409,10 @@ export default function Import() {
                 <CardContent className="space-y-4">
                   <FileUploader onFileSelect={handleFileSelect} />
                   
-                  {isParsing && (
+                  {(isParsing || isChecking) && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Processando arquivo...
+                      {isChecking ? 'Verificando duplicados...' : 'Processando arquivo...'}
                     </div>
                   )}
 
@@ -321,11 +448,16 @@ export default function Import() {
                   <CardHeader>
                     <CardTitle>Pré-visualização dos Dados</CardTitle>
                     <CardDescription>
-                      Revise os dados antes de confirmar a importação
+                      Revise os dados antes de confirmar a importação. 
+                      {selectedType === 'scholars' && ' Para registros duplicados ou em conflito, escolha a ação desejada.'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <DataPreviewTable rows={preview.rows} importType={selectedType} />
+                    <DataPreviewTable 
+                      rows={preview.rows} 
+                      importType={selectedType}
+                      onActionChange={handleRowActionChange}
+                    />
                   </CardContent>
                 </Card>
 
@@ -336,7 +468,20 @@ export default function Import() {
                       <p className="font-medium text-foreground">Atenção</p>
                       <p className="text-sm text-muted-foreground">
                         {preview.invalidRows} registro(s) contêm erros e serão ignorados na importação.
-                        Apenas os {preview.validRows} registro(s) válidos serão processados.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {(preview.duplicateRows > 0 || preview.conflictRows > 0) && (
+                  <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">Registros Duplicados/Conflitos Detectados</p>
+                      <p className="text-sm text-muted-foreground">
+                        {preview.duplicateRows > 0 && `${preview.duplicateRows} registro(s) com CPF já cadastrado. `}
+                        {preview.conflictRows > 0 && `${preview.conflictRows} registro(s) com e-mail em conflito. `}
+                        Para cada registro, escolha se deseja <strong>Atualizar</strong> o cadastro existente ou <strong>Ignorar</strong>.
                       </p>
                     </div>
                   </div>
@@ -349,10 +494,10 @@ export default function Import() {
                   </Button>
                   <Button 
                     onClick={handleImport}
-                    disabled={preview.validRows === 0}
+                    disabled={getImportableCount() === 0}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Importar {preview.validRows} Registro(s)
+                    Processar {getImportableCount()} Registro(s)
                   </Button>
                 </div>
               </div>

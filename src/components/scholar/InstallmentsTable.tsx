@@ -13,7 +13,8 @@ import {
   CalendarClock,
   Lock,
   Loader2,
-  Info
+  Info,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ReportVersionsDialog, type ReportVersion } from "./ReportVersionsDialog";
 import { ReportUploadDialog } from "./ReportUploadDialog";
+import { openReportPdf, downloadReportPdf } from "@/hooks/useSignedUrl";
 import type { PaymentWithReport } from "@/hooks/useScholarPayments";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -237,13 +239,22 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
             )}
             
             {installment.reportFileUrl && (
-              <DropdownMenuItem 
-                className="gap-2"
-                onSelect={() => window.open(installment.reportFileUrl, "_blank")}
-              >
-                <Download className="w-4 h-4" />
-                Baixar relatório
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem 
+                  className="gap-2"
+                  onSelect={() => openReportPdf(installment.reportFileUrl!)}
+                >
+                  <Eye className="w-4 h-4" />
+                  Visualizar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="gap-2"
+                  onSelect={() => downloadReportPdf(installment.reportFileUrl!, `relatorio_${installment.referenceMonthRaw}.pdf`)}
+                >
+                  <Download className="w-4 h-4" />
+                  Baixar relatório
+                </DropdownMenuItem>
+              </>
             )}
             
             {canViewFeedback && (
@@ -313,6 +324,7 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
             open={versionsOpen}
             onOpenChange={setVersionsOpen}
             referenceMonth={installment.referenceMonth}
+            referenceMonthRaw={installment.referenceMonthRaw}
             versions={installment.versions || []}
           />
         )}
@@ -397,6 +409,16 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number,
     paymentStatus = "future";
   }
 
+  // Map versions from payment data
+  const versions: ReportVersion[] = (payment.reportVersions || []).map(v => ({
+    id: v.id,
+    version: v.version,
+    submittedAt: v.submittedAt,
+    status: v.status,
+    feedback: v.feedback,
+    fileUrl: v.fileUrl,
+  }));
+
   return {
     id: payment.id,
     number: payment.installment_number,
@@ -408,6 +430,7 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number,
     paymentDate: payment.paid_at ? format(parseISO(payment.paid_at), "dd/MM/yyyy") : undefined,
     feedback: payment.report?.feedback || undefined,
     isFirstInstallment: payment.installment_number === 1,
+    versions: versions.length > 0 ? versions : undefined,
     monthStatus,
     enrollmentId,
     hasReportUnderReview,

@@ -120,13 +120,13 @@ export function ReportUploadDialog({
 
       const versionNumber = (existingReports?.length || 0) + 1;
 
-      // 2. Generate unique filename
-      const timestamp = Date.now();
-      const fileName = `${user.id}/${referenceMonth}/relatorio_v${versionNumber}_${timestamp}.pdf`;
+      // 2. Generate unique filename with proper path structure
+      // Path format: {user_id}/{reference_month}/v{version}.pdf
+      const fileName = `${user.id}/${referenceMonth}/v${versionNumber}.pdf`;
 
       setUploadProgress(30);
 
-      // 3. Upload file to storage
+      // 3. Upload file to storage (private bucket)
       const { error: uploadError } = await supabase.storage
         .from("reports")
         .upload(fileName, file, {
@@ -138,23 +138,19 @@ export function ReportUploadDialog({
 
       setUploadProgress(60);
 
-      // 4. Get public URL
-      const { data: urlData } = supabase.storage
-        .from("reports")
-        .getPublicUrl(fileName);
-
-      const fileUrl = urlData?.publicUrl || fileName;
+      // 4. Store the path (not public URL) - we'll use signed URLs for access
+      const filePath = fileName;
 
       setUploadProgress(80);
 
-      // 5. Create report record
+      // 5. Create report record with file path
       const { error: insertError } = await supabase
         .from("reports")
         .insert({
           user_id: user.id,
           reference_month: referenceMonth,
           installment_number: installmentNumber,
-          file_url: fileUrl,
+          file_url: filePath, // Store path, not public URL
           file_name: file.name,
           observations: observations || null,
           status: "under_review",

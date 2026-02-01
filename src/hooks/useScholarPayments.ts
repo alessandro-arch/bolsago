@@ -12,8 +12,18 @@ export interface EnrollmentWithProject extends Enrollment {
   project: Project | null;
 }
 
+export interface ReportVersionInfo {
+  id: string;
+  version: number;
+  submittedAt: string;
+  status: "approved" | "rejected" | "under_review";
+  feedback?: string;
+  fileUrl?: string;
+}
+
 export interface PaymentWithReport extends Payment {
   report?: Report | null;
+  reportVersions?: ReportVersionInfo[];
 }
 
 export interface ScholarPaymentsData {
@@ -102,12 +112,13 @@ export function useScholarPayments(): UseScholarPaymentsReturn {
         console.error("Error fetching payments:", paymentsError);
       }
 
-      // 3. Fetch reports for this user
+      // 3. Fetch reports for this user (ordered by created_at desc to get latest first)
       const { data: reportsData, error: reportsError } = await supabase
         .from("reports")
         .select("*")
         .eq("user_id", user.id)
-        .order("reference_month", { ascending: true });
+        .order("reference_month", { ascending: true })
+        .order("created_at", { ascending: false });
 
       if (reportsError) {
         console.error("Error fetching reports:", reportsError);
@@ -116,10 +127,32 @@ export function useScholarPayments(): UseScholarPaymentsReturn {
       const payments = paymentsData || [];
       const reports = reportsData || [];
 
-      // Map reports to payments by reference_month
+      // Group reports by reference_month to get all versions
+      const reportsByMonth = reports.reduce((acc, report) => {
+        if (!acc[report.reference_month]) {
+          acc[report.reference_month] = [];
+        }
+        acc[report.reference_month].push(report);
+        return acc;
+      }, {} as Record<string, Report[]>);
+
+      // Map reports to payments by reference_month (using the latest report per month)
       const paymentsWithReports: PaymentWithReport[] = payments.map(payment => {
-        const report = reports.find(r => r.reference_month === payment.reference_month);
-        return { ...payment, report };
+        const monthReports = reportsByMonth[payment.reference_month] || [];
+        // The first report is the most recent (due to ordering)
+        const latestReport = monthReports.length > 0 ? monthReports[0] : null;
+        
+        // Build version info for all reports in this month
+        const reportVersions: ReportVersionInfo[] = monthReports.map((r, index) => ({
+          id: r.id,
+          version: monthReports.length - index, // Latest is highest version
+          submittedAt: new Date(r.submitted_at).toLocaleDateString("pt-BR"),
+          status: r.status as "approved" | "rejected" | "under_review",
+          feedback: r.feedback || undefined,
+          fileUrl: r.file_url,
+        }));
+        
+        return { ...payment, report: latestReport, reportVersions };
       });
 
       // Calculate stats

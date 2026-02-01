@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
+import { ThematicProjectContext } from "@/components/scholar/ThematicProjectContext";
 import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
 import { ScholarWorkflowBanner } from "@/components/scholar/ScholarWorkflowBanner";
 import { GrantTermSection } from "@/components/scholar/GrantTermSection";
@@ -10,16 +11,21 @@ import { DocumentsSection } from "@/components/scholar/DocumentsSection";
 import { AwaitingAssignmentBanner } from "@/components/scholar/AwaitingAssignmentBanner";
 import { BankDataPendingBanner } from "@/components/scholar/BankDataPendingBanner";
 import { BankDataValidationBanner } from "@/components/scholar/BankDataValidationBanner";
-import { useScholarEnrollment } from "@/hooks/useScholarEnrollment";
+import { useScholarPayments } from "@/hooks/useScholarPayments";
 import { useBankDataStatus } from "@/hooks/useBankDataStatus";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { hasActiveEnrollment, loading: enrollmentLoading } = useScholarEnrollment();
+  const { data, loading: paymentsLoading, error } = useScholarPayments();
   const { status: bankStatus, loading: bankLoading } = useBankDataStatus();
 
-  const loading = enrollmentLoading || bankLoading;
+  const loading = paymentsLoading || bankLoading;
+  const hasActiveEnrollment = data?.enrollment !== null;
+  
+  // Calculate approved reports count
+  const approvedReportsCount = data?.reports?.filter(r => r.status === "approved").length ?? 0;
 
   const handleNavigateToProfile = () => {
     navigate("/perfil-bolsista");
@@ -38,17 +44,59 @@ const Index = () => {
             <ScholarGreeting hasActiveEnrollment={hasActiveEnrollment} loading={loading} />
           </div>
 
+          {/* Error State */}
+          {error && (
+            <div className="animate-fade-in mb-6">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {error}. Por favor, tente recarregar a página.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : !hasActiveEnrollment ? (
-            /* Awaiting Assignment State - Project empty, reports blocked, payments hidden */
-            <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-              <AwaitingAssignmentBanner />
-            </div>
+            <>
+              {/* Thematic Project Context - Empty State */}
+              <div className="animate-fade-in" style={{ animationDelay: "75ms" }}>
+                <ThematicProjectContext 
+                  project={null} 
+                  enrollment={null} 
+                  loading={false} 
+                />
+              </div>
+              
+              {/* Summary Cards - Empty State */}
+              <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+                <ScholarSummaryCards 
+                  enrollment={null}
+                  stats={null}
+                  approvedReportsCount={0}
+                  loading={false}
+                />
+              </div>
+              
+              {/* Awaiting Assignment Banner */}
+              <div className="animate-fade-in" style={{ animationDelay: "125ms" }}>
+                <AwaitingAssignmentBanner />
+              </div>
+            </>
           ) : (
             <>
+              {/* Thematic Project Context */}
+              <div className="animate-fade-in" style={{ animationDelay: "75ms" }}>
+                <ThematicProjectContext 
+                  project={data?.enrollment?.project ?? null} 
+                  enrollment={data?.enrollment ?? null} 
+                  loading={false} 
+                />
+              </div>
+
               {/* Bank Data Status Banners */}
               {bankStatus === "not_filled" && (
                 <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
@@ -62,9 +110,14 @@ const Index = () => {
                 </div>
               )}
 
-              {/* Summary Cards */}
+              {/* Summary Cards with Real Data */}
               <div className="animate-fade-in" style={{ animationDelay: "150ms" }}>
-                <ScholarSummaryCards />
+                <ScholarSummaryCards 
+                  enrollment={data?.enrollment ?? null}
+                  stats={data?.stats ?? null}
+                  approvedReportsCount={approvedReportsCount}
+                  loading={false}
+                />
               </div>
 
               {/* Workflow Banner */}

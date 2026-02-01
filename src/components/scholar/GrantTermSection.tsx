@@ -16,10 +16,10 @@ interface GrantDocument {
 const documents: GrantDocument[] = [
   {
     id: "1",
-    name: "Termo de Outorga - Bolsa IC 2024",
+    name: "Termo de Outorga - Bolsa IC 2026",
     type: "Contrato Principal",
     status: "signed",
-    signedAt: "15/01/2024",
+    signedAt: "15/01/2026",
     fileSize: "245 KB",
   },
   {
@@ -27,7 +27,7 @@ const documents: GrantDocument[] = [
     name: "Termo de Compromisso do Bolsista",
     type: "Anexo I",
     status: "signed",
-    signedAt: "15/01/2024",
+    signedAt: "15/01/2026",
     fileSize: "128 KB",
   },
   {
@@ -35,7 +35,7 @@ const documents: GrantDocument[] = [
     name: "Declaração de Vínculo Institucional",
     type: "Anexo II",
     status: "signed",
-    signedAt: "15/01/2024",
+    signedAt: "15/01/2026",
     fileSize: "98 KB",
   },
   {

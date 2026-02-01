@@ -50,142 +50,105 @@ interface Installment {
   monthStatus: MonthStatus;
 }
 
-// Current month simulation: October 2024 (month 10)
-const CURRENT_INSTALLMENT_NUMBER = 10;
+// Current month simulation: January 2026 (month 1)
+const CURRENT_INSTALLMENT_NUMBER = 1;
 
 const installments: Installment[] = [
   { 
     id: "1", 
     number: 1, 
-    referenceMonth: "Janeiro/2024", 
+    referenceMonth: "Janeiro/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid", 
-    paymentDate: "10/02/2024",
+    reportStatus: "pending", 
+    paymentStatus: "blocked",
     isFirstInstallment: true,
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "05/01/2024", status: "approved" }
-    ]
+    monthStatus: "current"
   },
   { 
     id: "2", 
     number: 2, 
-    referenceMonth: "Fevereiro/2024", 
+    referenceMonth: "Fevereiro/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid", 
-    paymentDate: "08/03/2024",
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "08/02/2024", status: "approved" }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "3", 
     number: 3, 
-    referenceMonth: "Março/2024", 
+    referenceMonth: "Março/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid", 
-    paymentDate: "10/04/2024",
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "09/03/2024", status: "approved" }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "4", 
     number: 4, 
-    referenceMonth: "Abril/2024", 
+    referenceMonth: "Abril/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid", 
-    paymentDate: "09/05/2024",
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "10/04/2024", status: "approved" }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "5", 
     number: 5, 
-    referenceMonth: "Maio/2024", 
+    referenceMonth: "Maio/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid", 
-    paymentDate: "10/06/2024",
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "10/05/2024", status: "approved" }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "6", 
     number: 6, 
-    referenceMonth: "Junho/2024", 
+    referenceMonth: "Junho/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid", 
-    paymentDate: "08/07/2024",
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "09/06/2024", status: "approved" }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "7", 
     number: 7, 
-    referenceMonth: "Julho/2024", 
+    referenceMonth: "Julho/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid", 
-    paymentDate: "09/08/2024",
-    monthStatus: "past",
-    versions: [
-      { id: "v2", version: 2, submittedAt: "08/07/2024", status: "approved" },
-      { id: "v1", version: 1, submittedAt: "05/07/2024", status: "rejected", feedback: "Faltou descrição das atividades da segunda quinzena." }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "8", 
     number: 8, 
-    referenceMonth: "Agosto/2024", 
+    referenceMonth: "Agosto/2026", 
     value: 700, 
-    reportStatus: "approved", 
-    paymentStatus: "paid",
-    paymentDate: "10/09/2024",
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "10/08/2024", status: "approved" }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "9", 
     number: 9, 
-    referenceMonth: "Setembro/2024", 
+    referenceMonth: "Setembro/2026", 
     value: 700, 
-    reportStatus: "rejected", 
-    paymentStatus: "blocked", 
-    feedback: "Relatório incompleto. Faltam informações sobre as atividades realizadas na segunda quinzena do mês.",
-    monthStatus: "past",
-    versions: [
-      { id: "v1", version: 1, submittedAt: "10/09/2024", status: "rejected", feedback: "Relatório incompleto. Faltam informações sobre as atividades realizadas na segunda quinzena do mês." }
-    ]
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "10", 
     number: 10, 
-    referenceMonth: "Outubro/2024", 
+    referenceMonth: "Outubro/2026", 
     value: 700, 
-    reportStatus: "pending", 
-    paymentStatus: "blocked",
-    monthStatus: "current"
+    reportStatus: "future", 
+    paymentStatus: "future",
+    monthStatus: "future"
   },
   { 
     id: "11", 
     number: 11, 
-    referenceMonth: "Novembro/2024", 
+    referenceMonth: "Novembro/2026", 
     value: 700, 
     reportStatus: "future", 
     paymentStatus: "future",
@@ -194,7 +157,7 @@ const installments: Installment[] = [
   { 
     id: "12", 
     number: 12, 
-    referenceMonth: "Dezembro/2024", 
+    referenceMonth: "Dezembro/2026", 
     value: 700, 
     reportStatus: "future", 
     paymentStatus: "future",

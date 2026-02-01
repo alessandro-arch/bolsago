@@ -46,10 +46,30 @@ export function Header() {
         </button>
 
         {/* Period Selector */}
-        <Button variant="outline" className="gap-2">
-          <span className="text-sm">2024/1</span>
-          <ChevronDown className="w-4 h-4" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <span className="text-sm">2026/1</span>
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>2026/1</DropdownMenuItem>
+            <DropdownMenuItem>2026/2</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>2027/1</DropdownMenuItem>
+            <DropdownMenuItem>2027/2</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>2028/1</DropdownMenuItem>
+            <DropdownMenuItem>2028/2</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>2029/1</DropdownMenuItem>
+            <DropdownMenuItem>2029/2</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>2030/1</DropdownMenuItem>
+            <DropdownMenuItem>2030/2</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User Menu */}
         <DropdownMenu>

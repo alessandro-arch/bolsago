@@ -32,14 +32,14 @@ interface Scholar {
 }
 
 const scholars: Scholar[] = [
-  { id: "1", name: "Ana Carolina Silva", project: "IA Aplicada à Saúde", scholarshipType: "Iniciação Científica", currentMonth: "Abril/2024", reportStatus: "approved", paymentStatus: "released", projectProgress: 75 },
-  { id: "2", name: "Bruno Oliveira Santos", project: "Robótica Educacional", scholarshipType: "Extensão", currentMonth: "Abril/2024", reportStatus: "submitted", paymentStatus: "processing", projectProgress: 60 },
-  { id: "3", name: "Carla Mendes Ferreira", project: "Sustentabilidade Urbana", scholarshipType: "Monitoria", currentMonth: "Abril/2024", reportStatus: "pending", paymentStatus: "blocked", projectProgress: 45 },
-  { id: "4", name: "Daniel Costa Lima", project: "IA Aplicada à Saúde", scholarshipType: "Pesquisa", currentMonth: "Abril/2024", reportStatus: "rejected", paymentStatus: "blocked", projectProgress: 30 },
-  { id: "5", name: "Elena Rodrigues Souza", project: "Direito Digital", scholarshipType: "Assistência Estudantil", currentMonth: "Abril/2024", reportStatus: "approved", paymentStatus: "paid", projectProgress: 90 },
-  { id: "6", name: "Fernando Alves Costa", project: "Robótica Educacional", scholarshipType: "Iniciação Científica", currentMonth: "Abril/2024", reportStatus: "pending", paymentStatus: "blocked", projectProgress: 55 },
-  { id: "7", name: "Gabriela Lima Martins", project: "Sustentabilidade Urbana", scholarshipType: "Extensão", currentMonth: "Abril/2024", reportStatus: "submitted", paymentStatus: "processing", projectProgress: 70 },
-  { id: "8", name: "Henrique Souza Pereira", project: "IA Aplicada à Saúde", scholarshipType: "Pesquisa", currentMonth: "Abril/2024", reportStatus: "approved", paymentStatus: "released", projectProgress: 85 },
+  { id: "1", name: "Ana Carolina Silva", project: "IA Aplicada à Saúde", scholarshipType: "Iniciação Científica", currentMonth: "Janeiro/2026", reportStatus: "approved", paymentStatus: "released", projectProgress: 75 },
+  { id: "2", name: "Bruno Oliveira Santos", project: "Robótica Educacional", scholarshipType: "Extensão", currentMonth: "Janeiro/2026", reportStatus: "submitted", paymentStatus: "processing", projectProgress: 60 },
+  { id: "3", name: "Carla Mendes Ferreira", project: "Sustentabilidade Urbana", scholarshipType: "Monitoria", currentMonth: "Janeiro/2026", reportStatus: "pending", paymentStatus: "blocked", projectProgress: 45 },
+  { id: "4", name: "Daniel Costa Lima", project: "IA Aplicada à Saúde", scholarshipType: "Pesquisa", currentMonth: "Janeiro/2026", reportStatus: "rejected", paymentStatus: "blocked", projectProgress: 30 },
+  { id: "5", name: "Elena Rodrigues Souza", project: "Direito Digital", scholarshipType: "Assistência Estudantil", currentMonth: "Janeiro/2026", reportStatus: "approved", paymentStatus: "paid", projectProgress: 90 },
+  { id: "6", name: "Fernando Alves Costa", project: "Robótica Educacional", scholarshipType: "Iniciação Científica", currentMonth: "Janeiro/2026", reportStatus: "pending", paymentStatus: "blocked", projectProgress: 55 },
+  { id: "7", name: "Gabriela Lima Martins", project: "Sustentabilidade Urbana", scholarshipType: "Extensão", currentMonth: "Janeiro/2026", reportStatus: "submitted", paymentStatus: "processing", projectProgress: 70 },
+  { id: "8", name: "Henrique Souza Pereira", project: "IA Aplicada à Saúde", scholarshipType: "Pesquisa", currentMonth: "Janeiro/2026", reportStatus: "approved", paymentStatus: "released", projectProgress: 85 },
 ];
 
 const projects = ["Todos", "IA Aplicada à Saúde", "Robótica Educacional", "Sustentabilidade Urbana", "Direito Digital"];

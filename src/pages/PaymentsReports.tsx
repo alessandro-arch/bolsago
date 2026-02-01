@@ -34,7 +34,7 @@ const PaymentsReports = () => {
               <div className="flex-1">
                 <h1 className="text-xl font-semibold text-foreground">Ana Carolina Silva</h1>
                 <p className="text-muted-foreground">Bolsa: Iniciação Científica • Projeto: IA Aplicada à Saúde</p>
-                <p className="text-sm text-muted-foreground mt-1">Vigência: Janeiro/2024 a Dezembro/2024</p>
+                <p className="text-sm text-muted-foreground mt-1">Vigência: Janeiro/2026 a Dezembro/2026</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-success/10 text-success">

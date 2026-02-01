@@ -13,8 +13,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Key,
-  TrendingUp,
-  Pencil
+  Pencil,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { EditScholarDataDialog } from "./EditScholarDataDialog";
+import { useScholarEnrollment } from "@/hooks/useScholarEnrollment";
 
 interface ScholarData {
   personal: {
@@ -178,6 +179,7 @@ export function ScholarDataCards() {
   const [showSensitive, setShowSensitive] = useState(false);
   const [editPersonalOpen, setEditPersonalOpen] = useState(false);
   const [editBankOpen, setEditBankOpen] = useState(false);
+  const { hasActiveEnrollment } = useScholarEnrollment();
   
   // Initialize with empty data - only name, cpf and email will be loaded from profile
   const initialData = getInitialScholarData();
@@ -299,49 +301,60 @@ export function ScholarDataCards() {
             <h3 className="font-semibold text-foreground">Dados do Projeto</h3>
           </div>
 
-          <div className="space-y-0">
-            <DataRow 
-              icon={Briefcase} 
-              label="Nome do Projeto" 
-              value={projectData.name || "—"} 
-            />
-            <DataRow 
-              icon={User} 
-              label="Proponente" 
-              value={projectData.proponent || "—"} 
-            />
-            <DataRow 
-              icon={Calendar} 
-              label="Início" 
-              value={projectData.startDate || "—"} 
-            />
-            <DataRow 
-              icon={Calendar} 
-              label="Fim" 
-              value={projectData.endDate || "—"} 
-            />
-            <DataRow 
-              icon={DollarSign} 
-              label="Valor Total" 
-              value={projectData.totalValue ? formatCurrency(projectData.totalValue) : "—"} 
-            />
-            <DataRow 
-              icon={DollarSign} 
-              label="Parcela Mensal" 
-              value={projectData.monthlyValue ? formatCurrency(projectData.monthlyValue) : "—"} 
-            />
-            <DataRow 
-              icon={Calendar} 
-              label="Parcelas" 
-              value={projectData.installments ? `${projectData.installments} meses` : "—"} 
-            />
-            
-            {projectData.progress > 0 && (
-              <div className="pt-3">
-                <ProgressBar value={projectData.progress} />
+          {hasActiveEnrollment ? (
+            <div className="space-y-0">
+              <DataRow 
+                icon={Briefcase} 
+                label="Nome do Projeto" 
+                value={projectData.name || "—"} 
+              />
+              <DataRow 
+                icon={User} 
+                label="Proponente" 
+                value={projectData.proponent || "—"} 
+              />
+              <DataRow 
+                icon={Calendar} 
+                label="Início" 
+                value={projectData.startDate || "—"} 
+              />
+              <DataRow 
+                icon={Calendar} 
+                label="Fim" 
+                value={projectData.endDate || "—"} 
+              />
+              <DataRow 
+                icon={DollarSign} 
+                label="Valor Total" 
+                value={projectData.totalValue ? formatCurrency(projectData.totalValue) : "—"} 
+              />
+              <DataRow 
+                icon={DollarSign} 
+                label="Parcela Mensal" 
+                value={projectData.monthlyValue ? formatCurrency(projectData.monthlyValue) : "—"} 
+              />
+              <DataRow 
+                icon={Calendar} 
+                label="Parcelas" 
+                value={projectData.installments ? `${projectData.installments} meses` : "—"} 
+              />
+              
+              {projectData.progress > 0 && (
+                <div className="pt-3">
+                  <ProgressBar value={projectData.progress} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mb-4">
+                <Clock className="w-6 h-6 text-warning" />
               </div>
-            )}
-          </div>
+              <p className="text-muted-foreground text-sm">
+                Projeto ainda não atribuído pelo gestor responsável.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Bank Data */}

@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { AdminBanner } from "@/components/admin/AdminBanner";
 import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
 import { ProjectsList } from "@/components/projects";
+import { UsersManagement } from "@/components/dashboard/UsersManagement";
 
 const ManagerDashboard = () => {
   return (
@@ -15,6 +16,11 @@ const ManagerDashboard = () => {
         <Header />
         
         <main className="flex-1 p-6 overflow-auto space-y-6">
+          {/* Users Management Section */}
+          <div className="animate-fade-in">
+            <UsersManagement />
+          </div>
+          
           {/* Scholars Management Section */}
           <div className="animate-fade-in">
             <ScholarsTableFiltered />

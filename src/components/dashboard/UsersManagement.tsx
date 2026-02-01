@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -26,11 +27,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, Search, MoreHorizontal, Shield, GraduationCap, UserX, RefreshCw, Clock, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Users, Search, MoreHorizontal, Shield, GraduationCap, RefreshCw, Clock, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { AssignScholarshipDialog } from "./AssignScholarshipDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -56,10 +68,16 @@ const ROLE_CONFIG: Record<AppRole, { label: string; variant: "default" | "second
 type FilterType = "all" | AppRole | "egresso" | "awaiting";
 
 export function UsersManagement() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<FilterType>("all");
+  
+  // Selection state
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   // Dialog state
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -107,6 +125,7 @@ export function UsersManagement() {
       }));
 
       setUsers(usersWithRoles);
+      setSelectedUserIds(new Set()); // Clear selection on refresh
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Erro ao carregar usuários");
@@ -140,6 +159,9 @@ export function UsersManagement() {
     return user.role === roleFilter;
   });
 
+  // Filter out current user from selectable users
+  const selectableUsers = filteredUsers.filter(u => u.user_id !== currentUser?.id);
+
   const getInitials = (name: string | null) => {
     if (!name) return "??";
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -164,12 +186,58 @@ export function UsersManagement() {
     setAssignDialogOpen(true);
   };
 
+  // Selection handlers
+  const toggleUserSelection = (userId: string) => {
+    const newSelection = new Set(selectedUserIds);
+    if (newSelection.has(userId)) {
+      newSelection.delete(userId);
+    } else {
+      newSelection.add(userId);
+    }
+    setSelectedUserIds(newSelection);
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedUserIds.size === selectableUsers.length) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(selectableUsers.map(u => u.user_id)));
+    }
+  };
+
+  const handleDeleteUsers = async () => {
+    if (selectedUserIds.size === 0) return;
+    
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-users", {
+        body: { userIds: Array.from(selectedUserIds) },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Usuários excluídos com sucesso");
+      setSelectedUserIds(new Set());
+      setDeleteDialogOpen(false);
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error deleting users:", error);
+      toast.error(error.message || "Erro ao excluir usuários");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const stats = {
     total: users.length,
     managers: users.filter(u => u.role === "manager" || u.role === "admin").length,
     scholars: users.filter(u => u.role === "scholar" && u.has_active_enrollment).length,
     awaiting: users.filter(u => u.role === "scholar" && !u.has_active_enrollment).length,
   };
+
+  const selectedCount = selectedUserIds.size;
+  const isAllSelected = selectableUsers.length > 0 && selectedUserIds.size === selectableUsers.length;
+  const isSomeSelected = selectedUserIds.size > 0 && selectedUserIds.size < selectableUsers.length;
 
   return (
     <>
@@ -187,10 +255,23 @@ export function UsersManagement() {
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              {selectedCount > 0 && (
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Excluir ({selectedCount})
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                Atualizar
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -240,6 +321,14 @@ export function UsersManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected}
+                        onCheckedChange={toggleAllSelection}
+                        aria-label="Selecionar todos"
+                        className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                      />
+                    </TableHead>
                     <TableHead>Usuário</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Email</TableHead>
@@ -252,8 +341,25 @@ export function UsersManagement() {
                   {filteredUsers.map((user) => {
                     const status = getUserStatus(user);
                     const awaiting = isAwaitingAssignment(user);
+                    const isCurrentUser = user.user_id === currentUser?.id;
+                    const isSelected = selectedUserIds.has(user.user_id);
+                    
                     return (
-                      <TableRow key={user.id} className={awaiting ? "bg-warning/5" : ""}>
+                      <TableRow 
+                        key={user.id} 
+                        className={`${awaiting ? "bg-warning/5" : ""} ${isSelected ? "bg-primary/5" : ""}`}
+                      >
+                        <TableCell>
+                          {!isCurrentUser ? (
+                            <Checkbox 
+                              checked={isSelected}
+                              onCheckedChange={() => toggleUserSelection(user.user_id)}
+                              aria-label={`Selecionar ${user.full_name}`}
+                            />
+                          ) : (
+                            <div className="w-4 h-4" /> // Placeholder for current user
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="w-8 h-8">
@@ -262,7 +368,12 @@ export function UsersManagement() {
                                 {getInitials(user.full_name)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">{user.full_name || "Sem nome"}</span>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{user.full_name || "Sem nome"}</span>
+                              {isCurrentUser && (
+                                <span className="text-xs text-muted-foreground">(você)</span>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground font-mono text-sm">
@@ -305,6 +416,21 @@ export function UsersManagement() {
                               )}
                               <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
                               <DropdownMenuItem>Editar perfil</DropdownMenuItem>
+                              {!isCurrentUser && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                    onClick={() => {
+                                      setSelectedUserIds(new Set([user.user_id]));
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Excluir usuário
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -317,6 +443,46 @@ export function UsersManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir <strong>{selectedCount} usuário(s)</strong>. 
+              Esta ação não pode ser desfeita e irá remover permanentemente:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Dados do perfil</li>
+                <li>Matrículas e pagamentos</li>
+                <li>Relatórios enviados</li>
+                <li>Dados bancários</li>
+                <li>Acesso à plataforma</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUsers}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Confirmar Exclusão
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Assign Scholarship Dialog */}
       {selectedUser && (

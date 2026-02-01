@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { ScholarDataCards } from "@/components/scholar/ScholarDataCards";
 import { ArrowLeft, User, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ const ScholarProfile = () => {
             <ScholarDataCards />
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

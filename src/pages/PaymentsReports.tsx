@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { ScholarStats } from "@/components/scholar/ScholarStats";
 import { InstallmentsTable } from "@/components/scholar/InstallmentsTable";
 import { ArrowLeft, User } from "lucide-react";
@@ -61,6 +62,7 @@ const PaymentsReports = () => {
             <InstallmentsTable />
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

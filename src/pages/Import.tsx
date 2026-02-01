@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { Footer } from '@/components/layout/Footer';
 import { FileUploader } from '@/components/import/FileUploader';
 import { ImportTypeSelector } from '@/components/import/ImportTypeSelector';
 import { DataPreviewTable } from '@/components/import/DataPreviewTable';
@@ -382,6 +383,7 @@ export default function Import() {
             )}
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

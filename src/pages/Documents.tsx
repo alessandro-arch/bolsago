@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { DocumentsGrid } from "@/components/documents/DocumentsGrid";
 import { FileText, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -76,6 +77,7 @@ const Documents = () => {
             <DocumentsGrid />
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

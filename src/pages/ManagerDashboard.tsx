@@ -7,7 +7,7 @@ import { BatchActionsPanel } from "@/components/dashboard/BatchActionsPanel";
 import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
 import { AuditExportSection } from "@/components/dashboard/AuditExportSection";
 import { PaymentsSummary } from "@/components/dashboard/PaymentsSummary";
-
+import { UsersManagement } from "@/components/dashboard/UsersManagement";
 const ManagerDashboard = () => {
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -50,6 +50,11 @@ const ManagerDashboard = () => {
           {/* Payments Summary */}
           <div className="animate-fade-in" style={{ animationDelay: "250ms" }}>
             <PaymentsSummary />
+          </div>
+
+          {/* Users Management */}
+          <div className="animate-fade-in" style={{ animationDelay: "275ms" }}>
+            <UsersManagement />
           </div>
         </main>
       </div>

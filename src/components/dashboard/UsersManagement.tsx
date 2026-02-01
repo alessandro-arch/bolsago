@@ -205,24 +205,85 @@ export function UsersManagement() {
     }
   };
 
+  const generateReferenceCode = () => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `ERR-${timestamp}-${random}`;
+  };
+
   const handleDeleteUsers = async () => {
     if (selectedUserIds.size === 0) return;
     
+    const targetUserIds = Array.from(selectedUserIds);
     setDeleting(true);
+    
     try {
       const { data, error } = await supabase.functions.invoke("delete-users", {
-        body: { userIds: Array.from(selectedUserIds) },
+        body: { userIds: targetUserIds },
       });
 
-      if (error) throw error;
+      // Handle function invocation errors (network, etc.)
+      if (error) {
+        const referenceCode = generateReferenceCode();
+        
+        console.error("[DELETE_USERS_ERROR]", {
+          statusCode: error.status || "N/A",
+          payload: error,
+          targetUserIds,
+          referenceCode,
+        });
+
+        toast.error("Erro ao excluir usuários", {
+          description: `${error.message || "Falha na comunicação com o servidor"}. Código de referência: ${referenceCode}`,
+          duration: 10000,
+        });
+        return;
+      }
+
+      // Check if the response indicates an error (non-2xx from edge function)
+      if (data?.error) {
+        const referenceCode = generateReferenceCode();
+        
+        console.error("[DELETE_USERS_ERROR]", {
+          statusCode: data.statusCode || "N/A",
+          payload: data,
+          targetUserIds,
+          referenceCode,
+        });
+
+        toast.error("Não foi possível excluir os usuários", {
+          description: `${data.error}. Código de referência: ${referenceCode}`,
+          duration: 10000,
+        });
+        return;
+      }
+
+      // Success case
+      console.info("[DELETE_USERS_SUCCESS]", {
+        deletedCount: data.results?.success?.length || 0,
+        failedCount: data.results?.failed?.length || 0,
+        targetUserIds,
+      });
 
       toast.success(data.message || "Usuários excluídos com sucesso");
       setSelectedUserIds(new Set());
       setDeleteDialogOpen(false);
       fetchUsers();
+      
     } catch (error: any) {
-      console.error("Error deleting users:", error);
-      toast.error(error.message || "Erro ao excluir usuários");
+      const referenceCode = generateReferenceCode();
+      
+      console.error("[DELETE_USERS_ERROR]", {
+        statusCode: error?.status || "UNKNOWN",
+        payload: error,
+        targetUserIds,
+        referenceCode,
+      });
+
+      toast.error("Erro inesperado ao excluir usuários", {
+        description: `Ocorreu um erro inesperado. Código de referência: ${referenceCode}`,
+        duration: 10000,
+      });
     } finally {
       setDeleting(false);
     }

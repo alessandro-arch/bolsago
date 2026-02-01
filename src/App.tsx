@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import Index from "./pages/Index";
 import ManagerDashboard from "./pages/ManagerDashboard";
+import ThematicProjects from "./pages/ThematicProjects";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
@@ -43,6 +44,11 @@ const App = () => (
             <Route path="/importar" element={
               <RoleProtectedRoute requireManagerAccess>
                 <Import />
+              </RoleProtectedRoute>
+            } />
+            <Route path="/projetos-tematicos" element={
+              <RoleProtectedRoute requireManagerAccess>
+                <ThematicProjects />
               </RoleProtectedRoute>
             } />
             

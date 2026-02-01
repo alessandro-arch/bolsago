@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import Index from "./pages/Index";
+import ManagerDashboard from "./pages/ManagerDashboard";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
@@ -24,11 +26,27 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            
+            {/* Scholar Dashboard - default route */}
             <Route path="/" element={
               <ProtectedRoute>
                 <Index />
               </ProtectedRoute>
             } />
+            
+            {/* Manager-only routes */}
+            <Route path="/painel-gestor" element={
+              <RoleProtectedRoute requireManagerAccess>
+                <ManagerDashboard />
+              </RoleProtectedRoute>
+            } />
+            <Route path="/importar" element={
+              <RoleProtectedRoute requireManagerAccess>
+                <Import />
+              </RoleProtectedRoute>
+            } />
+            
+            {/* Scholar routes */}
             <Route path="/pagamentos-relatorios" element={
               <ProtectedRoute>
                 <PaymentsReports />
@@ -44,11 +62,7 @@ const App = () => (
                 <ScholarProfile />
               </ProtectedRoute>
             } />
-            <Route path="/importar" element={
-              <ProtectedRoute>
-                <Import />
-              </ProtectedRoute>
-            } />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

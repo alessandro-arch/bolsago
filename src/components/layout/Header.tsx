@@ -1,4 +1,4 @@
-import { Bell, Search, ChevronDown, LogOut } from "lucide-react";
+import { Bell, Search, ChevronDown, LogOut, Shield, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,13 +9,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function Header() {
   const { user, signOut } = useAuth();
+  const { hasManagerAccess, role } = useUserRole();
 
   const getInitials = (email: string) => {
     return email?.substring(0, 2).toUpperCase() || "US";
+  };
+
+  const getRoleLabel = () => {
+    if (role === "admin") return "Administrador";
+    if (role === "manager") return "Gestor";
+    return "Bolsista";
   };
 
   return (
@@ -58,7 +66,14 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-56">
             <div className="px-2 py-1.5">
               <p className="text-sm font-medium truncate">{user?.email}</p>
-              <p className="text-xs text-muted-foreground">Bolsista</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {hasManagerAccess ? (
+                  <Shield className="w-3 h-3 text-primary" />
+                ) : (
+                  <User className="w-3 h-3 text-info" />
+                )}
+                <p className="text-xs text-muted-foreground">{getRoleLabel()}</p>
+              </div>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">

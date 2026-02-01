@@ -1,4 +1,7 @@
 import { Calendar, Sun, Moon, CloudSun } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -22,14 +25,53 @@ interface DaySummary {
   newScholars: number;
 }
 
-interface ManagerGreetingProps {
-  managerName: string;
-  summary: DaySummary;
-}
-
-export function ManagerGreeting({ managerName, summary }: ManagerGreetingProps) {
+export function ManagerGreeting() {
+  const { user } = useAuth();
+  const [managerName, setManagerName] = useState("Gestor");
+  const [summary, setSummary] = useState<DaySummary>({
+    pendingReports: 0,
+    paymentsToRelease: 0,
+    newScholars: 0,
+  });
+  
   const greeting = getGreeting();
   const Icon = greeting.icon;
+
+  useEffect(() => {
+    async function fetchManagerData() {
+      if (!user) return;
+      
+      // Fetch manager profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (profile?.full_name) {
+        setManagerName(profile.full_name.split(" ")[0]);
+      }
+      
+      // Fetch summary stats
+      const { count: pendingCount } = await supabase
+        .from("reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "under_review");
+      
+      const { count: approvedCount } = await supabase
+        .from("reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "approved");
+
+      setSummary({
+        pendingReports: pendingCount ?? 0,
+        paymentsToRelease: approvedCount ?? 0,
+        newScholars: 0,
+      });
+    }
+    
+    fetchManagerData();
+  }, [user]);
 
   return (
     <div className="card-institutional mb-6">

@@ -4,6 +4,7 @@ import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
 import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
 import { ScholarWorkflowBanner } from "@/components/scholar/ScholarWorkflowBanner";
 import { GrantTermSection } from "@/components/scholar/GrantTermSection";
+import { DocumentsSection } from "@/components/scholar/DocumentsSection";
 import { InstallmentsTable } from "@/components/scholar/InstallmentsTable";
 
 const Index = () => {
@@ -33,6 +34,11 @@ const Index = () => {
           {/* Grant Term Section */}
           <div className="animate-fade-in" style={{ animationDelay: "175ms" }}>
             <GrantTermSection />
+          </div>
+
+          {/* Documents Section */}
+          <div className="animate-fade-in" style={{ animationDelay: "190ms" }}>
+            <DocumentsSection />
           </div>
 
           {/* Installments Table */}

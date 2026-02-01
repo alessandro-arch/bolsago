@@ -78,7 +78,7 @@ export function ScholarStats({
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {[1, 2, 3, 4].map((i) => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="card-stat animate-pulse">
             <div className="flex items-start justify-between">
               <div className="space-y-2">

@@ -32,12 +32,12 @@ interface Project {
   id: string;
   code: string;
   title: string;
-  proponent_name: string;
+  empresa_parceira: string;
   modalidade_bolsa: string | null;
   valor_mensal: number;
   start_date: string;
   end_date: string;
-  orientador: string | null;
+  coordenador_tecnico_icca: string | null;
   status: ProjectStatus;
 }
 
@@ -50,12 +50,12 @@ interface EditProjectDialogProps {
 
 const formSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
-  proponent_name: z.string().min(1, 'Nome do proponente é obrigatório'),
+  empresa_parceira: z.string().min(1, 'Empresa parceira é obrigatória'),
   modalidade_bolsa: z.string().min(1, 'Modalidade da bolsa é obrigatória'),
   valor_mensal: z.coerce.number().positive('Valor deve ser positivo'),
   start_date: z.string().min(1, 'Data de início é obrigatória'),
   end_date: z.string().min(1, 'Data de término é obrigatória'),
-  orientador: z.string().optional(),
+  coordenador_tecnico_icca: z.string().optional(),
 }).refine(data => new Date(data.start_date) < new Date(data.end_date), {
   message: 'Data de início deve ser anterior à data de término',
   path: ['end_date'],
@@ -77,12 +77,12 @@ export function EditProjectDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: project.title,
-      proponent_name: project.proponent_name,
+      empresa_parceira: project.empresa_parceira,
       modalidade_bolsa: project.modalidade_bolsa || '',
       valor_mensal: project.valor_mensal,
       start_date: project.start_date,
       end_date: project.end_date,
-      orientador: project.orientador || '',
+      coordenador_tecnico_icca: project.coordenador_tecnico_icca || '',
     },
   });
 
@@ -95,22 +95,22 @@ export function EditProjectDialog({
       // Prepare previous and new values for audit
       const previousValue = {
         title: project.title,
-        proponent_name: project.proponent_name,
+        empresa_parceira: project.empresa_parceira,
         modalidade_bolsa: project.modalidade_bolsa,
         valor_mensal: project.valor_mensal,
         start_date: project.start_date,
         end_date: project.end_date,
-        orientador: project.orientador,
+        coordenador_tecnico_icca: project.coordenador_tecnico_icca,
       };
 
       const newValue = {
         title: values.title,
-        proponent_name: values.proponent_name,
+        empresa_parceira: values.empresa_parceira,
         modalidade_bolsa: values.modalidade_bolsa,
         valor_mensal: values.valor_mensal,
         start_date: values.start_date,
         end_date: values.end_date,
-        orientador: values.orientador || null,
+        coordenador_tecnico_icca: values.coordenador_tecnico_icca || null,
       };
 
       // Update project
@@ -193,10 +193,10 @@ export function EditProjectDialog({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="proponent_name"
+                name="empresa_parceira"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proponente</FormLabel>
+                    <FormLabel>Empresa Parceira</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -207,10 +207,10 @@ export function EditProjectDialog({
 
               <FormField
                 control={form.control}
-                name="orientador"
+                name="coordenador_tecnico_icca"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Orientador (opcional)</FormLabel>
+                    <FormLabel>Coordenador Técnico ICCA (opcional)</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>

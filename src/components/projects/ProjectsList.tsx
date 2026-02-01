@@ -34,12 +34,12 @@ interface Project {
   id: string;
   code: string;
   title: string;
-  proponent_name: string;
+  empresa_parceira: string;
   modalidade_bolsa: string | null;
   valor_mensal: number;
   start_date: string;
   end_date: string;
-  orientador: string | null;
+  coordenador_tecnico_icca: string | null;
   status: ProjectStatus;
   created_at: string;
   updated_at: string;
@@ -74,7 +74,7 @@ export function ProjectsList() {
     return (
       project.code.toLowerCase().includes(searchLower) ||
       project.title.toLowerCase().includes(searchLower) ||
-      project.proponent_name.toLowerCase().includes(searchLower) ||
+      project.empresa_parceira.toLowerCase().includes(searchLower) ||
       (project.modalidade_bolsa?.toLowerCase().includes(searchLower) ?? false)
     );
   });
@@ -135,7 +135,7 @@ export function ProjectsList() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por código, título, proponente ou modalidade..."
+                placeholder="Buscar por código, título, empresa parceira ou modalidade..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -177,7 +177,7 @@ export function ProjectsList() {
                 <TableRow>
                   <TableHead className="w-[120px]">Código</TableHead>
                   <TableHead>Título</TableHead>
-                  <TableHead>Proponente</TableHead>
+                  <TableHead>Empresa Parceira</TableHead>
                   <TableHead>Modalidade</TableHead>
                   <TableHead className="text-right">Valor Mensal</TableHead>
                   <TableHead>Período</TableHead>
@@ -212,7 +212,7 @@ export function ProjectsList() {
                       <TableCell className="font-medium max-w-[200px] truncate" title={project.title}>
                         {project.title}
                       </TableCell>
-                      <TableCell>{project.proponent_name}</TableCell>
+                      <TableCell>{project.empresa_parceira}</TableCell>
                       <TableCell>{project.modalidade_bolsa || '—'}</TableCell>
                       <TableCell className="text-right font-mono">
                         {formatCurrency(project.valor_mensal)}

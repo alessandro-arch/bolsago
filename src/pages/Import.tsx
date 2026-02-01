@@ -278,18 +278,18 @@ export default function Import() {
           // Process project import
           const code = String(row.data.code || '');
           const title = String(row.data.title || '');
-          const proponentName = String(row.data.proponent_name || '');
+          const empresaParceira = String(row.data.empresa_parceira || '');
           const modalidadeBolsa = String(row.data.modalidade_bolsa || '');
           const valorMensal = Number(row.data.valor_mensal);
           const startDate = String(row.data.start_date || '');
           const endDate = String(row.data.end_date || '');
-          const orientador = row.data.orientador ? String(row.data.orientador) : null;
+          const coordenadorTecnicoIcca = row.data.coordenador_tecnico_icca ? String(row.data.coordenador_tecnico_icca) : null;
 
           // Validate required fields
           const errors: string[] = [];
           if (!code) errors.push('Código é obrigatório');
           if (!title) errors.push('Título é obrigatório');
-          if (!proponentName) errors.push('Nome do proponente é obrigatório');
+          if (!empresaParceira) errors.push('Empresa parceira é obrigatória');
           if (!modalidadeBolsa) errors.push('Modalidade da bolsa é obrigatória');
           if (isNaN(valorMensal) || valorMensal <= 0) errors.push('Valor mensal deve ser um número positivo');
           if (!startDate) errors.push('Data de início é obrigatória');
@@ -310,12 +310,12 @@ export default function Import() {
             .insert({
               code,
               title,
-              proponent_name: proponentName,
+              empresa_parceira: empresaParceira,
               modalidade_bolsa: modalidadeBolsa,
               valor_mensal: valorMensal,
               start_date: startDate,
               end_date: endDate,
-              orientador,
+              coordenador_tecnico_icca: coordenadorTecnicoIcca,
             });
 
           if (error) {

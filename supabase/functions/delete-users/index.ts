@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's token for auth check
+    // Create client with user's token for authentication verification
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -43,15 +43,30 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub;
     console.log("Request from user:", userId);
 
-    // Check if user is admin
-    const { data: roleData, error: roleError } = await supabaseUser
+    // Create admin client for privileged operations (including role verification)
+    // This bypasses RLS to ensure authorization checks are independent of RLS configuration
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Check if user is admin using service role (defense-in-depth)
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .single();
 
-    if (roleError || roleData?.role !== "admin") {
-      console.error("Role check failed:", roleError, roleData);
+    if (roleError || !roleData) {
+      console.error("Role check failed:", roleError);
+      return new Response(
+        JSON.stringify({ error: "Erro ao verificar permissões do usuário" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (roleData.role !== "admin") {
+      console.error("User is not admin:", roleData.role);
       return new Response(
         JSON.stringify({ error: "Apenas administradores podem excluir usuários" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -78,11 +93,7 @@ Deno.serve(async (req) => {
 
     console.log("Deleting users:", userIds);
 
-    // Create admin client for user deletion
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // supabaseAdmin is already created above for role verification and user deletion
 
     const results = {
       success: [] as string[],

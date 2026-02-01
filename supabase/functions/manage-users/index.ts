@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       return errorResponse(401, "unauthorized", "Token de autenticação não fornecido.");
     }
 
-    // Create client with user's token for auth check
+    // Create client with user's token for authentication verification
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -62,20 +62,27 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub;
     console.log("Request from user:", userId);
 
-    // Check user role
-    const { data: roleData, error: roleError } = await supabaseUser
+    // Create admin client for privileged operations (including role verification)
+    // This bypasses RLS to ensure authorization checks are independent of RLS configuration
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Check user role using service role (defense-in-depth)
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .single();
 
-    if (roleError) {
+    if (roleError || !roleData) {
       console.error("Role check failed:", roleError);
       return errorResponse(500, "server_error", "Erro ao verificar permissões do usuário.");
     }
 
-    const isAdmin = roleData?.role === "admin";
-    const isManager = roleData?.role === "manager" || isAdmin;
+    const isAdmin = roleData.role === "admin";
+    const isManager = roleData.role === "manager" || isAdmin;
 
     if (!isManager) {
       return errorResponse(403, "forbidden", "Apenas gestores podem gerenciar usuários.");
@@ -100,11 +107,7 @@ Deno.serve(async (req) => {
       return errorResponse(400, "self_action", "Você não pode executar esta ação na própria conta.");
     }
 
-    // Create admin client for privileged operations
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // supabaseAdmin is already created above for role verification
 
     const results = {
       success: [] as string[],

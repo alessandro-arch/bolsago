@@ -37,7 +37,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setLoading(false);
     
     // Always show generic success message to prevent revealing if email exists
-    setSuccess("Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha. O link expira em 1 hora.");
+    setSuccess("Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha. Verifique sua caixa de entrada e também a pasta de spam. O link expira em 1 hora.");
     setEmail("");
   };
 

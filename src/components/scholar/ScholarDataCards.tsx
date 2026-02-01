@@ -366,62 +366,95 @@ export function ScholarDataCards() {
               </div>
               <h3 className="font-semibold text-foreground">Dados Bancários</h3>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-1.5 text-success hover:text-success"
-              onClick={() => setEditBankOpen(true)}
-            >
-              <Pencil className="w-4 h-4" />
-              Editar
-            </Button>
+            {/* Only allow editing if status is pending (not yet submitted) or if no data has been filled */}
+            {(bankData.validationStatus === "pending" || !bankData.bankName) && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-1.5 text-success hover:text-success"
+                onClick={() => setEditBankOpen(true)}
+              >
+                <Pencil className="w-4 h-4" />
+                {bankData.bankName ? "Editar" : "Preencher"}
+              </Button>
+            )}
           </div>
 
-          <div className="space-y-0">
-            <DataRow 
-              icon={Building2} 
-              label="Banco" 
-              value={bankData.bankName} 
-            />
-            <DataRow 
-              icon={Building2} 
-              label="Agência" 
-              value={bankData.agency} 
-            />
-            <DataRow 
-              icon={CreditCard} 
-              label="Conta" 
-              value={bankData.account}
-              masked
-              showSensitive={showSensitive}
-              maskedValue={maskAccount(bankData.account)}
-            />
-            <DataRow 
-              icon={CreditCard} 
-              label="Tipo de Conta" 
-              value={bankData.accountType} 
-            />
-            <DataRow 
-              icon={Key} 
-              label="Chave Pix" 
-              value={bankData.pixKey}
-              masked
-              showSensitive={showSensitive}
-              maskedValue={maskPixKey(bankData.pixKey)}
-            />
-            
-            {/* Validation Status */}
-            <div className="pt-3 mt-3 border-t border-border">
-              <p className="text-xs text-muted-foreground mb-2">Status de Validação</p>
-              <span className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium",
-                validationConfig.className
-              )}>
-                <ValidationIcon className="w-4 h-4" />
-                {validationConfig.label}
-              </span>
+          {bankData.bankName ? (
+            <div className="space-y-0">
+              <DataRow 
+                icon={Building2} 
+                label="Banco" 
+                value={bankData.bankName || "—"} 
+              />
+              <DataRow 
+                icon={Building2} 
+                label="Agência" 
+                value={bankData.agency || "—"} 
+              />
+              <DataRow 
+                icon={CreditCard} 
+                label="Conta" 
+                value={bankData.account || "—"}
+                masked={!!bankData.account}
+                showSensitive={showSensitive}
+                maskedValue={bankData.account ? maskAccount(bankData.account) : "—"}
+              />
+              <DataRow 
+                icon={CreditCard} 
+                label="Tipo de Conta" 
+                value={bankData.accountType || "—"} 
+              />
+              <DataRow 
+                icon={Key} 
+                label="Chave Pix" 
+                value={bankData.pixKey || "—"}
+                masked={!!bankData.pixKey}
+                showSensitive={showSensitive}
+                maskedValue={bankData.pixKey ? maskPixKey(bankData.pixKey) : "—"}
+              />
+              
+              {/* Validation Status */}
+              <div className="pt-3 mt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">Status de Validação</p>
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium",
+                  validationConfig.className
+                )}>
+                  <ValidationIcon className="w-4 h-4" />
+                  {validationConfig.label}
+                </span>
+                {bankData.validationStatus === "validated" && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Dados validados. Edição bloqueada.
+                  </p>
+                )}
+                {bankData.validationStatus === "rejected" && (
+                  <p className="text-xs text-destructive mt-2">
+                    Dados rejeitados. Aguarde instruções do gestor.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Building2 className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground text-sm mb-4">
+                Nenhum dado bancário cadastrado.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1.5"
+                onClick={() => setEditBankOpen(true)}
+              >
+                <Pencil className="w-4 h-4" />
+                Cadastrar Dados Bancários
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

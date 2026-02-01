@@ -77,7 +77,7 @@ export function ScholarStats({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="card-stat animate-pulse">
             <div className="flex items-start justify-between">
@@ -118,17 +118,10 @@ export function ScholarStats({
       icon: FileText,
       color: "info",
     },
-    {
-      title: "Pendentes de Envio",
-      value: String(safePendingReports),
-      subtitle: safePendingReports === 1 ? "mês atual" : safePendingReports > 1 ? "meses pendentes" : "em dia",
-      icon: AlertCircle,
-      color: "warning",
-    },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
       {stats.map((stat) => (
         <ScholarStatCard key={stat.title} {...stat} />
       ))}

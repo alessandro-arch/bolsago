@@ -1,0 +1,275 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Users, Search, MoreHorizontal, Shield, GraduationCap, UserX, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
+
+interface UserWithRole {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  role: AppRole;
+  created_at: string;
+  has_active_enrollment: boolean;
+}
+
+const ROLE_CONFIG: Record<AppRole, { label: string; variant: "default" | "secondary" | "outline"; icon: React.ReactNode }> = {
+  admin: { label: "Administrador", variant: "default", icon: <Shield className="w-3 h-3" /> },
+  manager: { label: "Gestor", variant: "secondary", icon: <Shield className="w-3 h-3" /> },
+  scholar: { label: "Bolsista", variant: "outline", icon: <GraduationCap className="w-3 h-3" /> },
+};
+
+type FilterType = "all" | AppRole | "egresso";
+
+export function UsersManagement() {
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<FilterType>("all");
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      // Fetch profiles with their roles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name, email, avatar_url, created_at");
+
+      if (profilesError) throw profilesError;
+
+      // Fetch roles
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      if (rolesError) throw rolesError;
+
+      // Fetch active enrollments to identify egressos
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from("enrollments")
+        .select("user_id, status")
+        .eq("status", "active");
+
+      if (enrollmentsError) throw enrollmentsError;
+
+      const activeEnrollmentUserIds = new Set(enrollments?.map(e => e.user_id) || []);
+      const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+
+      const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.user_id,
+        full_name: profile.full_name,
+        email: profile.email,
+        avatar_url: profile.avatar_url,
+        role: rolesMap.get(profile.user_id) || "scholar",
+        created_at: profile.created_at,
+        has_active_enrollment: activeEnrollmentUserIds.has(profile.user_id),
+      }));
+
+      setUsers(usersWithRoles);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Erro ao carregar usuários");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      !searchTerm ||
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (roleFilter === "all") return true;
+    if (roleFilter === "egresso") {
+      return user.role === "scholar" && !user.has_active_enrollment;
+    }
+    return user.role === roleFilter;
+  });
+
+  const getInitials = (name: string | null) => {
+    if (!name) return "??";
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  const getUserStatus = (user: UserWithRole) => {
+    if (user.role === "admin" || user.role === "manager") {
+      return ROLE_CONFIG[user.role];
+    }
+    if (user.role === "scholar" && !user.has_active_enrollment) {
+      return { label: "Egresso", variant: "outline" as const, icon: <UserX className="w-3 h-3" /> };
+    }
+    return ROLE_CONFIG.scholar;
+  };
+
+  const stats = {
+    total: users.length,
+    managers: users.filter(u => u.role === "manager" || u.role === "admin").length,
+    scholars: users.filter(u => u.role === "scholar" && u.has_active_enrollment).length,
+    egressos: users.filter(u => u.role === "scholar" && !u.has_active_enrollment).length,
+  };
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Usuários da Plataforma</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {stats.total} usuários • {stats.managers} gestores • {stats.scholars} bolsistas • {stats.egressos} egressos
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        {/* Filters */}
+        <div className="flex gap-4 mb-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as FilterType)}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtrar por tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="admin">Administradores</SelectItem>
+              <SelectItem value="manager">Gestores</SelectItem>
+              <SelectItem value="scholar">Bolsistas Ativos</SelectItem>
+              <SelectItem value="egresso">Egressos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Table */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Users className="w-12 h-12 text-muted-foreground/50 mb-4" />
+            <h3 className="font-medium text-muted-foreground">Nenhum usuário encontrado</h3>
+            <p className="text-sm text-muted-foreground/70 mt-1">
+              {searchTerm || roleFilter !== "all" 
+                ? "Tente ajustar os filtros de busca"
+                : "Importe dados via planilha para adicionar usuários"}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Cadastro</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => {
+                  const status = getUserStatus(user);
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={user.avatar_url || undefined} />
+                            <AvatarFallback className="text-xs">
+                              {getInitials(user.full_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{user.full_name || "Sem nome"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.email || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={status.variant} className="gap-1">
+                          {status.icon}
+                          {status.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
+                            <DropdownMenuItem>Editar perfil</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

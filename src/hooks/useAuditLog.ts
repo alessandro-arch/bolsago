@@ -17,7 +17,10 @@ export type AuditAction =
   | "update_project"
   | "archive_project"
   | "delete_project"
-  | "assign_scholar_to_project";
+  | "assign_scholar_to_project"
+  | "bank_data_under_review"
+  | "bank_data_validated"
+  | "bank_data_returned";
 
 export type EntityType = 
   | "user"
@@ -25,7 +28,8 @@ export type EntityType =
   | "payment"
   | "report"
   | "user_role"
-  | "project";
+  | "project"
+  | "bank_account";
 
 interface AuditLogParams {
   action: AuditAction;

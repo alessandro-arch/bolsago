@@ -68,10 +68,15 @@ export type Database = {
           bank_name: string
           created_at: string
           id: string
+          locked_for_edit: boolean
+          notes_gestor: string | null
           pix_key: string | null
           pix_key_type: string | null
           updated_at: string
           user_id: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_status: Database["public"]["Enums"]["bank_validation_status"]
         }
         Insert: {
           account_number: string
@@ -81,10 +86,15 @@ export type Database = {
           bank_name: string
           created_at?: string
           id?: string
+          locked_for_edit?: boolean
+          notes_gestor?: string | null
           pix_key?: string | null
           pix_key_type?: string | null
           updated_at?: string
           user_id: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: Database["public"]["Enums"]["bank_validation_status"]
         }
         Update: {
           account_number?: string
@@ -94,10 +104,15 @@ export type Database = {
           bank_name?: string
           created_at?: string
           id?: string
+          locked_for_edit?: boolean
+          notes_gestor?: string | null
           pix_key?: string | null
           pix_key_type?: string | null
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: Database["public"]["Enums"]["bank_validation_status"]
         }
         Relationships: []
       }
@@ -391,6 +406,11 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "scholar"
+      bank_validation_status:
+        | "pending"
+        | "under_review"
+        | "validated"
+        | "returned"
       enrollment_status: "active" | "suspended" | "completed" | "cancelled"
       grant_modality:
         | "ict"
@@ -534,6 +554,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "scholar"],
+      bank_validation_status: [
+        "pending",
+        "under_review",
+        "validated",
+        "returned",
+      ],
       enrollment_status: ["active", "suspended", "completed", "cancelled"],
       grant_modality: [
         "ict",

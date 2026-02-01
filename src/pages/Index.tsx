@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const Index = () => {
   const navigate = useNavigate();
   const { data, loading: paymentsLoading, error } = useScholarPayments();
-  const { status: bankStatus, loading: bankLoading } = useBankDataStatus();
+  const { status: bankStatus, loading: bankLoading, notesGestor } = useBankDataStatus();
 
   const loading = paymentsLoading || bankLoading;
   const hasActiveEnrollment = data?.enrollment !== null;
@@ -30,6 +30,9 @@ const Index = () => {
   const handleNavigateToProfile = () => {
     navigate("/perfil-bolsista");
   };
+
+  // Determine which bank status banner to show
+  const showBankValidationBanner = bankStatus === "pending" || bankStatus === "under_review" || bankStatus === "returned" || bankStatus === "rejected";
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -104,9 +107,13 @@ const Index = () => {
                 </div>
               )}
               
-              {(bankStatus === "pending" || bankStatus === "rejected") && (
+              {showBankValidationBanner && (
                 <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-                  <BankDataValidationBanner status={bankStatus} />
+                  <BankDataValidationBanner 
+                    status={bankStatus as "pending" | "under_review" | "returned" | "rejected"} 
+                    notesGestor={notesGestor}
+                    onNavigateToProfile={handleNavigateToProfile}
+                  />
                 </div>
               )}
 

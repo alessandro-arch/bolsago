@@ -26,12 +26,12 @@ interface Project {
   id: string;
   code: string;
   title: string;
-  proponent_name: string;
+  empresa_parceira: string;
   modalidade_bolsa: string | null;
   valor_mensal: number;
   start_date: string;
   end_date: string;
-  orientador: string | null;
+  coordenador_tecnico_icca: string | null;
   status: ProjectStatus;
   created_at: string;
   updated_at: string;
@@ -156,12 +156,12 @@ export function ProjectDetailsDialog({
             <TabsContent value="details" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Proponente</p>
-                  <p className="font-medium">{project.proponent_name}</p>
+                  <p className="text-sm text-muted-foreground">Empresa Parceira</p>
+                  <p className="font-medium">{project.empresa_parceira}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Orientador</p>
-                  <p className="font-medium">{project.orientador || '—'}</p>
+                  <p className="text-sm text-muted-foreground">Coordenador Técnico ICCA</p>
+                  <p className="font-medium">{project.coordenador_tecnico_icca || '—'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Modalidade da Bolsa</p>

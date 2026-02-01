@@ -60,6 +60,10 @@ export function useSpreadsheetParser() {
       if (valorMensal !== undefined && (isNaN(Number(valorMensal)) || Number(valorMensal) <= 0)) {
         errors.push('Valor mensal deve ser um número positivo');
       }
+
+      if (!row.empresa_parceira) {
+        errors.push('Campo "empresa_parceira" é obrigatório');
+      }
     }
 
     if (importType === 'enrollments') {

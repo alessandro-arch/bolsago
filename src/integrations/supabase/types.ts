@@ -265,12 +265,12 @@ export type Database = {
       projects: {
         Row: {
           code: string
+          coordenador_tecnico_icca: string | null
           created_at: string
+          empresa_parceira: string
           end_date: string
           id: string
           modalidade_bolsa: string | null
-          orientador: string | null
-          proponent_name: string
           start_date: string
           status: Database["public"]["Enums"]["project_status"]
           title: string
@@ -279,12 +279,12 @@ export type Database = {
         }
         Insert: {
           code: string
+          coordenador_tecnico_icca?: string | null
           created_at?: string
+          empresa_parceira: string
           end_date: string
           id?: string
           modalidade_bolsa?: string | null
-          orientador?: string | null
-          proponent_name: string
           start_date: string
           status?: Database["public"]["Enums"]["project_status"]
           title: string
@@ -293,12 +293,12 @@ export type Database = {
         }
         Update: {
           code?: string
+          coordenador_tecnico_icca?: string | null
           created_at?: string
+          empresa_parceira?: string
           end_date?: string
           id?: string
           modalidade_bolsa?: string | null
-          orientador?: string | null
-          proponent_name?: string
           start_date?: string
           status?: Database["public"]["Enums"]["project_status"]
           title?: string

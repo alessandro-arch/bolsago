@@ -34,12 +34,24 @@ export const IMPORT_TYPES: Record<ImportType, ImportTypeConfig> = {
   },
 };
 
+export type DuplicateStatus = 'new' | 'duplicate' | 'conflict';
+export type DuplicateAction = 'import' | 'update' | 'skip';
+
+export interface DuplicateInfo {
+  status: DuplicateStatus;
+  existingProfileId?: string;
+  existingUserId?: string;
+  conflictReason?: string;
+  action: DuplicateAction;
+}
+
 export interface ParsedRow {
   rowNumber: number;
   data: Record<string, unknown>;
   errors: string[];
   warnings: string[];
   isValid: boolean;
+  duplicateInfo?: DuplicateInfo;
 }
 
 export interface ImportPreview {
@@ -47,16 +59,30 @@ export interface ImportPreview {
   totalRows: number;
   validRows: number;
   invalidRows: number;
+  newRows: number;
+  duplicateRows: number;
+  conflictRows: number;
   rows: ParsedRow[];
 }
 
 export interface ImportResult {
   success: boolean;
   importedCount: number;
+  updatedCount: number;
+  skippedCount: number;
   rejectedCount: number;
   importedRecords: Array<{
     rowNumber: number;
     data: Record<string, unknown>;
+  }>;
+  updatedRecords: Array<{
+    rowNumber: number;
+    data: Record<string, unknown>;
+  }>;
+  skippedRecords: Array<{
+    rowNumber: number;
+    data: Record<string, unknown>;
+    reason: string;
   }>;
   rejectedRecords: Array<{
     rowNumber: number;

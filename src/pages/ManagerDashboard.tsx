@@ -6,40 +6,49 @@ import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFilte
 import { ProjectsList } from "@/components/projects";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { BankDataManagement } from "@/components/dashboard/BankDataManagement";
+import { AuditTrailViewer } from "@/components/admin/AuditTrailViewer";
+import { AdminMasterModeProvider } from "@/contexts/AdminMasterModeContext";
 
 const ManagerDashboard = () => {
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <AdminBanner />
-        <Header />
+    <AdminMasterModeProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <Sidebar />
         
-        <main className="flex-1 p-6 overflow-auto space-y-6">
-          {/* Users Management Section */}
-          <div className="animate-fade-in">
-            <UsersManagement />
-          </div>
+        <div className="flex-1 flex flex-col">
+          <AdminBanner />
+          <Header />
           
-          {/* Bank Data Management Section */}
-          <div className="animate-fade-in">
-            <BankDataManagement />
-          </div>
-          
-          {/* Scholars Management Section */}
-          <div className="animate-fade-in">
-            <ScholarsTableFiltered />
-          </div>
-          
-          {/* Projects Management Section */}
-          <div className="animate-fade-in">
-            <ProjectsList />
-          </div>
-        </main>
-        <Footer />
+          <main className="flex-1 p-6 overflow-auto space-y-6">
+            {/* Users Management Section */}
+            <div className="animate-fade-in">
+              <UsersManagement />
+            </div>
+            
+            {/* Bank Data Management Section */}
+            <div className="animate-fade-in">
+              <BankDataManagement />
+            </div>
+            
+            {/* Scholars Management Section */}
+            <div className="animate-fade-in">
+              <ScholarsTableFiltered />
+            </div>
+            
+            {/* Projects Management Section */}
+            <div className="animate-fade-in">
+              <ProjectsList />
+            </div>
+
+            {/* Audit Trail Section - Admin Only */}
+            <div className="animate-fade-in">
+              <AuditTrailViewer />
+            </div>
+          </main>
+          <Footer />
+        </div>
       </div>
-    </div>
+    </AdminMasterModeProvider>
   );
 };
 

@@ -304,12 +304,16 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number)
 }
 
 export function InstallmentsTable({ 
-  payments, 
-  grantValue, 
-  startDate,
+  payments = [], 
+  grantValue = 0, 
+  startDate = "",
   loading = false 
 }: InstallmentsTableProps) {
-  const installments = payments.map(p => mapPaymentToInstallment(p, grantValue));
+  // Safe defaults - ensure payments is always an array
+  const safePayments = payments ?? [];
+  const safeGrantValue = grantValue ?? 0;
+  
+  const installments = safePayments.map(p => mapPaymentToInstallment(p, safeGrantValue));
   
   const paidCount = installments.filter(i => i.paymentStatus === "paid").length;
   const blockedCount = installments.filter(i => i.paymentStatus === "pending" || i.paymentStatus === "blocked").length;

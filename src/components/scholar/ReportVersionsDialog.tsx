@@ -1,4 +1,4 @@
-import { History, FileText, CheckCircle, XCircle, Clock, Download } from "lucide-react";
+import { History, FileText, CheckCircle, XCircle, Clock, Download, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { openReportPdf, downloadReportPdf } from "@/hooks/useSignedUrl";
 
 export interface ReportVersion {
   id: string;
@@ -15,12 +16,14 @@ export interface ReportVersion {
   submittedAt: string;
   status: "approved" | "rejected" | "under_review";
   feedback?: string;
+  fileUrl?: string;
 }
 
 interface ReportVersionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   referenceMonth: string;
+  referenceMonthRaw?: string;
   versions: ReportVersion[];
 }
 
@@ -45,9 +48,19 @@ const statusConfig = {
 export function ReportVersionsDialog({ 
   open, 
   onOpenChange, 
-  referenceMonth, 
+  referenceMonth,
+  referenceMonthRaw,
   versions 
 }: ReportVersionsDialogProps) {
+  const handleViewPdf = (fileUrl: string) => {
+    openReportPdf(fileUrl);
+  };
+
+  const handleDownloadPdf = (fileUrl: string, version: number) => {
+    const fileName = `relatorio_${referenceMonthRaw || referenceMonth}_v${version}.pdf`;
+    downloadReportPdf(fileUrl, fileName);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -110,9 +123,26 @@ export function ReportVersionsDialog({
                       )}
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="flex-shrink-0">
-                    <Download className="w-4 h-4" />
-                  </Button>
+                  {version.fileUrl && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleViewPdf(version.fileUrl!)}
+                        title="Visualizar PDF"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleDownloadPdf(version.fileUrl!, version.version)}
+                        title="Baixar PDF"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

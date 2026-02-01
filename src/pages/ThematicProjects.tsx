@@ -34,20 +34,24 @@ import {
   Edit, 
   Archive, 
   Trash2,
-  Download 
+  Download,
+  UserPlus,
+  UserX
 } from 'lucide-react';
+import { MasterProjectCard } from '@/components/projects/MasterProjectCard';
 import { ProjectDetailsDialog } from '@/components/projects/ProjectDetailsDialog';
 import { EditProjectDialog } from '@/components/projects/EditProjectDialog';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
 import { ArchiveProjectDialog } from '@/components/projects/ArchiveProjectDialog';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
+import { AssignScholarToProjectDialog } from '@/components/projects/AssignScholarToProjectDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProjectStatus = Database['public']['Enums']['project_status'];
 
-interface Project {
+interface ProjectWithScholar {
   id: string;
   code: string;
   title: string;
@@ -61,23 +65,33 @@ interface Project {
   status: ProjectStatus;
   created_at: string;
   updated_at: string;
+  scholar_name: string | null;
+  enrollment_status: string | null;
 }
 
 type StatusFilter = 'all' | 'active' | 'archived';
 
+// Projeto Temático Mestre (fixo neste momento)
+const MASTER_PROJECT = {
+  title: 'Desenvolvimento e a aplicação de métodos quimiométricos para a análise multivariada de dados clínicos e instrumentais, uma iniciativa de alta relevância científica e tecnológica.',
+  financiador: 'LABORATÓRIO TOMMASI',
+  status: 'active' as const,
+};
+
 export default function ThematicProjects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<ProjectWithScholar | null>(null);
   const [projectHasDependencies, setProjectHasDependencies] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
   const { data: projects, isLoading, refetch } = useQuery({
-    queryKey: ['thematic-projects', statusFilter],
+    queryKey: ['thematic-projects-with-scholars', statusFilter],
     queryFn: async () => {
       let query = supabase
         .from('projects')
@@ -90,9 +104,59 @@ export default function ThematicProjects() {
         query = query.eq('status', 'archived');
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Project[];
+      const { data: projectsData, error: projectsError } = await query;
+      if (projectsError) throw projectsError;
+
+      // Fetch enrollments with scholar info
+      const projectIds = projectsData?.map(p => p.id) || [];
+      
+      if (projectIds.length === 0) {
+        return [];
+      }
+
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from('enrollments')
+        .select('project_id, user_id, status')
+        .in('project_id', projectIds)
+        .eq('status', 'active');
+
+      if (enrollmentsError) throw enrollmentsError;
+
+      // Get unique user IDs from enrollments
+      const userIds = [...new Set(enrollments?.map(e => e.user_id) || [])];
+      
+      let profilesMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        profilesMap = (profiles || []).reduce((acc, p) => {
+          acc[p.user_id] = p.full_name || 'Sem nome';
+          return acc;
+        }, {} as Record<string, string>);
+      }
+
+      // Map enrollments to projects
+      const enrollmentMap = (enrollments || []).reduce((acc, e) => {
+        if (!acc[e.project_id]) {
+          acc[e.project_id] = {
+            scholar_name: profilesMap[e.user_id] || null,
+            enrollment_status: e.status,
+          };
+        }
+        return acc;
+      }, {} as Record<string, { scholar_name: string | null; enrollment_status: string | null }>);
+
+      // Combine projects with scholar info
+      return (projectsData || []).map(project => ({
+        ...project,
+        scholar_name: enrollmentMap[project.id]?.scholar_name || null,
+        enrollment_status: enrollmentMap[project.id]?.enrollment_status || null,
+      })) as ProjectWithScholar[];
     },
   });
 
@@ -124,22 +188,22 @@ export default function ThematicProjects() {
     }).format(value);
   };
 
-  const handleViewProject = (project: Project) => {
+  const handleViewProject = (project: ProjectWithScholar) => {
     setSelectedProject(project);
     setDetailsDialogOpen(true);
   };
 
-  const handleEditProject = (project: Project) => {
+  const handleEditProject = (project: ProjectWithScholar) => {
     setSelectedProject(project);
     setEditDialogOpen(true);
   };
 
-  const handleArchiveProject = (project: Project) => {
+  const handleArchiveProject = (project: ProjectWithScholar) => {
     setSelectedProject(project);
     setArchiveDialogOpen(true);
   };
 
-  const handleDeleteProject = async (project: Project) => {
+  const handleDeleteProject = async (project: ProjectWithScholar) => {
     // Check for dependencies before opening delete dialog
     const { count: enrollmentCount } = await supabase
       .from('enrollments')
@@ -152,6 +216,11 @@ export default function ThematicProjects() {
     setDeleteDialogOpen(true);
   };
 
+  const handleAssignScholar = (project: ProjectWithScholar) => {
+    setSelectedProject(project);
+    setAssignDialogOpen(true);
+  };
+
   const handleProjectUpdated = () => {
     refetch();
   };
@@ -159,11 +228,11 @@ export default function ThematicProjects() {
   const handleExport = () => {
     if (!filteredProjects?.length) return;
     
-    const headers = ['Código', 'Título', 'Empresa Parceira', 'Modalidade', 'Valor Mensal', 'Início', 'Término', 'Status'];
+    const headers = ['Código', 'Título', 'Bolsista', 'Modalidade', 'Valor Mensal', 'Início', 'Término', 'Status'];
     const rows = filteredProjects.map(p => [
       p.code,
       p.title,
-      p.empresa_parceira,
+      p.scholar_name || 'Não atribuído',
       p.modalidade_bolsa || '',
       p.valor_mensal.toString(),
       p.start_date,
@@ -176,10 +245,27 @@ export default function ThematicProjects() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `projetos-tematicos-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = `subprojetos-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
+
+  // Convert ProjectWithScholar to the format expected by dialogs
+  const selectedProjectForDialogs = selectedProject ? {
+    id: selectedProject.id,
+    code: selectedProject.code,
+    title: selectedProject.title,
+    empresa_parceira: selectedProject.empresa_parceira,
+    modalidade_bolsa: selectedProject.modalidade_bolsa,
+    valor_mensal: selectedProject.valor_mensal,
+    start_date: selectedProject.start_date,
+    end_date: selectedProject.end_date,
+    coordenador_tecnico_icca: selectedProject.coordenador_tecnico_icca,
+    observacoes: selectedProject.observacoes,
+    status: selectedProject.status,
+    created_at: selectedProject.created_at,
+    updated_at: selectedProject.updated_at,
+  } : null;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -199,7 +285,7 @@ export default function ThematicProjects() {
                   Projetos Temáticos
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Gerencie os projetos temáticos do ICCA Bolsa Conecta
+                  Gerencie os subprojetos e vínculos de bolsistas
                 </p>
               </div>
               <div className="flex gap-2">
@@ -209,17 +295,24 @@ export default function ThematicProjects() {
                 </Button>
                 <Button onClick={() => setCreateDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Novo Projeto
+                  Novo Subprojeto
                 </Button>
               </div>
             </div>
 
-            {/* Main Card */}
+            {/* Master Project Context Card */}
+            <MasterProjectCard
+              title={MASTER_PROJECT.title}
+              financiador={MASTER_PROJECT.financiador}
+              status={MASTER_PROJECT.status}
+            />
+
+            {/* Subprojects Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Lista de Projetos</CardTitle>
+                <CardTitle>Subprojetos do Projeto Temático</CardTitle>
                 <CardDescription>
-                  Visualize, edite e gerencie todos os projetos temáticos cadastrados
+                  Registros operacionais de bolsas vinculados ao projeto temático mestre
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -251,13 +344,13 @@ export default function ThematicProjects() {
 
                 {/* Stats */}
                 <div className="flex gap-4 text-sm text-muted-foreground">
-                  <span>{filteredProjects?.length ?? 0} projeto(s) encontrado(s)</span>
+                  <span>{filteredProjects?.length ?? 0} subprojeto(s) encontrado(s)</span>
                   {projects && (
                     <>
                       <span>•</span>
                       <span>{projects.filter(p => p.status === 'active').length} ativo(s)</span>
                       <span>•</span>
-                      <span>{projects.filter(p => p.status === 'archived').length} arquivado(s)</span>
+                      <span>{projects.filter(p => p.scholar_name).length} com bolsista</span>
                     </>
                   )}
                 </div>
@@ -269,12 +362,12 @@ export default function ThematicProjects() {
                       <TableRow>
                         <TableHead className="w-[120px]">Código</TableHead>
                         <TableHead>Título</TableHead>
-                        <TableHead>Empresa Parceira</TableHead>
+                        <TableHead>Bolsista</TableHead>
                         <TableHead>Modalidade</TableHead>
                         <TableHead className="text-right">Valor Mensal</TableHead>
                         <TableHead>Período</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-[140px]">Ações</TableHead>
+                        <TableHead className="w-[180px]">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -288,13 +381,13 @@ export default function ThematicProjects() {
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-32" /></TableCell>
                           </TableRow>
                         ))
                       ) : filteredProjects?.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            Nenhum projeto encontrado
+                            Nenhum subprojeto encontrado
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -304,7 +397,19 @@ export default function ThematicProjects() {
                             <TableCell className="font-medium max-w-[200px] truncate" title={project.title}>
                               {project.title}
                             </TableCell>
-                            <TableCell>{project.empresa_parceira}</TableCell>
+                            <TableCell>
+                              {project.scholar_name ? (
+                                <span className="font-medium">{project.scholar_name}</span>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">Não atribuído</span>
+                                  <Badge variant="outline" className="text-xs">
+                                    <UserX className="h-3 w-3 mr-1" />
+                                    Aguardando
+                                  </Badge>
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell>{project.modalidade_bolsa || '—'}</TableCell>
                             <TableCell className="text-right font-mono">
                               {formatCurrency(project.valor_mensal)}
@@ -332,6 +437,17 @@ export default function ThematicProjects() {
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
+                                {!project.scholar_name && project.status === 'active' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleAssignScholar(project)}
+                                    title="Atribuir Bolsista"
+                                    className="text-primary hover:text-primary"
+                                  >
+                                    <UserPlus className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 {project.status === 'active' && (
                                   <Button
                                     variant="ghost"
@@ -374,10 +490,10 @@ export default function ThematicProjects() {
         onSuccess={handleProjectUpdated}
       />
 
-      {selectedProject && (
+      {selectedProjectForDialogs && (
         <>
           <ProjectDetailsDialog
-            project={selectedProject}
+            project={selectedProjectForDialogs}
             open={detailsDialogOpen}
             onOpenChange={setDetailsDialogOpen}
             onClose={() => {
@@ -388,25 +504,32 @@ export default function ThematicProjects() {
           />
 
           <EditProjectDialog
-            project={selectedProject}
+            project={selectedProjectForDialogs}
             open={editDialogOpen}
             onOpenChange={setEditDialogOpen}
             onSuccess={handleProjectUpdated}
           />
 
           <ArchiveProjectDialog
-            project={selectedProject}
+            project={selectedProjectForDialogs}
             open={archiveDialogOpen}
             onOpenChange={setArchiveDialogOpen}
             onSuccess={handleProjectUpdated}
           />
 
           <DeleteProjectDialog
-            project={selectedProject}
+            project={selectedProjectForDialogs}
             open={deleteDialogOpen}
             onOpenChange={setDeleteDialogOpen}
             onSuccess={handleProjectUpdated}
             hasDependencies={projectHasDependencies}
+          />
+
+          <AssignScholarToProjectDialog
+            project={selectedProjectForDialogs}
+            open={assignDialogOpen}
+            onOpenChange={setAssignDialogOpen}
+            onSuccess={handleProjectUpdated}
           />
         </>
       )}

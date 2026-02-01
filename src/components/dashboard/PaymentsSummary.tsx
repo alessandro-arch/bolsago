@@ -11,23 +11,23 @@ interface PaymentItem {
 const payments: PaymentItem[] = [
   {
     id: "1",
-    description: "Folha de Março/2024",
+    description: "Folha de Dezembro/2025",
     value: 45600,
-    date: "05/04/2024",
+    date: "05/01/2026",
     type: "paid",
   },
   {
     id: "2",
-    description: "Folha de Abril/2024",
+    description: "Folha de Janeiro/2026",
     value: 47200,
-    date: "05/05/2024",
+    date: "05/02/2026",
     type: "pending",
   },
   {
     id: "3",
-    description: "Folha de Maio/2024",
+    description: "Folha de Fevereiro/2026",
     value: 48100,
-    date: "05/06/2024",
+    date: "05/03/2026",
     type: "scheduled",
   },
 ];

@@ -68,8 +68,8 @@ const scholarData: ScholarData = {
   project: {
     name: "IA Aplicada à Saúde",
     proponent: "Dr. Ricardo Mendes",
-    startDate: "01/01/2024",
-    endDate: "31/12/2024",
+    startDate: "01/01/2026",
+    endDate: "31/12/2026",
     totalValue: 8400,
     monthlyValue: 700,
     installments: 12,

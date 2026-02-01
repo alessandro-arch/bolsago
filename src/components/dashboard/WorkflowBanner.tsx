@@ -1,23 +1,29 @@
-import { FileText, Clock, CheckCircle, DollarSign, ArrowRight } from "lucide-react";
+import { FileText, Clock, CheckCircle, DollarSign, ArrowRight, Send, Search } from "lucide-react";
 
 const steps = [
   {
-    icon: FileText,
+    icon: Send,
     title: "Envio do Relatório",
-    description: "Bolsista envia o relatório mensal",
-    status: "Em análise",
+    description: "Bolsista envia até o dia 10",
+    status: "Pendente → Enviado",
+  },
+  {
+    icon: Search,
+    title: "Análise",
+    description: "Gestor analisa o relatório",
+    status: "Em Análise",
   },
   {
     icon: CheckCircle,
     title: "Aprovação",
-    description: "Gestor aprova o relatório",
-    status: "Pagamento apto",
+    description: "Aprovado ou devolvido com parecer",
+    status: "Aprovado / Devolvido",
   },
   {
     icon: DollarSign,
     title: "Pagamento",
-    description: "Processamento financeiro",
-    status: "Pago com data",
+    description: "Liberação e processamento",
+    status: "Apto → Pago",
   },
 ];
 
@@ -57,6 +63,14 @@ export function WorkflowBanner() {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-border/50">
+        <p className="text-xs text-muted-foreground">
+          <strong>Prazo:</strong> Envio até o dia 10 do mês seguinte • 
+          <strong> Exceção:</strong> Primeira parcela é liberada automaticamente • 
+          <strong> Devolução:</strong> Permite reenvio com histórico de versões
+        </p>
       </div>
     </div>
   );

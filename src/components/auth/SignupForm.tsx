@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, Loader2, CreditCard } from "lucide-react";
 import { z } from "zod";
@@ -148,6 +149,7 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
             required
           />
         </div>
+        <PasswordStrengthIndicator password={password} />
       </div>
       
       <div className="space-y-2">

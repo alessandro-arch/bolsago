@@ -277,6 +277,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles_sensitive: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           code: string

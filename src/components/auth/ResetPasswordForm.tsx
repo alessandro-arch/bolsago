@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, Loader2, AlertCircle, CheckCircle, ShieldCheck } from "lucide-react";
@@ -103,10 +103,9 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
         <div className="space-y-2">
           <Label htmlFor="new-password">Nova Senha</Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+            <PasswordInput
               id="new-password"
-              type="password"
               placeholder="Mínimo 6 caracteres"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -120,10 +119,9 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
         <div className="space-y-2">
           <Label htmlFor="confirm-new-password">Confirmar Nova Senha</Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+            <PasswordInput
               id="confirm-new-password"
-              type="password"
               placeholder="Confirme sua nova senha"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

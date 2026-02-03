@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, Loader2, CreditCard } from "lucide-react";
 import { z } from "zod";
@@ -137,10 +138,9 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
       <div className="space-y-2">
         <Label htmlFor="signup-password">Senha</Label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+          <PasswordInput
             id="signup-password"
-            type="password"
             placeholder="Mínimo 6 caracteres"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -153,10 +153,9 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
       <div className="space-y-2">
         <Label htmlFor="signup-confirm">Confirmar Senha</Label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+          <PasswordInput
             id="signup-confirm"
-            type="password"
             placeholder="Confirme sua senha"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

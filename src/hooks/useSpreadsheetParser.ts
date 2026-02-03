@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { ImportType, IMPORT_TYPES, ParsedRow, ImportPreview } from '@/types/import';
 
 export function useSpreadsheetParser() {
@@ -93,69 +93,159 @@ export function useSpreadsheetParser() {
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const workbook = new ExcelJS.Workbook();
       
-      // Get first sheet
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      
-      // Convert to JSON with headers
-      const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-        defval: null,
-        raw: false,
-      });
-
-      if (rawData.length === 0) {
-        throw new Error('Planilha vazia ou sem dados válidos');
-      }
-
-      // Normalize column names (lowercase, remove accents, replace spaces with underscores)
-      const normalizeKey = (key: string): string => {
-        return key
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/\s+/g, '_')
-          .replace(/[^a-z0-9_]/g, '');
-      };
-
-      const parsedRows: ParsedRow[] = rawData.map((rawRow, index) => {
-        // Normalize keys
-        const normalizedRow: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(rawRow)) {
-          normalizedRow[normalizeKey(key)] = value;
+      // Determine file type and load accordingly
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith('.csv')) {
+        // For CSV files, convert to text and parse
+        const text = new TextDecoder().decode(arrayBuffer);
+        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        
+        if (lines.length === 0) {
+          throw new Error('Arquivo vazio ou sem dados válidos');
         }
-
-        const { errors, warnings } = validateRow(normalizedRow, importType);
-
-        return {
-          rowNumber: index + 2, // +2 because Excel is 1-indexed and has header row
-          data: normalizedRow,
-          errors,
-          warnings,
-          isValid: errors.length === 0,
+        
+        // Parse CSV manually
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if ((char === ',' || char === ';') && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
         };
-      });
-
-      const preview: ImportPreview = {
-        fileName: file.name,
-        totalRows: parsedRows.length,
-        validRows: parsedRows.filter(r => r.isValid).length,
-        invalidRows: parsedRows.filter(r => !r.isValid).length,
-        newRows: 0,
-        duplicateRows: 0,
-        conflictRows: 0,
-        rows: parsedRows,
-      };
-
-      setIsLoading(false);
-      return preview;
+        
+        const headers = parseCSVLine(lines[0]);
+        const rawData: Record<string, unknown>[] = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i]);
+          const row: Record<string, unknown> = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || null;
+          });
+          rawData.push(row);
+        }
+        
+        return processRawData(rawData, file.name, importType);
+      } else {
+        // For Excel files (.xlsx, .xls)
+        await workbook.xlsx.load(arrayBuffer);
+        
+        const worksheet = workbook.worksheets[0];
+        if (!worksheet || worksheet.rowCount === 0) {
+          throw new Error('Planilha vazia ou sem dados válidos');
+        }
+        
+        // Get headers from first row
+        const headerRow = worksheet.getRow(1);
+        const headers: string[] = [];
+        headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          const value = cell.value;
+          headers[colNumber - 1] = value ? String(value) : `column_${colNumber}`;
+        });
+        
+        // Get data rows
+        const rawData: Record<string, unknown>[] = [];
+        worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+          if (rowNumber === 1) return; // Skip header row
+          
+          const rowData: Record<string, unknown> = {};
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            const header = headers[colNumber - 1];
+            if (header) {
+              // Handle different cell value types
+              let value = cell.value;
+              if (value && typeof value === 'object') {
+                // Handle rich text, formulas, etc.
+                if ('text' in value) {
+                  value = value.text;
+                } else if ('result' in value) {
+                  value = value.result;
+                } else if ('richText' in value) {
+                  value = (value as ExcelJS.CellRichTextValue).richText
+                    .map(rt => rt.text)
+                    .join('');
+                }
+              }
+              rowData[header] = value ?? null;
+            }
+          });
+          rawData.push(rowData);
+        });
+        
+        if (rawData.length === 0) {
+          throw new Error('Planilha vazia ou sem dados válidos');
+        }
+        
+        return processRawData(rawData, file.name, importType);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao processar arquivo';
       setError(message);
       setIsLoading(false);
       throw new Error(message);
     }
+  }, [validateRow]);
+
+  const processRawData = useCallback((
+    rawData: Record<string, unknown>[],
+    fileName: string,
+    importType: ImportType
+  ): ImportPreview => {
+    // Normalize column names (lowercase, remove accents, replace spaces with underscores)
+    const normalizeKey = (key: string): string => {
+      return key
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
+    };
+
+    const parsedRows: ParsedRow[] = rawData.map((rawRow, index) => {
+      // Normalize keys
+      const normalizedRow: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(rawRow)) {
+        normalizedRow[normalizeKey(key)] = value;
+      }
+
+      const { errors, warnings } = validateRow(normalizedRow, importType);
+
+      return {
+        rowNumber: index + 2, // +2 because Excel is 1-indexed and has header row
+        data: normalizedRow,
+        errors,
+        warnings,
+        isValid: errors.length === 0,
+      };
+    });
+
+    const preview: ImportPreview = {
+      fileName,
+      totalRows: parsedRows.length,
+      validRows: parsedRows.filter(r => r.isValid).length,
+      invalidRows: parsedRows.filter(r => !r.isValid).length,
+      newRows: 0,
+      duplicateRows: 0,
+      conflictRows: 0,
+      rows: parsedRows,
+    };
+
+    setIsLoading(false);
+    return preview;
   }, [validateRow]);
 
   return {

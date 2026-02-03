@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, Loader2, AlertCircle, CheckCircle, ShieldCheck } from "lucide-react";
@@ -114,6 +115,7 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
               autoFocus
             />
           </div>
+          <PasswordStrengthIndicator password={password} />
         </div>
         
         <div className="space-y-2">

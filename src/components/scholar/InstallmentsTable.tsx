@@ -43,10 +43,10 @@ import { ReportVersionsDialog, type ReportVersion } from "./ReportVersionsDialog
 import { ReportUploadDialog } from "./ReportUploadDialog";
 import { openReportPdf, downloadReportPdf } from "@/hooks/useSignedUrl";
 import type { PaymentWithReport } from "@/hooks/useScholarPayments";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type ReportStatus = "pending" | "submitted" | "under_review" | "approved" | "rejected" | "future";
+type ReportStatus = "pending" | "submitted" | "under_review" | "approved" | "rejected" | "deadline_expired" | "future";
 type PaymentStatus = "blocked" | "eligible" | "processing" | "paid" | "future" | "pending" | "cancelled";
 type MonthStatus = "past" | "current" | "future";
 
@@ -66,6 +66,8 @@ interface Installment {
   enrollmentId: string;
   hasReportUnderReview: boolean;
   reportFileUrl?: string;
+  resubmissionDeadline?: string;
+  isDeadlineExpired?: boolean;
 }
 
 const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clock; className: string }> = {
@@ -74,6 +76,7 @@ const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clo
   under_review: { label: "Em Análise", icon: Search, className: "bg-primary/10 text-primary" },
   approved: { label: "Aprovado", icon: CheckCircle, className: "bg-success/10 text-success" },
   rejected: { label: "Devolvido", icon: XCircle, className: "bg-destructive/10 text-destructive" },
+  deadline_expired: { label: "Prazo Expirado", icon: Lock, className: "bg-destructive/10 text-destructive" },
   future: { label: "Aguardando", icon: CalendarClock, className: "bg-muted text-muted-foreground" },
 };
 
@@ -133,9 +136,10 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
 
   const isFutureMonth = installment.monthStatus === "future";
   const isCurrent = installment.monthStatus === "current";
+  const isDeadlineExpired = installment.isDeadlineExpired;
   const canSubmitReport = isCurrent && installment.reportStatus === "pending";
-  const canResubmit = installment.reportStatus === "rejected";
-  const canViewFeedback = installment.reportStatus === "rejected" && installment.feedback;
+  const canResubmit = installment.reportStatus === "rejected" && !isDeadlineExpired;
+  const canViewFeedback = (installment.reportStatus === "rejected" || installment.reportStatus === "deadline_expired") && installment.feedback;
   const canDownloadReceipt = installment.paymentStatus === "paid";
   const hasVersions = installment.versions && installment.versions.length > 0;
   const hasReportUnderReview = installment.hasReportUnderReview;
@@ -153,6 +157,9 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
     }
     if (installment.reportStatus === "under_review") {
       return "Relatório em análise pelo gestor";
+    }
+    if (isDeadlineExpired) {
+      return "O prazo para reenvio expirou. Entre em contato com o gestor.";
     }
     if (installment.monthStatus === "past" && installment.reportStatus === "pending") {
       return "O prazo para envio deste relatório já passou";
@@ -386,6 +393,16 @@ function formatReferenceMonth(refMonth: string): string {
 function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number, enrollmentId: string): Installment {
   const monthStatus = getMonthStatus(payment.reference_month);
   
+  // Check if resubmission deadline has expired
+  let isDeadlineExpired = false;
+  let resubmissionDeadline: string | undefined;
+  
+  if (payment.report?.resubmission_deadline) {
+    resubmissionDeadline = payment.report.resubmission_deadline;
+    const deadline = new Date(payment.report.resubmission_deadline);
+    isDeadlineExpired = isBefore(deadline, new Date());
+  }
+  
   // Map report status
   let reportStatus: ReportStatus = "pending";
   let hasReportUnderReview = false;
@@ -399,7 +416,9 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number,
       hasReportUnderReview = true;
     }
     else if (status === "approved") reportStatus = "approved";
-    else if (status === "rejected") reportStatus = "rejected";
+    else if (status === "rejected") {
+      reportStatus = isDeadlineExpired ? "deadline_expired" : "rejected";
+    }
     else reportStatus = "submitted";
   }
 
@@ -435,6 +454,8 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number,
     enrollmentId,
     hasReportUnderReview,
     reportFileUrl: payment.report?.file_url,
+    resubmissionDeadline,
+    isDeadlineExpired,
   };
 }
 
@@ -600,10 +621,23 @@ export function InstallmentsTable({
                   </div>
                 </td>
                 <td>
-                  <StatusBadge 
-                    status={installment.reportStatus} 
-                    config={reportStatusConfig[installment.reportStatus]} 
-                  />
+                  <div className="flex flex-col gap-1">
+                    <StatusBadge 
+                      status={installment.reportStatus} 
+                      config={reportStatusConfig[installment.reportStatus]} 
+                    />
+                    {installment.reportStatus === "rejected" && installment.resubmissionDeadline && !installment.isDeadlineExpired && (
+                      <span className="text-xs text-warning flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Prazo: {format(parseISO(installment.resubmissionDeadline), "dd/MM/yyyy")}
+                      </span>
+                    )}
+                    {installment.reportStatus === "deadline_expired" && (
+                      <span className="text-xs text-destructive">
+                        Prazo expirado - contate o gestor
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <div className="flex flex-col gap-1">

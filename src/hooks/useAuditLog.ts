@@ -8,6 +8,7 @@ export type AuditAction =
   | "update_cpf"
   | "update_enrollment"
   | "release_payment"
+  | "mark_payment_paid"
   | "update_user_role"
   | "create_enrollment"
   | "delete_enrollment"

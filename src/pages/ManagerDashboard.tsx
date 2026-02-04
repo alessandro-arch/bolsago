@@ -6,6 +6,8 @@ import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFilte
 import { ProjectsList } from "@/components/projects";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { BankDataManagement } from "@/components/dashboard/BankDataManagement";
+import { ReportsReviewManagement } from "@/components/dashboard/ReportsReviewManagement";
+import { PaymentsManagement } from "@/components/dashboard/PaymentsManagement";
 import { AdminMasterModeProvider } from "@/contexts/AdminMasterModeContext";
 
 const ManagerDashboard = () => {
@@ -27,6 +29,16 @@ const ManagerDashboard = () => {
             {/* Bank Data Management Section */}
             <div className="animate-fade-in">
               <BankDataManagement />
+            </div>
+            
+            {/* Reports Review Section */}
+            <div className="animate-fade-in">
+              <ReportsReviewManagement />
+            </div>
+            
+            {/* Payments Management Section */}
+            <div className="animate-fade-in">
+              <PaymentsManagement />
             </div>
             
             {/* Scholars Management Section */}

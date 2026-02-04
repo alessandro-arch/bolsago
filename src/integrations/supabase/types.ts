@@ -362,7 +362,9 @@ export type Database = {
           installment_number: number
           observations: string | null
           reference_month: string
+          resubmission_deadline: string | null
           reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           submitted_at: string
           updated_at: string
@@ -377,7 +379,9 @@ export type Database = {
           installment_number: number
           observations?: string | null
           reference_month: string
+          resubmission_deadline?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           submitted_at?: string
           updated_at?: string
@@ -392,7 +396,9 @@ export type Database = {
           installment_number?: number
           observations?: string | null
           reference_month?: string
+          resubmission_deadline?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           submitted_at?: string
           updated_at?: string

@@ -58,17 +58,17 @@ export function useAuditLog() {
     }
 
     try {
-      const { error } = await supabase.from("audit_logs").insert([{
-        user_id: user.id,
-        user_email: user.email,
-        action,
-        entity_type: entityType,
-        entity_id: entityId,
-        details: details || {},
-        previous_value: previousValue,
-        new_value: newValue,
-        user_agent: navigator.userAgent,
-      }]);
+      // Use secure RPC function instead of direct insert
+      // This function validates that only admins/managers can create audit logs
+      const { data, error } = await supabase.rpc("insert_audit_log", {
+        p_action: action,
+        p_entity_type: entityType,
+        p_entity_id: entityId || null,
+        p_details: (details || {}) as Json,
+        p_previous_value: previousValue || null,
+        p_new_value: newValue || null,
+        p_user_agent: navigator.userAgent,
+      });
 
       if (error) {
         console.error("[AUDIT] Failed to log action:", error);

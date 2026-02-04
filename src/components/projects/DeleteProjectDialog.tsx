@@ -54,30 +54,23 @@ export function DeleteProjectDialog({
     setIsLoading(true);
 
     try {
-      // Log audit BEFORE deletion
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('user_id', user.id)
-        .single();
-
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        user_email: userData?.email || user.email,
-        action: 'project_deleted',
-        entity_type: 'project',
-        entity_id: project.id,
-        previous_value: {
+      // Log audit BEFORE deletion using secure RPC function
+      await supabase.rpc("insert_audit_log", {
+        p_action: 'project_deleted',
+        p_entity_type: 'project',
+        p_entity_id: project.id,
+        p_previous_value: {
           code: project.code,
           title: project.title,
           status: project.status,
         },
-        new_value: null,
-        details: {
+        p_new_value: null,
+        p_details: {
           project_code: project.code,
           project_title: project.title,
           deletion_reason: 'User requested deletion',
         },
+        p_user_agent: navigator.userAgent,
       });
 
       // Delete project

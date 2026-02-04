@@ -5,7 +5,10 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Enrollment = Database["public"]["Tables"]["enrollments"]["Row"];
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
-type Report = Database["public"]["Tables"]["reports"]["Row"];
+type Report = Database["public"]["Tables"]["reports"]["Row"] & {
+  resubmission_deadline?: string | null;
+  reviewed_by?: string | null;
+};
 type Project = Database["public"]["Tables"]["projects"]["Row"];
 
 export interface EnrollmentWithProject extends Enrollment {

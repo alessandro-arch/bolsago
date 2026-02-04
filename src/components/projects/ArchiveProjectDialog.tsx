@@ -66,25 +66,18 @@ export function ArchiveProjectDialog({
 
       if (updateError) throw updateError;
 
-      // Log audit
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('user_id', user.id)
-        .single();
-
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        user_email: userData?.email || user.email,
-        action: isArchived ? 'project_reactivated' : 'project_archived',
-        entity_type: 'project',
-        entity_id: project.id,
-        previous_value: { status: previousStatus },
-        new_value: { status: targetStatus },
-        details: {
+      // Log audit using secure RPC function
+      await supabase.rpc("insert_audit_log", {
+        p_action: isArchived ? 'project_reactivated' : 'project_archived',
+        p_entity_type: 'project',
+        p_entity_id: project.id,
+        p_previous_value: { status: previousStatus },
+        p_new_value: { status: targetStatus },
+        p_details: {
           project_code: project.code,
           project_title: project.title,
         },
+        p_user_agent: navigator.userAgent,
       });
 
       toast({

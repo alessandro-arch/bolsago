@@ -135,9 +135,10 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const isFutureMonth = installment.monthStatus === "future";
-  const isCurrent = installment.monthStatus === "current";
+  const isPastOrCurrent = installment.monthStatus === "past" || installment.monthStatus === "current";
   const isDeadlineExpired = installment.isDeadlineExpired;
-  const canSubmitReport = isCurrent && installment.reportStatus === "pending";
+  // Allow submission for any past or current month with pending report status
+  const canSubmitReport = isPastOrCurrent && installment.reportStatus === "pending";
   const canResubmit = installment.reportStatus === "rejected" && !isDeadlineExpired;
   const canViewFeedback = (installment.reportStatus === "rejected" || installment.reportStatus === "deadline_expired") && installment.feedback;
   const canDownloadReceipt = installment.paymentStatus === "paid";
@@ -160,9 +161,6 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
     }
     if (isDeadlineExpired) {
       return "O prazo para reenvio expirou. Entre em contato com o gestor.";
-    }
-    if (installment.monthStatus === "past" && installment.reportStatus === "pending") {
-      return "O prazo para envio deste relatório já passou";
     }
     if (isFutureMonth) {
       return "Aguarde o período para envio";

@@ -37,7 +37,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
           <tr>
             <td align="center" style="padding:10px 40px;">
               <h1 style="margin:0; font-size:22px; color:#1f2937;">
-                Confirme seu endereço de e-mail
+                Confirmação de e-mail
               </h1>
             </td>
           </tr>
@@ -49,14 +49,8 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
                 Seja bem-vindo(a) ao <strong>ICCA Bolsa Conecta</strong>.
               </p>
               <p>
-                Para concluir seu cadastro e garantir o acesso seguro ao portal,
-                é necessário confirmar o seu endereço de e-mail:
-              </p>
-              <p style="font-weight:bold; color:#111827;">
-                ${userEmail}
-              </p>
-              <p>
-                Basta clicar no botão abaixo para validar sua conta.
+                Para concluir seu cadastro e acessar o portal com segurança, 
+                confirme seu endereço de e-mail clicando no botão abaixo:
               </p>
             </td>
           </tr>
@@ -87,7 +81,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
           <tr>
             <td style="padding:20px 40px; background-color:#f9fafb; font-size:13px; color:#6b7280; line-height:1.5;">
               <p>
-                Caso você não tenha solicitado este cadastro, basta ignorar esta mensagem.
+                Se você não solicitou este cadastro, basta ignorar esta mensagem.
               </p>
               <p style="margin-top:15px;">
                 Atenciosamente,<br />

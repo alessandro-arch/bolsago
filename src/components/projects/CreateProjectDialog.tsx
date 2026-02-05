@@ -18,13 +18,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -34,18 +27,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Plus, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface ThematicProject {
-  id: string;
-  code: string;
-  title: string;
-  empresa_parceira: string;
-}
-
 const formSchema = z.object({
-  parent_project_id: z.string().min(1, 'Projeto Temático é obrigatório'),
   code: z.string().min(1, 'Código é obrigatório'),
   title: z.string().min(1, 'Título é obrigatório'),
-  empresa_parceira: z.string().min(1, 'Proponente é obrigatório'),
+  empresa_parceira: z.string().min(1, 'Empresa parceira é obrigatória'),
   modalidade_bolsa: z.string().min(1, 'Modalidade da bolsa é obrigatória'),
   valor_mensal: z.coerce.number().positive('Valor deve ser positivo'),
   start_date: z.string().min(1, 'Data de início é obrigatória'),
@@ -63,26 +48,21 @@ interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
-  preselectedThematicProjectId?: string;
 }
 
 export function CreateProjectDialog({
   open,
   onOpenChange,
   onSuccess,
-  preselectedThematicProjectId,
 }: CreateProjectDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [codeExists, setCodeExists] = useState(false);
-  const [thematicProjects, setThematicProjects] = useState<ThematicProject[]>([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      parent_project_id: preselectedThematicProjectId || '',
       code: '',
       title: '',
       empresa_parceira: '',
@@ -94,39 +74,6 @@ export function CreateProjectDialog({
       observacoes: '',
     },
   });
-
-  // Fetch thematic projects
-  useEffect(() => {
-    const fetchThematicProjects = async () => {
-      setIsLoadingProjects(true);
-      try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('id, code, title, empresa_parceira')
-          .eq('is_thematic', true)
-          .eq('status', 'active')
-          .order('title');
-        
-        if (error) throw error;
-        setThematicProjects(data || []);
-
-        // Auto-select if only one project or if preselected
-        if (preselectedThematicProjectId) {
-          form.setValue('parent_project_id', preselectedThematicProjectId);
-        } else if (data && data.length === 1) {
-          form.setValue('parent_project_id', data[0].id);
-        }
-      } catch (error) {
-        console.error('Error fetching thematic projects:', error);
-      } finally {
-        setIsLoadingProjects(false);
-      }
-    };
-
-    if (open) {
-      fetchThematicProjects();
-    }
-  }, [open, form, preselectedThematicProjectId]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -177,8 +124,6 @@ export function CreateProjectDialog({
         coordenador_tecnico_icca: values.coordenador_tecnico_icca || null,
         observacoes: values.observacoes || null,
         status: 'active' as const,
-        is_thematic: false,
-        parent_project_id: values.parent_project_id,
       };
 
       const { data: newProject, error: insertError } = await supabase
@@ -189,29 +134,36 @@ export function CreateProjectDialog({
 
       if (insertError) throw insertError;
 
-      // Log audit via RPC
-      await supabase.rpc('insert_audit_log', {
-        p_action: 'CREATE_SUBPROJECT',
-        p_entity_type: 'project',
-        p_entity_id: newProject.id,
-        p_details: {
+      // Log audit
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', user.id)
+        .single();
+
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        user_email: userData?.email || user.email,
+        action: 'project_created',
+        entity_type: 'project',
+        entity_id: newProject.id,
+        new_value: projectData,
+        details: {
           project_code: values.code,
-          parent_project_id: values.parent_project_id,
         },
-        p_new_value: newProject,
       });
 
       toast({
-        title: 'Subprojeto criado',
-        description: `O subprojeto "${values.code}" foi criado com sucesso.`,
+        title: 'Projeto criado',
+        description: `O projeto "${values.code}" foi criado com sucesso.`,
       });
 
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error creating subproject:', error);
+      console.error('Error creating project:', error);
       toast({
-        title: 'Erro ao criar subprojeto',
+        title: 'Erro ao criar projeto',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive',
       });
@@ -220,58 +172,21 @@ export function CreateProjectDialog({
     }
   };
 
-  const selectedThematicProject = thematicProjects.find(p => p.id === form.watch('parent_project_id'));
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            Novo Subprojeto
+            Novo Projeto Temático
           </DialogTitle>
           <DialogDescription>
-            Cadastre um novo subprojeto vinculado a um Projeto Temático. O código deve ser único.
+            Cadastre um novo projeto temático. O código deve ser único.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Thematic Project Selector */}
-            <FormField
-              control={form.control}
-              name="parent_project_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Projeto Temático *</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value}
-                    disabled={isLoadingProjects || !!preselectedThematicProjectId}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoadingProjects ? "Carregando..." : "Selecione o Projeto Temático"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {thematicProjects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          <span className="line-clamp-1">{project.code} - {project.title.substring(0, 50)}...</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedThematicProject && (
-                    <p className="text-xs text-muted-foreground">
-                      Financiador: {selectedThematicProject.empresa_parceira}
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}

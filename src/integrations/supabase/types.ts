@@ -395,15 +395,14 @@ export type Database = {
           code: string
           coordenador_tecnico_icca: string | null
           created_at: string
-          empresa_parceira: string
           end_date: string
           id: string
-          is_thematic: boolean
           modalidade_bolsa: string | null
           observacoes: string | null
-          parent_project_id: string | null
+          orientador: string
           start_date: string
           status: Database["public"]["Enums"]["project_status"]
+          thematic_project_id: string
           title: string
           updated_at: string
           valor_mensal: number
@@ -412,15 +411,14 @@ export type Database = {
           code: string
           coordenador_tecnico_icca?: string | null
           created_at?: string
-          empresa_parceira: string
           end_date: string
           id?: string
-          is_thematic?: boolean
           modalidade_bolsa?: string | null
           observacoes?: string | null
-          parent_project_id?: string | null
+          orientador: string
           start_date: string
           status?: Database["public"]["Enums"]["project_status"]
+          thematic_project_id: string
           title: string
           updated_at?: string
           valor_mensal: number
@@ -429,25 +427,24 @@ export type Database = {
           code?: string
           coordenador_tecnico_icca?: string | null
           created_at?: string
-          empresa_parceira?: string
           end_date?: string
           id?: string
-          is_thematic?: boolean
           modalidade_bolsa?: string | null
           observacoes?: string | null
-          parent_project_id?: string | null
+          orientador?: string
           start_date?: string
           status?: Database["public"]["Enums"]["project_status"]
+          thematic_project_id?: string
           title?: string
           updated_at?: string
           valor_mensal?: number
         }
         Relationships: [
           {
-            foreignKeyName: "projects_parent_project_id_fkey"
-            columns: ["parent_project_id"]
+            foreignKeyName: "projects_thematic_project_id_fkey"
+            columns: ["thematic_project_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "thematic_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -503,6 +500,42 @@ export type Database = {
           submitted_at?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      thematic_projects: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          observations: string | null
+          sponsor_name: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          observations?: string | null
+          sponsor_name: string
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          observations?: string | null
+          sponsor_name?: string
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

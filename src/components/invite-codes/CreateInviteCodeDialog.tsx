@@ -31,7 +31,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface ThematicProject {
   id: string;
   title: string;
-  empresa_parceira: string;
+  sponsor_name: string;
 }
 
 interface CreateInviteCodeDialogProps {
@@ -64,10 +64,10 @@ export function CreateInviteCodeDialog({
     const fetchThematicProjects = async () => {
       setIsLoadingProjects(true);
       try {
-        // For now, fetch all projects - in future, filter by a "is_thematic" flag
+        // Fetch thematic projects from the new dedicated table
         const { data, error } = await supabase
-          .from('projects')
-          .select('id, title, empresa_parceira')
+          .from('thematic_projects')
+          .select('id, title, sponsor_name')
           .eq('status', 'active')
           .order('title');
         
@@ -263,7 +263,7 @@ export function CreateInviteCodeDialog({
               </Select>
               {selectedProject && (
                 <p className="text-xs text-muted-foreground">
-                  Financiador: {selectedProject.empresa_parceira}
+                  Financiador: {selectedProject.sponsor_name}
                 </p>
               )}
             </div>

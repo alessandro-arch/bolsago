@@ -39,7 +39,7 @@ interface Enrollment {
   project: {
     title: string;
     code: string;
-    empresaParceira: string;
+    orientador: string;
     coordenadorTecnicoIcca: string | null;
   } | null;
 }
@@ -120,7 +120,7 @@ const ScholarProfileView = () => {
             projects (
               title,
               code,
-              empresa_parceira,
+              orientador,
               coordenador_tecnico_icca
             )
           `)
@@ -134,7 +134,7 @@ const ScholarProfileView = () => {
           const project = enrollmentData.projects as {
             title: string;
             code: string;
-            empresa_parceira: string;
+            orientador: string;
             coordenador_tecnico_icca: string | null;
           } | null;
 
@@ -149,7 +149,7 @@ const ScholarProfileView = () => {
             project: project ? {
               title: project.title,
               code: project.code,
-              empresaParceira: project.empresa_parceira,
+              orientador: project.orientador,
               coordenadorTecnicoIcca: project.coordenador_tecnico_icca,
             } : null,
           });
@@ -339,8 +339,8 @@ const ScholarProfileView = () => {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Proponente</p>
-                            <p className="font-medium">{enrollment.project?.empresaParceira || "—"}</p>
+                            <p className="text-sm text-muted-foreground">Orientador</p>
+                            <p className="font-medium">{enrollment.project?.orientador || "—"}</p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Modalidade</p>

@@ -275,10 +275,10 @@ export default function Import() {
             data: row.data,
           });
         } else if (selectedType === 'projects') {
-          // Process project import
+          // Process project/subproject import
           const code = String(row.data.code || '');
           const title = String(row.data.title || '');
-          const empresaParceira = String(row.data.empresa_parceira || '');
+          const orientador = String(row.data.orientador || row.data.empresa_parceira || '');
           const modalidadeBolsa = String(row.data.modalidade_bolsa || '');
           const valorMensal = Number(row.data.valor_mensal);
           const startDate = String(row.data.start_date || '');
@@ -289,7 +289,7 @@ export default function Import() {
           const errors: string[] = [];
           if (!code) errors.push('Código é obrigatório');
           if (!title) errors.push('Título é obrigatório');
-          if (!empresaParceira) errors.push('Empresa parceira é obrigatória');
+          if (!orientador) errors.push('Orientador é obrigatório');
           if (!modalidadeBolsa) errors.push('Modalidade da bolsa é obrigatória');
           if (isNaN(valorMensal) || valorMensal <= 0) errors.push('Valor mensal deve ser um número positivo');
           if (!startDate) errors.push('Data de início é obrigatória');
@@ -304,13 +304,31 @@ export default function Import() {
             continue;
           }
 
+          // Get the active thematic project
+          const { data: thematicProject } = await supabase
+            .from('thematic_projects')
+            .select('id')
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle();
+
+          if (!thematicProject) {
+            rejectedRecords.push({
+              rowNumber: row.rowNumber,
+              data: row.data,
+              reasons: ['Nenhum Projeto Temático ativo encontrado'],
+            });
+            continue;
+          }
+
           // Insert into database
           const { error } = await supabase
             .from('projects')
             .insert({
               code,
               title,
-              empresa_parceira: empresaParceira,
+              orientador,
+              thematic_project_id: thematicProject.id,
               modalidade_bolsa: modalidadeBolsa,
               valor_mensal: valorMensal,
               start_date: startDate,

@@ -171,7 +171,7 @@ export function ScholarDataCards() {
   // Calculate project data from enrollment
   const projectData = enrollment ? {
     name: enrollment.project?.title || "",
-    proponent: enrollment.project?.empresa_parceira || "",
+    proponent: enrollment.project?.orientador || "",
     startDate: enrollment.start_date,
     endDate: enrollment.end_date,
     monthlyValue: enrollment.grant_value,

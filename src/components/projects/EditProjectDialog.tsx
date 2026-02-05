@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,7 +33,8 @@ interface Project {
   id: string;
   code: string;
   title: string;
-  empresa_parceira: string;
+  orientador: string;
+  thematic_project_id: string;
   modalidade_bolsa: string | null;
   valor_mensal: number;
   start_date: string;
@@ -52,7 +53,7 @@ interface EditProjectDialogProps {
 
 const formSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
-  empresa_parceira: z.string().min(1, 'Empresa parceira é obrigatória'),
+  orientador: z.string().min(1, 'Orientador é obrigatório'),
   modalidade_bolsa: z.string().min(1, 'Modalidade da bolsa é obrigatória'),
   valor_mensal: z.coerce.number().positive('Valor deve ser positivo'),
   start_date: z.string().min(1, 'Data de início é obrigatória'),
@@ -80,7 +81,7 @@ export function EditProjectDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: project.title,
-      empresa_parceira: project.empresa_parceira,
+      orientador: project.orientador,
       modalidade_bolsa: project.modalidade_bolsa || '',
       valor_mensal: project.valor_mensal,
       start_date: project.start_date,
@@ -89,6 +90,22 @@ export function EditProjectDialog({
       observacoes: project.observacoes || '',
     },
   });
+
+  // Reset form when project changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        title: project.title,
+        orientador: project.orientador,
+        modalidade_bolsa: project.modalidade_bolsa || '',
+        valor_mensal: project.valor_mensal,
+        start_date: project.start_date,
+        end_date: project.end_date,
+        coordenador_tecnico_icca: project.coordenador_tecnico_icca || '',
+        observacoes: project.observacoes || '',
+      });
+    }
+  }, [open, project, form]);
 
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
@@ -99,7 +116,7 @@ export function EditProjectDialog({
       // Prepare previous and new values for audit
       const previousValue = {
         title: project.title,
-        empresa_parceira: project.empresa_parceira,
+        orientador: project.orientador,
         modalidade_bolsa: project.modalidade_bolsa,
         valor_mensal: project.valor_mensal,
         start_date: project.start_date,
@@ -110,7 +127,7 @@ export function EditProjectDialog({
 
       const newValue = {
         title: values.title,
-        empresa_parceira: values.empresa_parceira,
+        orientador: values.orientador,
         modalidade_bolsa: values.modalidade_bolsa,
         valor_mensal: values.valor_mensal,
         start_date: values.start_date,
@@ -137,7 +154,7 @@ export function EditProjectDialog({
       await supabase.from('audit_logs').insert({
         user_id: user.id,
         user_email: userData?.email || user.email,
-        action: 'project_updated',
+        action: 'subproject_updated',
         entity_type: 'project',
         entity_id: project.id,
         previous_value: previousValue,
@@ -152,16 +169,16 @@ export function EditProjectDialog({
       });
 
       toast({
-        title: 'Projeto atualizado',
-        description: `O projeto "${project.code}" foi atualizado com sucesso.`,
+        title: 'Subprojeto atualizado',
+        description: `O subprojeto "${project.code}" foi atualizado com sucesso.`,
       });
 
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error updating project:', error);
+      console.error('Error updating subproject:', error);
       toast({
-        title: 'Erro ao atualizar projeto',
+        title: 'Erro ao atualizar subprojeto',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive',
       });
@@ -174,9 +191,9 @@ export function EditProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Editar Projeto</DialogTitle>
+          <DialogTitle>Editar Subprojeto</DialogTitle>
           <DialogDescription>
-            Altere os dados do projeto <span className="font-mono">{project.code}</span>
+            Altere os dados do subprojeto <span className="font-mono">{project.code}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -199,10 +216,10 @@ export function EditProjectDialog({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="empresa_parceira"
+                name="orientador"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proponente</FormLabel>
+                    <FormLabel>Orientador</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -295,7 +312,7 @@ export function EditProjectDialog({
                   <FormControl>
                     <Textarea 
                       {...field} 
-                      placeholder="Observações adicionais sobre o projeto (opcional)"
+                      placeholder="Observações adicionais sobre o subprojeto (opcional)"
                       rows={3}
                     />
                   </FormControl>

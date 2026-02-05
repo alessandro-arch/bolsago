@@ -20,15 +20,25 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, GraduationCap, Plus } from "lucide-react";
+import { Loader2, GraduationCap, FolderOpen } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { MODALITY_LABELS } from "@/lib/modality-labels";
 
 type GrantModality = Database["public"]["Enums"]["grant_modality"];
 
-interface Project {
+interface ThematicProject {
+  id: string;
+  title: string;
+  sponsor_name: string;
+}
+
+interface Subproject {
   id: string;
   code: string;
   title: string;
+  thematic_project_id: string;
+  valor_mensal: number;
+  modalidade_bolsa: string | null;
 }
 
 interface AssignScholarshipDialogProps {
@@ -39,20 +49,6 @@ interface AssignScholarshipDialogProps {
   onSuccess: () => void;
 }
 
-const MODALITY_LABELS: Record<GrantModality, string> = {
-  ict: "Bolsa de Iniciação Científica e Tecnológica",
-  ext: "Bolsa de Extensão",
-  ens: "Bolsa de Apoio ao Ensino",
-  ino: "Bolsa de Inovação",
-  dct_a: "Bolsa de Desenvolvimento Científico e Tecnológico (Nível A)",
-  dct_b: "Bolsa de Desenvolvimento Científico e Tecnológico (Nível B)",
-  dct_c: "Bolsa de Desenvolvimento Científico e Tecnológico (Nível C)",
-  postdoc: "Bolsa de Pós-doutorado",
-  senior: "Bolsa de Cientista Sênior",
-  prod: "Bolsa de Produtividade em Pesquisa",
-  visitor: "Bolsa de Pesquisador Visitante (Estrangeiro)",
-};
-
 export function AssignScholarshipDialog({
   open,
   onOpenChange,
@@ -61,10 +57,13 @@ export function AssignScholarshipDialog({
   onSuccess,
 }: AssignScholarshipDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [thematicProjects, setThematicProjects] = useState<ThematicProject[]>([]);
+  const [subprojects, setSubprojects] = useState<Subproject[]>([]);
+  const [loadingThematic, setLoadingThematic] = useState(true);
+  const [loadingSubprojects, setLoadingSubprojects] = useState(false);
   
   // Form state
+  const [thematicProjectId, setThematicProjectId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [modality, setModality] = useState<GrantModality | "">("");
   const [grantValue, setGrantValue] = useState("");
@@ -73,30 +72,63 @@ export function AssignScholarshipDialog({
   const [totalInstallments, setTotalInstallments] = useState("");
   const [observations, setObservations] = useState("");
 
-  // Fetch projects
+  // Fetch thematic projects
   useEffect(() => {
-    async function fetchProjects() {
-      setLoadingProjects(true);
+    async function fetchThematicProjects() {
+      setLoadingThematic(true);
       try {
         const { data, error } = await supabase
-          .from("projects")
-          .select("id, code, title")
+          .from("thematic_projects")
+          .select("id, title, sponsor_name")
+          .eq("status", "active")
           .order("title");
 
         if (error) throw error;
-        setProjects(data || []);
+        setThematicProjects(data || []);
       } catch (error) {
-        console.error("Error fetching projects:", error);
-        toast.error("Erro ao carregar projetos");
+        console.error("Error fetching thematic projects:", error);
+        toast.error("Erro ao carregar projetos temáticos");
       } finally {
-        setLoadingProjects(false);
+        setLoadingThematic(false);
       }
     }
 
     if (open) {
-      fetchProjects();
+      fetchThematicProjects();
     }
   }, [open]);
+
+  // Fetch subprojects when thematic project changes
+  useEffect(() => {
+    async function fetchSubprojects() {
+      if (!thematicProjectId) {
+        setSubprojects([]);
+        setProjectId("");
+        return;
+      }
+
+      setLoadingSubprojects(true);
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("id, code, title, thematic_project_id, valor_mensal, modalidade_bolsa")
+          .eq("thematic_project_id", thematicProjectId)
+          .eq("status", "active")
+          .order("code");
+
+        if (error) throw error;
+        setSubprojects(data || []);
+        setProjectId(""); // Reset subproject selection
+      } catch (error) {
+        console.error("Error fetching subprojects:", error);
+        toast.error("Erro ao carregar subprojetos");
+      } finally {
+        setLoadingSubprojects(false);
+      }
+    }
+
+    fetchSubprojects();
+  }, [thematicProjectId]);
 
   // Calculate installments based on dates
   useEffect(() => {
@@ -114,6 +146,7 @@ export function AssignScholarshipDialog({
   }, [startDate, endDate]);
 
   const resetForm = () => {
+    setThematicProjectId("");
     setProjectId("");
     setModality("");
     setGrantValue("");
@@ -121,6 +154,20 @@ export function AssignScholarshipDialog({
     setEndDate("");
     setTotalInstallments("");
     setObservations("");
+  };
+
+  // Auto-fill grant value and modality when subproject is selected
+  const handleSubprojectChange = (subprojectId: string) => {
+    setProjectId(subprojectId);
+    const selected = subprojects.find(p => p.id === subprojectId);
+    if (selected) {
+      if (selected.valor_mensal) {
+        setGrantValue(String(selected.valor_mensal).replace(".", ","));
+      }
+      if (selected.modalidade_bolsa) {
+        setModality(selected.modalidade_bolsa as GrantModality);
+      }
+    }
   };
 
   const handleSubmit = async () => {
@@ -215,30 +262,78 @@ export function AssignScholarshipDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Project Selection */}
+          {/* Thematic Project Selection */}
           <div className="space-y-2">
-            <Label htmlFor="project">Projeto *</Label>
-            {loadingProjects ? (
+            <Label htmlFor="thematicProject" className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-muted-foreground" />
+              Projeto Temático *
+            </Label>
+            {loadingThematic ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Carregando projetos...
+                Carregando projetos temáticos...
               </div>
-            ) : projects.length === 0 ? (
+            ) : thematicProjects.length === 0 ? (
               <div className="p-4 rounded-lg bg-muted/50 border border-dashed text-center">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Nenhum projeto cadastrado
+                  Nenhum projeto temático cadastrado
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Importe projetos via planilha antes de atribuir bolsas
+                  Cadastre projetos temáticos antes de atribuir bolsas
                 </p>
               </div>
             ) : (
-              <Select value={projectId} onValueChange={setProjectId}>
+              <Select value={thematicProjectId} onValueChange={setThematicProjectId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um projeto" />
+                  <SelectValue placeholder="Selecione o projeto temático" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
+                  {thematicProjects.map((tp) => (
+                    <SelectItem key={tp.id} value={tp.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{tp.title}</span>
+                        <span className="text-xs text-muted-foreground">{tp.sponsor_name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* Subproject Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="project" className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-muted-foreground" />
+              Subprojeto *
+            </Label>
+            {!thematicProjectId ? (
+              <div className="p-3 rounded-lg bg-muted/30 border border-dashed text-center">
+                <p className="text-sm text-muted-foreground">
+                  Selecione um projeto temático primeiro
+                </p>
+              </div>
+            ) : loadingSubprojects ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Carregando subprojetos...
+              </div>
+            ) : subprojects.length === 0 ? (
+              <div className="p-4 rounded-lg bg-warning/10 border border-warning/20 text-center">
+                <p className="text-sm text-warning-foreground mb-2">
+                  Nenhum subprojeto ativo encontrado
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Cadastre subprojetos neste projeto temático
+                </p>
+              </div>
+            ) : (
+              <Select value={projectId} onValueChange={handleSubprojectChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o subprojeto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subprojects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       <span className="font-medium">{project.code}</span>
                       <span className="text-muted-foreground ml-2">- {project.title}</span>
@@ -333,7 +428,7 @@ export function AssignScholarshipDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || projects.length === 0}>
+          <Button onClick={handleSubmit} disabled={loading || !projectId || thematicProjects.length === 0}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Atribuir Bolsa
           </Button>

@@ -104,8 +104,11 @@ export function Header() {
                 </button>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.email}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="text-sm font-medium truncate">
+                  {user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0]}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <div className="flex items-center gap-1.5 mt-1">
                   {hasManagerAccess ? (
                     <Shield className="w-3 h-3 text-primary" />
                   ) : (

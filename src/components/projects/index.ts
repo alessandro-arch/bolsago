@@ -1,9 +1,12 @@
 export { CreateProjectDialog } from './CreateProjectDialog';
 export { CreateThematicProjectDialog } from './CreateThematicProjectDialog';
 export { EditProjectDialog } from './EditProjectDialog';
+export { EditThematicProjectDialog } from './EditThematicProjectDialog';
 export { ArchiveProjectDialog } from './ArchiveProjectDialog';
+export { ArchiveThematicProjectDialog } from './ArchiveThematicProjectDialog';
 export { DeleteProjectDialog } from './DeleteProjectDialog';
 export { ProjectDetailsDialog } from './ProjectDetailsDialog';
 export { AssignScholarToProjectDialog } from './AssignScholarToProjectDialog';
 export { MasterProjectCard } from './MasterProjectCard';
+export { ThematicProjectCard } from './ThematicProjectCard';
 export { ProjectsList } from './ProjectsList';

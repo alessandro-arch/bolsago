@@ -84,7 +84,7 @@ export function CreateInviteCodeDialog({
 
   const handleSubmit = async () => {
     if (!selectedProjectId || !user) {
-      toast.error('Selecione um projeto temático');
+      toast.error('Selecione um subprojeto');
       return;
     }
 
@@ -152,7 +152,7 @@ export function CreateInviteCodeDialog({
           <DialogDescription>
             {generatedCode 
               ? 'O código foi gerado com sucesso. Copie e compartilhe com o bolsista.'
-              : 'Crie um novo código de convite vinculado a um Projeto Temático.'
+              : 'Crie um novo código de convite vinculado a um Subprojeto.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -181,7 +181,7 @@ export function CreateInviteCodeDialog({
               
               {selectedProject && (
                 <div className="text-sm text-center text-muted-foreground">
-                  <p><strong>Projeto:</strong> {selectedProject.title}</p>
+                  <p><strong>Subprojeto:</strong> {selectedProject.title}</p>
                   <p><strong>Proponente:</strong> {selectedProject.empresa_parceira}</p>
                 </div>
               )}
@@ -189,12 +189,12 @@ export function CreateInviteCodeDialog({
           </div>
         ) : (
           <div className="space-y-4 py-4">
-            {/* Project Selection */}
+            {/* Subproject Selection */}
             <div className="space-y-2">
-              <Label htmlFor="project">Projeto Temático *</Label>
+              <Label htmlFor="project">Subprojeto *</Label>
               <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um projeto" />
+                  <SelectValue placeholder="Selecione um subprojeto" />
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map(project => (

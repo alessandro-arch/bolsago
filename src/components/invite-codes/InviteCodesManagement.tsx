@@ -291,7 +291,7 @@ export function InviteCodesManagement() {
             Códigos de Convite
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie convites de acesso ao ICCA Bolsa Conecta por Projeto Temático e Empresa Parceira.
+            Gerencie convites de acesso ao ICCA Bolsa Conecta por Subprojeto e Proponente.
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
@@ -306,7 +306,7 @@ export function InviteCodesManagement() {
         <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="text-sm">
             Os códigos de convite controlam quem pode criar conta no Portal do Bolsista. 
-            Cada código está vinculado a um Projeto Temático e à Empresa Parceira financiadora.
+            Cada código está vinculado a um Subprojeto e ao respectivo Proponente.
           </span>
           {isAdminMasterMode && (
             <Badge variant="outline" className="border-amber-500 text-amber-600 gap-1 shrink-0">
@@ -361,10 +361,10 @@ export function InviteCodesManagement() {
                 onValueChange={setProjectFilter}
               >
                 <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Projeto" />
+                  <SelectValue placeholder="Subprojeto" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os projetos</SelectItem>
+                  <SelectItem value="all">Todos os subprojetos</SelectItem>
                   {projects?.map(project => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.code} - {project.title.slice(0, 30)}
@@ -380,7 +380,7 @@ export function InviteCodesManagement() {
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                  <TableHead>Projeto Temático</TableHead>
+                  <TableHead>Subprojeto</TableHead>
                   <TableHead>Proponente</TableHead>
                   <TableHead>Código</TableHead>
                   <TableHead>Status</TableHead>

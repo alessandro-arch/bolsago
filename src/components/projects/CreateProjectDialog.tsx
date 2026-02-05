@@ -249,9 +249,9 @@ export function CreateProjectDialog({
                 name="empresa_parceira"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Empresa Parceira *</FormLabel>
+                    <FormLabel>Proponente *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Nome da empresa parceira" />
+                      <Input {...field} placeholder="Nome do proponente" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

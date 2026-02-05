@@ -135,7 +135,7 @@ export function ProjectsList() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por código, título, empresa parceira ou modalidade..."
+                placeholder="Buscar por código, título, proponente ou modalidade..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -177,7 +177,7 @@ export function ProjectsList() {
                 <TableRow>
                   <TableHead className="w-[120px]">Código</TableHead>
                   <TableHead>Título</TableHead>
-                  <TableHead>Empresa Parceira</TableHead>
+                  <TableHead>Proponente</TableHead>
                   <TableHead>Modalidade</TableHead>
                   <TableHead className="text-right">Valor Mensal</TableHead>
                   <TableHead>Período</TableHead>

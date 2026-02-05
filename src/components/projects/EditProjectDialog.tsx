@@ -202,7 +202,7 @@ export function EditProjectDialog({
                 name="empresa_parceira"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Empresa Parceira</FormLabel>
+                    <FormLabel>Proponente</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>

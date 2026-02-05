@@ -156,7 +156,7 @@ export function ProjectDetailsDialog({
             <TabsContent value="details" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Empresa Parceira</p>
+                  <p className="text-sm text-muted-foreground">Proponente</p>
                   <p className="font-medium">{project.empresa_parceira}</p>
                 </div>
                 <div>

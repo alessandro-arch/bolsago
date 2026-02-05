@@ -14,7 +14,9 @@ import {
   UserCircle,
   Upload,
   FolderOpen,
-  ShieldAlert
+  ShieldAlert,
+  Ticket,
+  Building2
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -29,12 +31,14 @@ interface NavItem {
   managerOnly?: boolean;
   adminOnly?: boolean;
   scholarOnly?: boolean;
+  section?: string;
 }
 
 const navigation: NavItem[] = [
   { name: "Meu Painel", icon: LayoutDashboard, href: "/" },
   { name: "Painel Gestor", icon: Users, href: "/painel-gestor", managerOnly: true },
   { name: "Projetos Temáticos", icon: FolderOpen, href: "/projetos-tematicos", managerOnly: true },
+  { name: "Códigos de Convite", icon: Ticket, href: "/codigos-convite", managerOnly: true, section: "Gestão Institucional" },
   { name: "Importar Dados", icon: Upload, href: "/importar", managerOnly: true },
   { name: "Trilha de Auditoria", icon: ShieldAlert, href: "/trilha-auditoria", adminOnly: true },
   { name: "Meu Perfil", icon: UserCircle, href: "/perfil-bolsista" },
@@ -120,8 +124,10 @@ export function Sidebar() {
 
       {/* Main Navigation */}
       <nav className="flex-1 p-3 space-y-1">
-        {filteredNavigation.map((item) => {
+        {filteredNavigation.map((item, index) => {
           const isActive = location.pathname === item.href;
+          const prevItem = filteredNavigation[index - 1];
+          const showSectionHeader = item.section && (!prevItem || prevItem.section !== item.section);
           
           const linkClasses = cn(
             "nav-item",
@@ -130,15 +136,23 @@ export function Sidebar() {
           );
           
           return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={linkClasses}
-              title={collapsed ? item.name : undefined}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span>{item.name}</span>}
-            </Link>
+            <div key={item.name}>
+              {showSectionHeader && !collapsed && (
+                <div className="px-3 py-2 mt-3 mb-1">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {item.section}
+                  </span>
+                </div>
+              )}
+              <Link
+                to={item.href}
+                className={linkClasses}
+                title={collapsed ? item.name : undefined}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span>{item.name}</span>}
+              </Link>
+            </div>
           );
         })}
       </nav>

@@ -9,6 +9,7 @@ import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import Index from "./pages/Index";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import ThematicProjects from "./pages/ThematicProjects";
+import InviteCodes from "./pages/InviteCodes";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
@@ -51,6 +52,11 @@ const App = () => (
             <Route path="/projetos-tematicos" element={
               <RoleProtectedRoute requireManagerAccess>
                 <ThematicProjects />
+              </RoleProtectedRoute>
+            } />
+            <Route path="/codigos-convite" element={
+              <RoleProtectedRoute requireManagerAccess>
+                <InviteCodes />
               </RoleProtectedRoute>
             } />
             <Route path="/perfil-bolsista/:userId" element={

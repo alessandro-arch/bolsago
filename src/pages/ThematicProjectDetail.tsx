@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -28,7 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Search, 
-  FolderOpen, 
+  ArrowLeft,
   Plus, 
   Eye, 
   Edit, 
@@ -36,7 +37,9 @@ import {
   Trash2,
   Download,
   UserPlus,
-  UserX
+  UserX,
+  Building2,
+  FileText
 } from 'lucide-react';
 import { MasterProjectCard } from '@/components/projects/MasterProjectCard';
 import { ProjectDetailsDialog } from '@/components/projects/ProjectDetailsDialog';
@@ -58,6 +61,7 @@ interface ThematicProject {
   status: string;
   start_date: string | null;
   end_date: string | null;
+  observations: string | null;
 }
 
 interface SubprojectWithScholar {
@@ -81,7 +85,11 @@ interface SubprojectWithScholar {
 
 type StatusFilter = 'all' | 'active' | 'archived';
 
-export default function ThematicProjects() {
+export default function ThematicProjectDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedProject, setSelectedProject] = useState<SubprojectWithScholar | null>(null);
@@ -93,33 +101,34 @@ export default function ThematicProjects() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
-  // Fetch thematic project (master)
+  // Fetch thematic project
   const { data: thematicProject, isLoading: loadingThematic } = useQuery({
-    queryKey: ['thematic-project-master'],
+    queryKey: ['thematic-project', id],
     queryFn: async () => {
+      if (!id) throw new Error('ID não fornecido');
+      
       const { data, error } = await supabase
         .from('thematic_projects')
         .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: true })
-        .limit(1)
+        .eq('id', id)
         .maybeSingle();
 
       if (error) throw error;
       return data as ThematicProject | null;
     },
+    enabled: !!id
   });
 
   // Fetch subprojects with scholar info
   const { data: subprojects, isLoading: loadingSubprojects, refetch } = useQuery({
-    queryKey: ['subprojects-with-scholars', statusFilter, thematicProject?.id],
+    queryKey: ['subprojects-with-scholars', id, statusFilter],
     queryFn: async () => {
-      if (!thematicProject?.id) return [];
+      if (!id) return [];
 
       let query = supabase
         .from('projects')
         .select('*')
-        .eq('thematic_project_id', thematicProject.id)
+        .eq('thematic_project_id', id)
         .order('created_at', { ascending: false });
 
       if (statusFilter === 'active') {
@@ -182,7 +191,7 @@ export default function ThematicProjects() {
         enrollment_status: enrollmentMap[project.id]?.enrollment_status || null,
       })) as SubprojectWithScholar[];
     },
-    enabled: !!thematicProject?.id,
+    enabled: !!id
   });
 
   const filteredProjects = subprojects?.filter(project => {
@@ -230,7 +239,6 @@ export default function ThematicProjects() {
   };
 
   const handleDeleteProject = async (project: SubprojectWithScholar) => {
-    // Check for dependencies before opening delete dialog
     const { count: enrollmentCount } = await supabase
       .from('enrollments')
       .select('*', { count: 'exact', head: true })
@@ -249,6 +257,7 @@ export default function ThematicProjects() {
 
   const handleProjectUpdated = () => {
     refetch();
+    queryClient.invalidateQueries({ queryKey: ['thematic-projects-list'] });
   };
 
   const handleExport = () => {
@@ -277,7 +286,6 @@ export default function ThematicProjects() {
     URL.revokeObjectURL(url);
   };
 
-  // Convert SubprojectWithScholar to the format expected by dialogs
   const selectedProjectForDialogs = selectedProject ? {
     id: selectedProject.id,
     code: selectedProject.code,
@@ -297,6 +305,14 @@ export default function ThematicProjects() {
 
   const isLoading = loadingThematic || loadingSubprojects;
 
+  if (!id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>ID do projeto não fornecido</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -307,15 +323,18 @@ export default function ThematicProjects() {
         
         <main className="flex-1 p-6 overflow-auto">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Page Header */}
-            <div className="flex items-center justify-between">
-              <div>
+            {/* Back Button & Header */}
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/projetos-tematicos')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex-1">
                 <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <FolderOpen className="h-6 w-6 text-primary" />
-                  Projetos Temáticos
+                  <FileText className="h-6 w-6 text-primary" />
+                  Detalhes do Projeto Temático
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Gerencie os subprojetos e vínculos de bolsistas
+                  Visualize e gerencie os subprojetos vinculados
                 </p>
               </div>
               <div className="flex gap-2">
@@ -330,7 +349,7 @@ export default function ThematicProjects() {
               </div>
             </div>
 
-            {/* Master Project Context Card */}
+            {/* Master Project Card */}
             {loadingThematic ? (
               <Card>
                 <CardContent className="p-6">
@@ -353,7 +372,7 @@ export default function ThematicProjects() {
             ) : (
               <Card className="border-dashed">
                 <CardContent className="p-6 text-center text-muted-foreground">
-                  Nenhum Projeto Temático ativo encontrado.
+                  Projeto Temático não encontrado.
                 </CardContent>
               </Card>
             )}
@@ -361,9 +380,9 @@ export default function ThematicProjects() {
             {/* Subprojects Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Subprojetos do Projeto Temático</CardTitle>
+                <CardTitle>Subprojetos</CardTitle>
                 <CardDescription>
-                  Registros operacionais de bolsas vinculados ao projeto temático mestre
+                  Registros operacionais de bolsas vinculados a este projeto temático
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

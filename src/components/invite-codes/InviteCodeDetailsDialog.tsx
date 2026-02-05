@@ -154,7 +154,7 @@ export function InviteCodeDetailsDialog({
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <FolderOpen className="h-3 w-3" />
-                Projeto Temático
+                Subprojeto
               </p>
               <p className="text-sm font-medium">{project?.title || '—'}</p>
               {project?.code && (

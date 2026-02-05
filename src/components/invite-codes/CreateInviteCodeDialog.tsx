@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -28,9 +28,11 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Fixed Thematic Project ID (master project for ICCA)
-const THEMATIC_PROJECT_ID = 'a0000000-0000-0000-0000-000000000001';
-const THEMATIC_PROJECT_TITLE = 'Desenvolvimento e a aplicação de métodos quimiométricos para a análise multivariada de dados clínicos e instrumentais';
+interface ThematicProject {
+  id: string;
+  title: string;
+  empresa_parceira: string;
+}
 
 interface CreateInviteCodeDialogProps {
   open: boolean;
@@ -47,16 +49,55 @@ export function CreateInviteCodeDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
+  // Thematic projects state
+  const [thematicProjects, setThematicProjects] = useState<ThematicProject[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  
   // Form state
   const [maxUses, setMaxUses] = useState<string>('1');
   const [hasExpiration, setHasExpiration] = useState(false);
   const [expirationDate, setExpirationDate] = useState<Date | undefined>();
+
+  // Fetch thematic projects on mount
+  useEffect(() => {
+    const fetchThematicProjects = async () => {
+      setIsLoadingProjects(true);
+      try {
+        // For now, fetch all projects - in future, filter by a "is_thematic" flag
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, title, empresa_parceira')
+          .eq('status', 'active')
+          .order('title');
+        
+        if (error) throw error;
+        setThematicProjects(data || []);
+        
+        // Auto-select if only one project
+        if (data && data.length === 1) {
+          setSelectedProjectId(data[0].id);
+        }
+      } catch (error) {
+        console.error('Error fetching thematic projects:', error);
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+
+    if (open) {
+      fetchThematicProjects();
+    }
+  }, [open]);
+
+  const selectedProject = thematicProjects.find(p => p.id === selectedProjectId);
 
   const resetForm = () => {
     setMaxUses('1');
     setHasExpiration(false);
     setExpirationDate(undefined);
     setGeneratedCode(null);
+    setSelectedProjectId('');
   };
 
   const handleClose = () => {
@@ -79,6 +120,11 @@ export function CreateInviteCodeDialog({
       return;
     }
 
+    if (!selectedProjectId) {
+      toast.error('Selecione um Projeto Temático');
+      return;
+    }
+
     setIsLoading(true);
     const code = generateCode();
     
@@ -89,7 +135,7 @@ export function CreateInviteCodeDialog({
       const { data, error } = await supabase
         .from('invite_codes')
         .insert({
-          thematic_project_id: THEMATIC_PROJECT_ID,
+          thematic_project_id: selectedProjectId,
           partner_company_id: partnerCompanyId,
           code,
           max_uses: maxUses === 'unlimited' ? null : parseInt(maxUses),
@@ -108,7 +154,7 @@ export function CreateInviteCodeDialog({
         p_entity_id: data.id,
         p_details: {
           code,
-          thematic_project_title: THEMATIC_PROJECT_TITLE,
+          thematic_project_title: selectedProject?.title,
           max_uses: maxUses === 'unlimited' ? null : parseInt(maxUses),
           expires_at: hasExpiration && expirationDate ? expirationDate.toISOString() : null,
         },
@@ -194,11 +240,32 @@ export function CreateInviteCodeDialog({
           </div>
         ) : (
           <div className="space-y-4 py-4">
-            {/* Thematic Project Info (Fixed) */}
-            <div className="p-3 bg-muted/50 rounded-lg border">
-              <p className="text-xs text-muted-foreground mb-1">Projeto Temático</p>
-              <p className="text-sm font-medium line-clamp-2">{THEMATIC_PROJECT_TITLE}</p>
-              <p className="text-xs text-muted-foreground mt-1">Financiador: LABORATÓRIO TOMMASI</p>
+            {/* Thematic Project Selector */}
+            <div className="space-y-2">
+              <Label htmlFor="thematicProject">Projeto Temático</Label>
+              <Select 
+                value={selectedProjectId} 
+                onValueChange={setSelectedProjectId}
+                disabled={isLoadingProjects}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingProjects ? "Carregando..." : "Selecione o Projeto Temático"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {thematicProjects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      <div className="flex flex-col">
+                        <span className="line-clamp-1">{project.title}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedProject && (
+                <p className="text-xs text-muted-foreground">
+                  Financiador: {selectedProject.empresa_parceira}
+                </p>
+              )}
             </div>
 
             {/* Max Uses */}

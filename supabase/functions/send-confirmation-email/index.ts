@@ -13,73 +13,89 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmação do seu e-mail • ICCA Bolsa Conecta</title>
+  <title>Confirmação de E-mail | ICCA Bolsa Conecta</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f7fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Roboto', sans-serif;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, Helvetica, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8; padding:40px 0;">
     <tr>
-      <td style="padding: 40px 20px;">
-        <table role="presentation" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06); overflow: hidden;">
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
           
-          <!-- Header -->
+          <!-- HEADER -->
           <tr>
-            <td style="padding: 32px 40px 24px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+            <td align="center" style="padding:30px 20px 20px;">
               ${logoUrl 
-                ? `<img src="${logoUrl}" alt="ICCA Bolsa Conecta" width="150" style="display: block; margin: 0 auto;">`
-                : `<h2 style="margin: 0; color: #2563eb; font-size: 24px; font-weight: 700;">ICCA Bolsa Conecta</h2>`
+                ? `<img src="${logoUrl}" alt="ICCA - Instituto de Inovação, Conhecimento e Ciências Aplicadas" style="max-width:180px; height:auto;" />`
+                : `<h2 style="margin:0; color:#1e40af; font-size:24px; font-weight:700;">ICCA Bolsa Conecta</h2>`
               }
             </td>
           </tr>
-          
-          <!-- Content -->
+
+          <!-- TITLE -->
           <tr>
-            <td style="padding: 40px;">
-              <h1 style="margin: 0 0 24px; color: #1e293b; font-size: 22px; font-weight: 600; line-height: 1.4; text-align: center;">
-                Seja bem-vindo(a) ao ICCA Bolsa Conecta
+            <td align="center" style="padding:10px 40px;">
+              <h1 style="margin:0; font-size:22px; color:#1f2937;">
+                Confirme seu endereço de e-mail
               </h1>
-              
-              <p style="margin: 0 0 16px; color: #475569; font-size: 15px; line-height: 1.7; text-align: center;">
-                Recebemos sua solicitação de cadastro e, para concluir o processo, precisamos confirmar seu endereço de e-mail:
+            </td>
+          </tr>
+
+          <!-- CONTENT -->
+          <tr>
+            <td style="padding:20px 40px; color:#374151; font-size:15px; line-height:1.6;">
+              <p>
+                Seja bem-vindo(a) ao <strong>ICCA Bolsa Conecta</strong>.
               </p>
-              
-              <p style="margin: 16px 0 24px; padding: 14px 20px; background-color: #f1f5f9; border-radius: 6px; color: #1e293b; font-size: 15px; font-weight: 500; text-align: center;">
+              <p>
+                Para concluir seu cadastro e garantir o acesso seguro ao portal,
+                é necessário confirmar o seu endereço de e-mail:
+              </p>
+              <p style="font-weight:bold; color:#111827;">
                 ${userEmail}
               </p>
-              
-              <p style="margin: 0 0 32px; color: #475569; font-size: 15px; line-height: 1.7; text-align: center;">
-                Para isso, clique no botão abaixo para confirmar seu e-mail.
-              </p>
-              
-              <table role="presentation" style="width: 100%;">
-                <tr>
-                  <td style="text-align: center;">
-                    <a href="${confirmationUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 6px;">
-                      Confirmar e-mail
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              
-              <p style="margin: 24px 0 0; color: #94a3b8; font-size: 13px; line-height: 1.6; text-align: center;">
-                Caso você não tenha realizado este cadastro, nenhuma ação é necessária. Você pode desconsiderar esta mensagem com segurança.
+              <p>
+                Basta clicar no botão abaixo para validar sua conta.
               </p>
             </td>
           </tr>
-          
-          <!-- Footer -->
+
+          <!-- BUTTON -->
           <tr>
-            <td style="padding: 24px 40px; background-color: #f8fafc; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 8px; color: #64748b; font-size: 14px; font-weight: 500; text-align: center;">
-                Equipe ICCA Bolsa Conecta
+            <td align="center" style="padding:20px 40px 30px;">
+              <a 
+                href="${confirmationUrl}"
+                target="_blank"
+                style="
+                  background-color:#1e40af;
+                  color:#ffffff;
+                  text-decoration:none;
+                  padding:14px 32px;
+                  border-radius:6px;
+                  font-size:15px;
+                  font-weight:bold;
+                  display:inline-block;
+                "
+              >
+                Confirmar e-mail
+              </a>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="padding:20px 40px; background-color:#f9fafb; font-size:13px; color:#6b7280; line-height:1.5;">
+              <p>
+                Caso você não tenha solicitado este cadastro, basta ignorar esta mensagem.
               </p>
-              <p style="margin: 0; color: #94a3b8; font-size: 12px; text-align: center;">
-                Este e-mail foi enviado automaticamente. Por favor, não responda.
+              <p style="margin-top:15px;">
+                Atenciosamente,<br />
+                <strong>ICCA – Instituto de Inovação, Conhecimento e Ciências Aplicadas</strong>
               </p>
             </td>
           </tr>
-          
+
         </table>
       </td>
     </tr>

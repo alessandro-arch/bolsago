@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User, Loader2, CreditCard } from "lucide-react";
+import { Mail, Lock, User, Loader2, CreditCard, Ticket } from "lucide-react";
 import { z } from "zod";
 import { validateCPF, formatCPF, unformatCPF } from "@/lib/cpf-validator";
 
 const signupSchema = z.object({
+  inviteCode: z.string().min(1, "Código de convite é obrigatório"),
   fullName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   cpf: z.string().refine((val) => validateCPF(val), {
     message: "CPF inválido. Verifique os dígitos.",
@@ -30,6 +31,7 @@ interface SignupFormProps {
 export function SignupForm({ onError, onSuccess }: SignupFormProps) {
   const { signUp } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
@@ -46,6 +48,7 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
     onError("");
     
     const validation = signupSchema.safeParse({
+      inviteCode,
       fullName: name,
       cpf,
       email,
@@ -60,7 +63,7 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
     
     setLoading(true);
     const cleanCPF = unformatCPF(cpf);
-    const { error } = await signUp(email, password, name, cleanCPF);
+    const { error } = await signUp(email, password, name, cleanCPF, inviteCode);
     setLoading(false);
     
     if (error) {
@@ -68,6 +71,8 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
         onError("Este email já está cadastrado. Tente fazer login.");
       } else if (error.message.includes("cpf") || error.message.includes("CPF")) {
         onError("Este CPF já está cadastrado no sistema.");
+      } else if (error.message.includes("invite") || error.message.includes("código")) {
+        onError("Código de convite inválido ou expirado.");
       } else if (
         error.message.toLowerCase().includes("password") ||
         error.message.toLowerCase().includes("weak") ||
@@ -82,6 +87,7 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
     }
     
     onSuccess("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.");
+    setInviteCode("");
     setName("");
     setCpf("");
     setEmail("");
@@ -91,6 +97,25 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="signup-invite-code">Código de Convite</Label>
+        <div className="relative">
+          <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            id="signup-invite-code"
+            type="text"
+            placeholder="Digite o código recebido"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+            className="pl-10 uppercase"
+            required
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Você precisa de um código de convite para se cadastrar. Solicite ao gestor do projeto.
+        </p>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="signup-name">Nome Completo</Label>
         <div className="relative">

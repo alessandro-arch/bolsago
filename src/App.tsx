@@ -8,7 +8,8 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import Index from "./pages/Index";
 import ManagerDashboard from "./pages/ManagerDashboard";
-import ThematicProjects from "./pages/ThematicProjects";
+import ThematicProjectsList from "./pages/ThematicProjectsList";
+import ThematicProjectDetail from "./pages/ThematicProjectDetail";
 import InviteCodes from "./pages/InviteCodes";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
@@ -51,7 +52,12 @@ const App = () => (
             } />
             <Route path="/projetos-tematicos" element={
               <RoleProtectedRoute requireManagerAccess>
-                <ThematicProjects />
+                <ThematicProjectsList />
+              </RoleProtectedRoute>
+            } />
+            <Route path="/projetos-tematicos/:id" element={
+              <RoleProtectedRoute requireManagerAccess>
+                <ThematicProjectDetail />
               </RoleProtectedRoute>
             } />
             <Route path="/codigos-convite" element={

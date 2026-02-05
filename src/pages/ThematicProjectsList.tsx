@@ -28,7 +28,8 @@ import {
   DollarSign,
   MoreHorizontal,
   Edit,
-  Archive
+  Archive,
+  Trash2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CreateThematicProjectDialog } from '@/components/thematic-projects/CreateThematicProjectDialog';
 import { EditThematicProjectDialog } from '@/components/thematic-projects/EditThematicProjectDialog';
 import { ArchiveThematicProjectDialog } from '@/components/thematic-projects/ArchiveThematicProjectDialog';
+import { DeleteThematicProjectDialog } from '@/components/thematic-projects/DeleteThematicProjectDialog';
 import { format } from 'date-fns';
 import { useUserRole } from '@/hooks/useUserRole';
 
@@ -68,6 +70,7 @@ export default function ThematicProjectsList() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ThematicProjectWithStats | null>(null);
 
   // Fetch all thematic projects with stats
@@ -184,6 +187,11 @@ export default function ThematicProjectsList() {
   const handleArchiveProject = (project: ThematicProjectWithStats) => {
     setSelectedProject(project);
     setArchiveDialogOpen(true);
+  };
+
+  const handleDeleteProject = (project: ThematicProjectWithStats) => {
+    setSelectedProject(project);
+    setDeleteDialogOpen(true);
   };
 
   const handleExport = () => {
@@ -348,6 +356,15 @@ export default function ThematicProjectsList() {
                                   Arquivar
                                 </DropdownMenuItem>
                               )}
+                              {isAdmin && (
+                                <DropdownMenuItem 
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteProject(project); }}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -424,6 +441,13 @@ export default function ThematicProjectsList() {
             project={selectedProject}
             open={archiveDialogOpen}
             onOpenChange={setArchiveDialogOpen}
+            onSuccess={handleProjectSuccess}
+          />
+
+          <DeleteThematicProjectDialog
+            project={selectedProject}
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
             onSuccess={handleProjectSuccess}
           />
         </>

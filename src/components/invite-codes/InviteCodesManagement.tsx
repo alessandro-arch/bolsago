@@ -291,7 +291,7 @@ export function InviteCodesManagement() {
             Códigos de Convite
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie convites de acesso ao ICCA Bolsa Conecta vinculados ao Projeto Temático.
+            Gerencie códigos de acesso ao Projeto Temático para autorização de novos bolsistas.
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
@@ -305,8 +305,8 @@ export function InviteCodesManagement() {
         <Info className="h-4 w-4 text-primary" />
         <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="text-sm">
-            Os códigos de convite controlam quem pode criar conta no Portal do Bolsista. 
-            Cada código está vinculado ao Projeto Temático e ao respectivo Proponente.
+            Códigos de convite autorizam novos bolsistas a se cadastrar no Portal. 
+            Envie apenas para pessoas autorizadas — usuários não autorizados podem ser excluídos.
           </span>
           {isAdminMasterMode && (
             <Badge variant="outline" className="border-amber-500 text-amber-600 gap-1 shrink-0">
@@ -356,22 +356,6 @@ export function InviteCodesManagement() {
                   <SelectItem value="exhausted">Esgotado</SelectItem>
                 </SelectContent>
               </Select>
-              <Select
-                value={projectFilter}
-                onValueChange={setProjectFilter}
-              >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Proponente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os proponentes</SelectItem>
-                  {projects?.map(project => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.empresa_parceira}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
@@ -380,7 +364,6 @@ export function InviteCodesManagement() {
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                  <TableHead>Proponente</TableHead>
                   <TableHead>Código</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Usos</TableHead>
@@ -394,14 +377,14 @@ export function InviteCodesManagement() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 7 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : filteredCodes?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <div className="flex flex-col items-center gap-3 text-muted-foreground">
                         <Ticket className="h-12 w-12 opacity-30" />
                         <div>
@@ -421,10 +404,8 @@ export function InviteCodesManagement() {
                   </TableRow>
                 ) : (
                   filteredCodes?.map((code) => {
-                    const project = getProjectInfo(code.thematic_project_id);
                     return (
                       <TableRow key={code.id}>
-                        <TableCell className="font-medium">{project?.empresa_parceira || '—'}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <code className="px-2 py-1 bg-muted rounded text-sm font-mono">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -16,17 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { CalendarIcon, Copy, Loader2, Ticket, Plus, Building2 } from 'lucide-react';
+import { CalendarIcon, Copy, Loader2, Ticket, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Fixed Thematic Project ID (master project for ICCA)
 const THEMATIC_PROJECT_ID = 'a0000000-0000-0000-0000-000000000001';
@@ -48,39 +48,12 @@ export function CreateInviteCodeDialog({
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
   // Form state
-  const [proponente, setProponente] = useState<string>('');
-  const [customProponente, setCustomProponente] = useState('');
-  const [showCustomProponente, setShowCustomProponente] = useState(false);
-  const [maxUses, setMaxUses] = useState<string>('5');
+  const [maxUses, setMaxUses] = useState<string>('1');
   const [hasExpiration, setHasExpiration] = useState(false);
   const [expirationDate, setExpirationDate] = useState<Date | undefined>();
-  
-  // Existing proponentes from projects
-  const [existingProponentes, setExistingProponentes] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (open) {
-      fetchExistingProponentes();
-    }
-  }, [open]);
-
-  const fetchExistingProponentes = async () => {
-    const { data } = await supabase
-      .from('projects')
-      .select('empresa_parceira')
-      .order('empresa_parceira');
-    
-    if (data) {
-      const unique = [...new Set(data.map(p => p.empresa_parceira))];
-      setExistingProponentes(unique);
-    }
-  };
 
   const resetForm = () => {
-    setProponente('');
-    setCustomProponente('');
-    setShowCustomProponente(false);
-    setMaxUses('5');
+    setMaxUses('1');
     setHasExpiration(false);
     setExpirationDate(undefined);
     setGeneratedCode(null);
@@ -100,18 +73,16 @@ export function CreateInviteCodeDialog({
     return code;
   };
 
-  const selectedProponente = showCustomProponente ? customProponente : proponente;
-
   const handleSubmit = async () => {
-    if (!selectedProponente.trim() || !user) {
-      toast.error('Informe o proponente');
+    if (!user) {
+      toast.error('Usuário não autenticado');
       return;
     }
 
     setIsLoading(true);
     const code = generateCode();
     
-    // Generate a unique ID for partner_company (using a hash of the name)
+    // Generate a unique ID for partner_company (placeholder, not used in this flow)
     const partnerCompanyId = crypto.randomUUID();
 
     try {
@@ -138,11 +109,10 @@ export function CreateInviteCodeDialog({
         p_details: {
           code,
           thematic_project_title: THEMATIC_PROJECT_TITLE,
-          proponente: selectedProponente,
           max_uses: maxUses === 'unlimited' ? null : parseInt(maxUses),
           expires_at: hasExpiration && expirationDate ? expirationDate.toISOString() : null,
         },
-        p_new_value: { ...data, proponente: selectedProponente },
+        p_new_value: data,
       });
 
       setGeneratedCode(code);
@@ -166,7 +136,7 @@ export function CreateInviteCodeDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ticket className="h-5 w-5 text-primary" />
@@ -174,8 +144,8 @@ export function CreateInviteCodeDialog({
           </DialogTitle>
           <DialogDescription>
             {generatedCode 
-              ? 'O código foi gerado com sucesso. Copie e compartilhe com o bolsista.'
-              : 'Crie um novo código de convite vinculado ao Projeto Temático.'
+              ? 'O código foi gerado com sucesso. Copie e envie para o bolsista autorizado.'
+              : 'Crie um código de acesso para autorizar novos bolsistas no Projeto Temático.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -203,10 +173,23 @@ export function CreateInviteCodeDialog({
               </div>
               
               <div className="text-sm text-center text-muted-foreground space-y-1">
-                <p><strong>Projeto Temático:</strong></p>
-                <p className="text-xs">{THEMATIC_PROJECT_TITLE.slice(0, 80)}...</p>
-                <p className="mt-2"><strong>Proponente:</strong> {selectedProponente}</p>
+                <p>
+                  <strong>Usos permitidos:</strong> {maxUses === 'unlimited' ? 'Ilimitado' : maxUses}
+                </p>
+                {hasExpiration && expirationDate && (
+                  <p>
+                    <strong>Válido até:</strong> {format(expirationDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </p>
+                )}
               </div>
+
+              <Alert className="border-primary/20 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs">
+                  Envie este código apenas para bolsistas autorizados. 
+                  Usuários não autorizados podem ser excluídos após o cadastro.
+                </AlertDescription>
+              </Alert>
             </div>
           </div>
         ) : (
@@ -218,60 +201,6 @@ export function CreateInviteCodeDialog({
               <p className="text-xs text-muted-foreground mt-1">Financiador: LABORATÓRIO TOMMASI</p>
             </div>
 
-            {/* Proponente Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="proponente">Proponente *</Label>
-              {!showCustomProponente ? (
-                <div className="space-y-2">
-                  <Select value={proponente} onValueChange={setProponente}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um proponente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {existingProponentes.map(prop => (
-                        <SelectItem key={prop} value={prop}>
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-3 w-3 text-muted-foreground" />
-                            {prop}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-xs gap-1"
-                    onClick={() => setShowCustomProponente(true)}
-                  >
-                    <Plus className="h-3 w-3" />
-                    Novo proponente
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Input
-                    value={customProponente}
-                    onChange={(e) => setCustomProponente(e.target.value)}
-                    placeholder="Nome do novo proponente"
-                  />
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-xs"
-                    onClick={() => {
-                      setShowCustomProponente(false);
-                      setCustomProponente('');
-                    }}
-                  >
-                    Selecionar existente
-                  </Button>
-                </div>
-              )}
-            </div>
-
             {/* Max Uses */}
             <div className="space-y-2">
               <Label htmlFor="maxUses">Limite de usos</Label>
@@ -280,7 +209,7 @@ export function CreateInviteCodeDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">1 uso</SelectItem>
+                  <SelectItem value="1">1 uso (código individual)</SelectItem>
                   <SelectItem value="5">5 usos</SelectItem>
                   <SelectItem value="10">10 usos</SelectItem>
                   <SelectItem value="25">25 usos</SelectItem>
@@ -288,6 +217,9 @@ export function CreateInviteCodeDialog({
                   <SelectItem value="unlimited">Ilimitado</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Quantos bolsistas podem se cadastrar usando este código.
+              </p>
             </div>
 
             {/* Expiration */}
@@ -346,7 +278,7 @@ export function CreateInviteCodeDialog({
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={isLoading || !selectedProponente.trim()}
+                disabled={isLoading}
                 className="gap-2"
               >
                 {isLoading ? (

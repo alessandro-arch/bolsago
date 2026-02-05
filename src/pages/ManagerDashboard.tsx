@@ -3,7 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { AdminBanner } from "@/components/admin/AdminBanner";
 import { ScholarsTableFiltered } from "@/components/dashboard/ScholarsTableFiltered";
-import { ProjectsList } from "@/components/projects";
+import { ProjectsManagement } from "@/components/projects";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { BankDataManagement } from "@/components/dashboard/BankDataManagement";
 import { ReportsReviewManagement } from "@/components/dashboard/ReportsReviewManagement";
@@ -46,9 +46,9 @@ const ManagerDashboard = () => {
               <ScholarsTableFiltered />
             </div>
             
-            {/* Projects Management Section */}
+            {/* Projects Management Section - Grouped by Thematic Project */}
             <div className="animate-fade-in">
-              <ProjectsList />
+              <ProjectsManagement />
             </div>
           </main>
           <Footer />

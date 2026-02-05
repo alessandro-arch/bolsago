@@ -160,8 +160,8 @@ Deno.serve(async (req) => {
     const finalRedirectTo = redirect_to || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth`;
     const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(finalRedirectTo)}`;
 
-    // Get logo URL from environment
-    const logoUrl = Deno.env.get('EMAIL_LOGO_URL');
+    // Logo URL from storage bucket
+    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-icca.png?v=1`;
 
     // Generate email HTML
     const html = generateConfirmationEmail(user.email, confirmationUrl, logoUrl);

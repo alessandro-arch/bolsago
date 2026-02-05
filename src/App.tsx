@@ -12,6 +12,7 @@ import ThematicProjects from "./pages/ThematicProjects";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
+import ScholarProfileView from "./pages/ScholarProfileView";
 import Import from "./pages/Import";
 import AuditTrail from "./pages/AuditTrail";
 import Auth from "./pages/Auth";
@@ -50,6 +51,11 @@ const App = () => (
             <Route path="/projetos-tematicos" element={
               <RoleProtectedRoute requireManagerAccess>
                 <ThematicProjects />
+              </RoleProtectedRoute>
+            } />
+            <Route path="/perfil-bolsista/:userId" element={
+              <RoleProtectedRoute requireManagerAccess>
+                <ScholarProfileView />
               </RoleProtectedRoute>
             } />
             

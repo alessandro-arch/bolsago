@@ -109,9 +109,9 @@ export function ScholarSummaryCards({ enrollment, stats, approvedReportsCount, l
     }).format(value);
   };
 
-  // Get modality from project (source of truth from manager)
+  // Get modality from project (source of truth from manager), fallback to enrollment.modality
   const modalityFromProject = enrollment.project?.modalidade_bolsa;
-  const modalityLabel = modalityFromProject || getModalityLabel(enrollment.modality);
+  const modalityLabel = getModalityLabel(modalityFromProject || enrollment.modality);
 
   // Build cards with real data
   const summaryCards: ScholarSummaryCard[] = [

@@ -121,7 +121,8 @@ const ScholarProfileView = () => {
               title,
               code,
               orientador,
-              coordenador_tecnico_icca
+              coordenador_tecnico_icca,
+              modalidade_bolsa
             )
           `)
           .eq("user_id", userId)
@@ -136,12 +137,16 @@ const ScholarProfileView = () => {
             code: string;
             orientador: string;
             coordenador_tecnico_icca: string | null;
+            modalidade_bolsa: string | null;
           } | null;
+
+          // Use project's modalidade_bolsa as source of truth, fallback to enrollment.modality
+          const modalityToUse = project?.modalidade_bolsa || enrollmentData.modality;
 
           setEnrollment({
             id: enrollmentData.id,
             status: enrollmentData.status,
-            modality: enrollmentData.modality,
+            modality: modalityToUse,
             grantValue: enrollmentData.grant_value,
             startDate: enrollmentData.start_date,
             endDate: enrollmentData.end_date,

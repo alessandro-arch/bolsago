@@ -30,7 +30,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 const formSchema = z.object({
   code: z.string().min(1, 'Código é obrigatório'),
   title: z.string().min(1, 'Título é obrigatório'),
-  empresa_parceira: z.string().min(1, 'Empresa parceira é obrigatória'),
+  orientador: z.string().min(1, 'Orientador é obrigatório'),
   modalidade_bolsa: z.string().min(1, 'Modalidade da bolsa é obrigatória'),
   valor_mensal: z.coerce.number().positive('Valor deve ser positivo'),
   start_date: z.string().min(1, 'Data de início é obrigatória'),
@@ -48,12 +48,14 @@ interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  thematicProjectId: string;
 }
 
 export function CreateProjectDialog({
   open,
   onOpenChange,
   onSuccess,
+  thematicProjectId,
 }: CreateProjectDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [codeExists, setCodeExists] = useState(false);
@@ -65,7 +67,7 @@ export function CreateProjectDialog({
     defaultValues: {
       code: '',
       title: '',
-      empresa_parceira: '',
+      orientador: '',
       modalidade_bolsa: '',
       valor_mensal: 0,
       start_date: '',
@@ -104,7 +106,7 @@ export function CreateProjectDialog({
     if (codeExists) {
       toast({
         title: 'Código já existe',
-        description: 'Já existe um projeto com este código. Use outro código ou edite o projeto existente.',
+        description: 'Já existe um subprojeto com este código. Use outro código ou edite o existente.',
         variant: 'destructive',
       });
       return;
@@ -116,7 +118,8 @@ export function CreateProjectDialog({
       const projectData = {
         code: values.code,
         title: values.title,
-        empresa_parceira: values.empresa_parceira,
+        orientador: values.orientador,
+        thematic_project_id: thematicProjectId,
         modalidade_bolsa: values.modalidade_bolsa,
         valor_mensal: values.valor_mensal,
         start_date: values.start_date,
@@ -144,26 +147,27 @@ export function CreateProjectDialog({
       await supabase.from('audit_logs').insert({
         user_id: user.id,
         user_email: userData?.email || user.email,
-        action: 'project_created',
+        action: 'subproject_created',
         entity_type: 'project',
         entity_id: newProject.id,
         new_value: projectData,
         details: {
           project_code: values.code,
+          thematic_project_id: thematicProjectId,
         },
       });
 
       toast({
-        title: 'Projeto criado',
-        description: `O projeto "${values.code}" foi criado com sucesso.`,
+        title: 'Subprojeto criado',
+        description: `O subprojeto "${values.code}" foi criado com sucesso.`,
       });
 
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error('Error creating subproject:', error);
       toast({
-        title: 'Erro ao criar projeto',
+        title: 'Erro ao criar subprojeto',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive',
       });
@@ -178,10 +182,10 @@ export function CreateProjectDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            Novo Projeto Temático
+            Novo Subprojeto
           </DialogTitle>
           <DialogDescription>
-            Cadastre um novo projeto temático. O código deve ser único.
+            Cadastre um novo subprojeto vinculado ao Projeto Temático. O código deve ser único.
           </DialogDescription>
         </DialogHeader>
 
@@ -197,7 +201,7 @@ export function CreateProjectDialog({
                     <FormControl>
                       <Input 
                         {...field} 
-                        placeholder="Ex: 001-2026TOM"
+                        placeholder="Ex: 006-2026TOM"
                         onBlur={(e) => checkCodeExists(e.target.value)}
                       />
                     </FormControl>
@@ -236,7 +240,7 @@ export function CreateProjectDialog({
                 <FormItem>
                   <FormLabel>Título *</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Título do projeto temático" />
+                    <Input {...field} placeholder="Título do subprojeto" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -246,12 +250,12 @@ export function CreateProjectDialog({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="empresa_parceira"
+                name="orientador"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proponente *</FormLabel>
+                    <FormLabel>Orientador *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Nome do proponente" />
+                      <Input {...field} placeholder="Nome do orientador" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -332,7 +336,7 @@ export function CreateProjectDialog({
                   <FormControl>
                     <Textarea 
                       {...field} 
-                      placeholder="Observações adicionais sobre o projeto (opcional)"
+                      placeholder="Observações adicionais sobre o subprojeto (opcional)"
                       rows={3}
                     />
                   </FormControl>
@@ -347,7 +351,7 @@ export function CreateProjectDialog({
               </Button>
               <Button type="submit" disabled={isLoading || codeExists}>
                 {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Criar Projeto
+                Criar Subprojeto
               </Button>
             </DialogFooter>
           </form>

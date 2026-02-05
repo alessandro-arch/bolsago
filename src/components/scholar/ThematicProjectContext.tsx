@@ -72,12 +72,12 @@ export function ThematicProjectContext({ project, enrollment, loading }: Themati
               </span>
             </div>
             
-            {project.empresa_parceira && (
+            {project.orientador && (
               <div className="flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-foreground">
-                  <span className="text-muted-foreground">Pesquisador: </span>
-                  <span className="font-medium">{project.empresa_parceira}</span>
+                  <span className="text-muted-foreground">Orientador: </span>
+                  <span className="font-medium">{project.orientador}</span>
                 </span>
               </div>
             )}

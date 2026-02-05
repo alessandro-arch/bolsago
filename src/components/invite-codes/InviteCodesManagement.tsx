@@ -68,11 +68,10 @@ interface InviteCode {
   created_at: string;
 }
 
-interface Project {
+interface ThematicProject {
   id: string;
   title: string;
-  code: string;
-  empresa_parceira: string;
+  sponsor_name: string;
 }
 
 export function InviteCodesManagement() {
@@ -111,18 +110,18 @@ export function InviteCodesManagement() {
     },
   });
 
-  // Fetch projects for filters and references
-  const { data: projects } = useQuery({
-    queryKey: ['projects-for-invite-codes'],
+  // Fetch thematic projects for filters and references
+  const { data: thematicProjects } = useQuery({
+    queryKey: ['thematic-projects-for-invite-codes'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('projects')
-        .select('id, title, code, empresa_parceira')
+        .from('thematic_projects')
+        .select('id, title, sponsor_name')
         .eq('status', 'active')
         .order('title');
 
       if (error) throw error;
-      return data as Project[];
+      return data as ThematicProject[];
     },
   });
 
@@ -149,17 +148,17 @@ export function InviteCodesManagement() {
     },
   });
 
-  const getProjectInfo = (projectId: string) => {
-    return projects?.find(p => p.id === projectId);
+  const getThematicProjectInfo = (projectId: string) => {
+    return thematicProjects?.find(p => p.id === projectId);
   };
 
   const filteredCodes = inviteCodes?.filter(code => {
     const searchLower = searchTerm.toLowerCase();
-    const project = getProjectInfo(code.thematic_project_id);
+    const project = getThematicProjectInfo(code.thematic_project_id);
     return (
       code.code.toLowerCase().includes(searchLower) ||
       project?.title.toLowerCase().includes(searchLower) ||
-      project?.empresa_parceira.toLowerCase().includes(searchLower)
+      project?.sponsor_name.toLowerCase().includes(searchLower)
     );
   });
 
@@ -502,7 +501,7 @@ export function InviteCodesManagement() {
           open={detailsDialogOpen}
           onOpenChange={setDetailsDialogOpen}
           inviteCode={selectedCode}
-          project={getProjectInfo(selectedCode.thematic_project_id)}
+          project={getThematicProjectInfo(selectedCode.thematic_project_id)}
         />
       )}
 

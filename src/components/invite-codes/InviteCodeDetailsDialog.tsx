@@ -42,11 +42,10 @@ interface InviteCode {
   created_at: string;
 }
 
-interface Project {
+interface ThematicProject {
   id: string;
   title: string;
-  code: string;
-  empresa_parceira: string;
+  sponsor_name: string;
 }
 
 interface InviteCodeUse {
@@ -60,7 +59,7 @@ interface InviteCodeDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   inviteCode: InviteCode;
-  project?: Project;
+  project?: ThematicProject;
 }
 
 export function InviteCodeDetailsDialog({

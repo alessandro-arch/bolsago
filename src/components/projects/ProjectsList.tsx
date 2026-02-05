@@ -34,7 +34,8 @@ interface Project {
   id: string;
   code: string;
   title: string;
-  empresa_parceira: string;
+  orientador: string;
+  thematic_project_id: string;
   modalidade_bolsa: string | null;
   valor_mensal: number;
   start_date: string;
@@ -74,7 +75,7 @@ export function ProjectsList() {
     return (
       project.code.toLowerCase().includes(searchLower) ||
       project.title.toLowerCase().includes(searchLower) ||
-      project.empresa_parceira.toLowerCase().includes(searchLower) ||
+      project.orientador.toLowerCase().includes(searchLower) ||
       (project.modalidade_bolsa?.toLowerCase().includes(searchLower) ?? false)
     );
   });
@@ -212,7 +213,7 @@ export function ProjectsList() {
                       <TableCell className="font-medium max-w-[200px] truncate" title={project.title}>
                         {project.title}
                       </TableCell>
-                      <TableCell>{project.empresa_parceira}</TableCell>
+                      <TableCell>{project.orientador}</TableCell>
                       <TableCell>{project.modalidade_bolsa || '—'}</TableCell>
                       <TableCell className="text-right font-mono">
                         {formatCurrency(project.valor_mensal)}

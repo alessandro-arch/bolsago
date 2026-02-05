@@ -26,12 +26,14 @@ interface Project {
   id: string;
   code: string;
   title: string;
-  empresa_parceira: string;
+  orientador: string;
+  thematic_project_id: string;
   modalidade_bolsa: string | null;
   valor_mensal: number;
   start_date: string;
   end_date: string;
   coordenador_tecnico_icca: string | null;
+  observacoes?: string | null;
   status: ProjectStatus;
   created_at: string;
   updated_at: string;
@@ -156,8 +158,8 @@ export function ProjectDetailsDialog({
             <TabsContent value="details" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Proponente</p>
-                  <p className="font-medium">{project.empresa_parceira}</p>
+                  <p className="text-sm text-muted-foreground">Orientador</p>
+                  <p className="font-medium">{project.orientador}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Coordenador Técnico ICCA</p>
@@ -184,6 +186,16 @@ export function ProjectDetailsDialog({
                   </p>
                 </div>
               </div>
+
+              {project.observacoes && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Observações</p>
+                    <p className="text-sm">{project.observacoes}</p>
+                  </div>
+                </>
+              )}
 
               <Separator />
 
@@ -226,7 +238,7 @@ export function ProjectDetailsDialog({
               {/* Edit button */}
               <div className="flex items-center justify-between p-4 rounded-lg border">
                 <div>
-                  <p className="font-medium">Editar Projeto</p>
+                  <p className="font-medium">Editar Subprojeto</p>
                   <p className="text-sm text-muted-foreground">
                     Alterar título, valores, datas e outros campos
                   </p>
@@ -241,7 +253,7 @@ export function ProjectDetailsDialog({
               {project.status !== 'archived' && (
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div>
-                    <p className="font-medium">Arquivar Projeto</p>
+                    <p className="font-medium">Arquivar Subprojeto</p>
                     <p className="text-sm text-muted-foreground">
                       Impede novos vínculos, mantém histórico para consulta
                     </p>
@@ -257,9 +269,9 @@ export function ProjectDetailsDialog({
               {project.status === 'archived' && (
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div>
-                    <p className="font-medium">Reativar Projeto</p>
+                    <p className="font-medium">Reativar Subprojeto</p>
                     <p className="text-sm text-muted-foreground">
-                      Tornar o projeto ativo novamente para novos vínculos
+                      Tornar o subprojeto ativo novamente para novos vínculos
                     </p>
                   </div>
                   <Button variant="secondary" onClick={() => setArchiveDialogOpen(true)}>
@@ -272,11 +284,11 @@ export function ProjectDetailsDialog({
               {/* Delete button */}
               <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/30 bg-destructive/5">
                 <div>
-                  <p className="font-medium text-destructive">Excluir Projeto</p>
+                  <p className="font-medium text-destructive">Excluir Subprojeto</p>
                   <p className="text-sm text-muted-foreground">
                     {dependencies?.hasDependencies
                       ? 'Não é possível excluir - existem vínculos, pagamentos ou relatórios'
-                      : 'Remover permanentemente o projeto do sistema'}
+                      : 'Remover permanentemente o subprojeto do sistema'}
                   </p>
                 </div>
                 <Button
@@ -295,7 +307,7 @@ export function ProjectDetailsDialog({
                   <div className="text-sm">
                     <p className="font-medium">Exclusão bloqueada</p>
                     <p className="text-muted-foreground">
-                      Este projeto possui {dependencies.enrollments} vínculo(s), {dependencies.payments} pagamento(s) 
+                      Este subprojeto possui {dependencies.enrollments} vínculo(s), {dependencies.payments} pagamento(s) 
                       e {dependencies.reports} relatório(s). Use a opção "Arquivar" para desativá-lo mantendo o histórico.
                     </p>
                   </div>

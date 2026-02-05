@@ -24,6 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -36,12 +43,15 @@ import {
   Trash2,
   Download,
   UserPlus,
-  UserX
+  UserX,
+  ChevronDown,
+  FileText
 } from 'lucide-react';
 import { MasterProjectCard } from '@/components/projects/MasterProjectCard';
 import { ProjectDetailsDialog } from '@/components/projects/ProjectDetailsDialog';
 import { EditProjectDialog } from '@/components/projects/EditProjectDialog';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
+import { CreateThematicProjectDialog } from '@/components/projects/CreateThematicProjectDialog';
 import { ArchiveProjectDialog } from '@/components/projects/ArchiveProjectDialog';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { AssignScholarToProjectDialog } from '@/components/projects/AssignScholarToProjectDialog';
@@ -50,6 +60,16 @@ import { ptBR } from 'date-fns/locale';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProjectStatus = Database['public']['Enums']['project_status'];
+
+interface ThematicProjectData {
+  id: string;
+  code: string;
+  title: string;
+  empresa_parceira: string;
+  status: ProjectStatus;
+  start_date: string;
+  end_date: string;
+}
 
 interface ProjectWithScholar {
   id: string;
@@ -65,43 +85,61 @@ interface ProjectWithScholar {
   status: ProjectStatus;
   created_at: string;
   updated_at: string;
+  parent_project_id: string | null;
+  is_thematic: boolean;
   scholar_name: string | null;
   enrollment_status: string | null;
 }
 
 type StatusFilter = 'all' | 'active' | 'archived';
 
-// Projeto Temático Mestre (fixo neste momento)
-const MASTER_PROJECT = {
-  title: 'Desenvolvimento e a aplicação de métodos quimiométricos para a análise multivariada de dados clínicos e instrumentais, uma iniciativa de alta relevância científica e tecnológica.',
-  financiador: 'LABORATÓRIO TOMMASI',
-  status: 'active' as const,
-};
-
 export default function ThematicProjects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [selectedThematicId, setSelectedThematicId] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<ProjectWithScholar | null>(null);
   const [projectHasDependencies, setProjectHasDependencies] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createThematicDialogOpen, setCreateThematicDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
+  // Fetch thematic projects (master projects)
+  const { data: thematicProjects, refetch: refetchThematic } = useQuery({
+    queryKey: ['thematic-projects-master'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, code, title, empresa_parceira, status, start_date, end_date')
+        .eq('is_thematic', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as ThematicProjectData[];
+    },
+  });
+
+  // Fetch subprojects with scholar info
   const { data: projects, isLoading, refetch } = useQuery({
-    queryKey: ['thematic-projects-with-scholars', statusFilter],
+    queryKey: ['subprojects-with-scholars', statusFilter, selectedThematicId],
     queryFn: async () => {
       let query = supabase
         .from('projects')
         .select('*')
+        .eq('is_thematic', false)
         .order('created_at', { ascending: false });
 
       if (statusFilter === 'active') {
         query = query.eq('status', 'active');
       } else if (statusFilter === 'archived') {
         query = query.eq('status', 'archived');
+      }
+
+      if (selectedThematicId !== 'all') {
+        query = query.eq('parent_project_id', selectedThematicId);
       }
 
       const { data: projectsData, error: projectsError } = await query;
@@ -223,6 +261,7 @@ export default function ThematicProjects() {
 
   const handleProjectUpdated = () => {
     refetch();
+    refetchThematic();
   };
 
   const handleExport = () => {
@@ -267,6 +306,9 @@ export default function ThematicProjects() {
     updated_at: selectedProject.updated_at,
   } : null;
 
+  // Get currently selected thematic project for display
+  const activeThematicProjects = thematicProjects?.filter(p => p.status === 'active') || [];
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -285,7 +327,7 @@ export default function ThematicProjects() {
                   Projetos Temáticos
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Gerencie os subprojetos e vínculos de bolsistas
+                  Gerencie os projetos temáticos, subprojetos e vínculos de bolsistas
                 </p>
               </div>
               <div className="flex gap-2">
@@ -293,26 +335,70 @@ export default function ThematicProjects() {
                   <Download className="h-4 w-4 mr-2" />
                   Exportar
                 </Button>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Subprojeto
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover">
+                    <DropdownMenuItem onClick={() => setCreateThematicDialogOpen(true)}>
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      Projeto Temático
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setCreateDialogOpen(true)}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Subprojeto
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
-            {/* Master Project Context Card */}
-            <MasterProjectCard
-              title={MASTER_PROJECT.title}
-              financiador={MASTER_PROJECT.financiador}
-              status={MASTER_PROJECT.status}
-            />
+            {/* Thematic Projects List */}
+            {activeThematicProjects.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  Projetos Temáticos ({activeThematicProjects.length})
+                </h2>
+                <div className="grid gap-3">
+                  {activeThematicProjects.map((thematic) => (
+                    <MasterProjectCard
+                      key={thematic.id}
+                      title={thematic.title}
+                      financiador={thematic.empresa_parceira}
+                      status={thematic.status}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeThematicProjects.length === 0 && (
+              <Card className="border-dashed">
+                <CardContent className="py-8 text-center">
+                  <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Nenhum Projeto Temático</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Crie um projeto temático para começar a gerenciar subprojetos e bolsistas.
+                  </p>
+                  <Button onClick={() => setCreateThematicDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar Projeto Temático
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Subprojects Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Subprojetos do Projeto Temático</CardTitle>
+                <CardTitle>Subprojetos</CardTitle>
                 <CardDescription>
-                  Registros operacionais de bolsas vinculados ao projeto temático mestre
+                  Registros operacionais de bolsas vinculados aos projetos temáticos
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -327,6 +413,22 @@ export default function ThematicProjects() {
                       className="pl-10"
                     />
                   </div>
+                  <Select
+                    value={selectedThematicId}
+                    onValueChange={setSelectedThematicId}
+                  >
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Projeto Temático" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os Temáticos</SelectItem>
+                      {thematicProjects?.map((thematic) => (
+                        <SelectItem key={thematic.id} value={thematic.id}>
+                          {thematic.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select
                     value={statusFilter}
                     onValueChange={(value) => setStatusFilter(value as StatusFilter)}
@@ -484,6 +586,12 @@ export default function ThematicProjects() {
       <Footer />
 
       {/* Dialogs */}
+      <CreateThematicProjectDialog
+        open={createThematicDialogOpen}
+        onOpenChange={setCreateThematicDialogOpen}
+        onSuccess={handleProjectUpdated}
+      />
+
       <CreateProjectDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}

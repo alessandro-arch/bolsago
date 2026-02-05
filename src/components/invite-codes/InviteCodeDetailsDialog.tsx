@@ -150,24 +150,15 @@ export function InviteCodeDetailsDialog({
           </div>
 
           {/* Project Info */}
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <FolderOpen className="h-3 w-3" />
-                Projeto Temático
-              </p>
-              <p className="text-sm font-medium">
-                Desenvolvimento e a aplicação de métodos quimiométricos para a análise multivariada de dados clínicos e instrumentais
-              </p>
-              <p className="text-xs text-muted-foreground">Financiador: LABORATÓRIO TOMMASI</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Building2 className="h-3 w-3" />
-                Proponente
-              </p>
-              <p className="text-sm font-medium">{project?.empresa_parceira || '—'}</p>
-            </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <FolderOpen className="h-3 w-3" />
+              Projeto Temático
+            </p>
+            <p className="text-sm font-medium">
+              Desenvolvimento e a aplicação de métodos quimiométricos para a análise multivariada de dados clínicos e instrumentais
+            </p>
+            <p className="text-xs text-muted-foreground">Financiador: LABORATÓRIO TOMMASI</p>
           </div>
 
           <Separator />

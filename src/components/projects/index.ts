@@ -6,3 +6,7 @@ export { ArchiveProjectDialog } from './ArchiveProjectDialog';
 export { DeleteProjectDialog } from './DeleteProjectDialog';
 export { MasterProjectCard } from './MasterProjectCard';
 export { AssignScholarToProjectDialog } from './AssignScholarToProjectDialog';
+export { ProjectsManagement } from './ProjectsManagement';
+export { ThematicProjectCard } from './ThematicProjectCard';
+export { SubprojectsTable } from './SubprojectsTable';
+export * from './types';

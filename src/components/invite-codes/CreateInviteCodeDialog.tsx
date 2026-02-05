@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -22,30 +22,25 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { CalendarIcon, Copy, Loader2, Ticket } from 'lucide-react';
+import { CalendarIcon, Copy, Loader2, Ticket, Plus, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-interface Project {
-  id: string;
-  title: string;
-  code: string;
-  empresa_parceira: string;
-}
+// Fixed Thematic Project ID (master project for ICCA)
+const THEMATIC_PROJECT_ID = 'a0000000-0000-0000-0000-000000000001';
+const THEMATIC_PROJECT_TITLE = 'Desenvolvimento e a aplicação de métodos quimiométricos para a análise multivariada de dados clínicos e instrumentais';
 
 interface CreateInviteCodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projects: Project[];
   onSuccess: () => void;
 }
 
 export function CreateInviteCodeDialog({
   open,
   onOpenChange,
-  projects,
   onSuccess,
 }: CreateInviteCodeDialogProps) {
   const { user } = useAuth();
@@ -53,15 +48,38 @@ export function CreateInviteCodeDialog({
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
   // Form state
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [proponente, setProponente] = useState<string>('');
+  const [customProponente, setCustomProponente] = useState('');
+  const [showCustomProponente, setShowCustomProponente] = useState(false);
   const [maxUses, setMaxUses] = useState<string>('5');
   const [hasExpiration, setHasExpiration] = useState(false);
   const [expirationDate, setExpirationDate] = useState<Date | undefined>();
+  
+  // Existing proponentes from projects
+  const [existingProponentes, setExistingProponentes] = useState<string[]>([]);
 
-  const selectedProject = projects.find(p => p.id === selectedProjectId);
+  useEffect(() => {
+    if (open) {
+      fetchExistingProponentes();
+    }
+  }, [open]);
+
+  const fetchExistingProponentes = async () => {
+    const { data } = await supabase
+      .from('projects')
+      .select('empresa_parceira')
+      .order('empresa_parceira');
+    
+    if (data) {
+      const unique = [...new Set(data.map(p => p.empresa_parceira))];
+      setExistingProponentes(unique);
+    }
+  };
 
   const resetForm = () => {
-    setSelectedProjectId('');
+    setProponente('');
+    setCustomProponente('');
+    setShowCustomProponente(false);
     setMaxUses('5');
     setHasExpiration(false);
     setExpirationDate(undefined);
@@ -82,21 +100,26 @@ export function CreateInviteCodeDialog({
     return code;
   };
 
+  const selectedProponente = showCustomProponente ? customProponente : proponente;
+
   const handleSubmit = async () => {
-    if (!selectedProjectId || !user) {
-      toast.error('Selecione um subprojeto');
+    if (!selectedProponente.trim() || !user) {
+      toast.error('Informe o proponente');
       return;
     }
 
     setIsLoading(true);
     const code = generateCode();
+    
+    // Generate a unique ID for partner_company (using a hash of the name)
+    const partnerCompanyId = crypto.randomUUID();
 
     try {
       const { data, error } = await supabase
         .from('invite_codes')
         .insert({
-          thematic_project_id: selectedProjectId,
-          partner_company_id: selectedProjectId, // Using project ID as reference
+          thematic_project_id: THEMATIC_PROJECT_ID,
+          partner_company_id: partnerCompanyId,
           code,
           max_uses: maxUses === 'unlimited' ? null : parseInt(maxUses),
           expires_at: hasExpiration && expirationDate ? expirationDate.toISOString().split('T')[0] : null,
@@ -114,12 +137,12 @@ export function CreateInviteCodeDialog({
         p_entity_id: data.id,
         p_details: {
           code,
-          project_id: selectedProjectId,
-          project_title: selectedProject?.title,
+          thematic_project_title: THEMATIC_PROJECT_TITLE,
+          proponente: selectedProponente,
           max_uses: maxUses === 'unlimited' ? null : parseInt(maxUses),
           expires_at: hasExpiration && expirationDate ? expirationDate.toISOString() : null,
         },
-        p_new_value: data,
+        p_new_value: { ...data, proponente: selectedProponente },
       });
 
       setGeneratedCode(code);
@@ -152,7 +175,7 @@ export function CreateInviteCodeDialog({
           <DialogDescription>
             {generatedCode 
               ? 'O código foi gerado com sucesso. Copie e compartilhe com o bolsista.'
-              : 'Crie um novo código de convite vinculado a um Subprojeto.'
+              : 'Crie um novo código de convite vinculado ao Projeto Temático.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -179,36 +202,73 @@ export function CreateInviteCodeDialog({
                 </div>
               </div>
               
-              {selectedProject && (
-                <div className="text-sm text-center text-muted-foreground">
-                  <p><strong>Subprojeto:</strong> {selectedProject.title}</p>
-                  <p><strong>Proponente:</strong> {selectedProject.empresa_parceira}</p>
-                </div>
-              )}
+              <div className="text-sm text-center text-muted-foreground space-y-1">
+                <p><strong>Projeto Temático:</strong></p>
+                <p className="text-xs">{THEMATIC_PROJECT_TITLE.slice(0, 80)}...</p>
+                <p className="mt-2"><strong>Proponente:</strong> {selectedProponente}</p>
+              </div>
             </div>
           </div>
         ) : (
           <div className="space-y-4 py-4">
-            {/* Subproject Selection */}
+            {/* Thematic Project Info (Fixed) */}
+            <div className="p-3 bg-muted/50 rounded-lg border">
+              <p className="text-xs text-muted-foreground mb-1">Projeto Temático</p>
+              <p className="text-sm font-medium line-clamp-2">{THEMATIC_PROJECT_TITLE}</p>
+              <p className="text-xs text-muted-foreground mt-1">Financiador: LABORATÓRIO TOMMASI</p>
+            </div>
+
+            {/* Proponente Selection */}
             <div className="space-y-2">
-              <Label htmlFor="project">Subprojeto *</Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um subprojeto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map(project => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <span className="font-mono text-xs mr-2">{project.code}</span>
-                      {project.title.slice(0, 40)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedProject && (
-                <p className="text-xs text-muted-foreground">
-                  Proponente: {selectedProject.empresa_parceira}
-                </p>
+              <Label htmlFor="proponente">Proponente *</Label>
+              {!showCustomProponente ? (
+                <div className="space-y-2">
+                  <Select value={proponente} onValueChange={setProponente}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um proponente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {existingProponentes.map(prop => (
+                        <SelectItem key={prop} value={prop}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-3 w-3 text-muted-foreground" />
+                            {prop}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs gap-1"
+                    onClick={() => setShowCustomProponente(true)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Novo proponente
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    value={customProponente}
+                    onChange={(e) => setCustomProponente(e.target.value)}
+                    placeholder="Nome do novo proponente"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs"
+                    onClick={() => {
+                      setShowCustomProponente(false);
+                      setCustomProponente('');
+                    }}
+                  >
+                    Selecionar existente
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -286,7 +346,7 @@ export function CreateInviteCodeDialog({
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={isLoading || !selectedProjectId}
+                disabled={isLoading || !selectedProponente.trim()}
                 className="gap-2"
               >
                 {isLoading ? (

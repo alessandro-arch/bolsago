@@ -18,7 +18,7 @@ function evaluatePasswordStrength(password: string): {
   criteria: StrengthCriteria[];
 } {
   const criteria: StrengthCriteria[] = [
-    { label: "Mínimo 6 caracteres", met: password.length >= 6 },
+    { label: "Mínimo 10 caracteres", met: password.length >= 10 },
     { label: "Letra maiúscula", met: /[A-Z]/.test(password) },
     { label: "Letra minúscula", met: /[a-z]/.test(password) },
     { label: "Número", met: /[0-9]/.test(password) },

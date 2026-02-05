@@ -15,7 +15,7 @@ const signupSchema = z.object({
     message: "CPF inválido. Verifique os dígitos.",
   }),
   email: z.string().email("Email inválido"),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+  password: z.string().min(10, "A senha deve ter pelo menos 10 caracteres"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
@@ -68,6 +68,13 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
         onError("Este email já está cadastrado. Tente fazer login.");
       } else if (error.message.includes("cpf") || error.message.includes("CPF")) {
         onError("Este CPF já está cadastrado no sistema.");
+      } else if (
+        error.message.toLowerCase().includes("password") ||
+        error.message.toLowerCase().includes("weak") ||
+        error.message.toLowerCase().includes("policy") ||
+        error.message.toLowerCase().includes("strength")
+      ) {
+        onError("A senha não atende aos requisitos de segurança. Use pelo menos 10 caracteres com letras, números e símbolos.");
       } else {
         onError("Erro ao criar conta. Tente novamente.");
       }
@@ -142,7 +149,7 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
           <PasswordInput
             id="signup-password"
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 10 caracteres"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="pl-10"
@@ -150,6 +157,9 @@ export function SignupForm({ onError, onSuccess }: SignupFormProps) {
           />
         </div>
         <PasswordStrengthIndicator password={password} />
+        <p className="text-xs text-muted-foreground">
+          Use letras maiúsculas, minúsculas, números e símbolos para maior segurança.
+        </p>
       </div>
       
       <div className="space-y-2">

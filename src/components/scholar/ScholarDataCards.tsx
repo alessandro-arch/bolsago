@@ -353,7 +353,7 @@ export function ScholarDataCards() {
               />
               <DataRow 
                 icon={User} 
-                label="Proponente" 
+                label="Orientador" 
                 value={projectData.proponent}
                 isEmpty={!projectData.proponent}
               />

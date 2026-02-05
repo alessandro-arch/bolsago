@@ -398,8 +398,10 @@ export type Database = {
           empresa_parceira: string
           end_date: string
           id: string
+          is_thematic: boolean
           modalidade_bolsa: string | null
           observacoes: string | null
+          parent_project_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["project_status"]
           title: string
@@ -413,8 +415,10 @@ export type Database = {
           empresa_parceira: string
           end_date: string
           id?: string
+          is_thematic?: boolean
           modalidade_bolsa?: string | null
           observacoes?: string | null
+          parent_project_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["project_status"]
           title: string
@@ -428,15 +432,25 @@ export type Database = {
           empresa_parceira?: string
           end_date?: string
           id?: string
+          is_thematic?: boolean
           modalidade_bolsa?: string | null
           observacoes?: string | null
+          parent_project_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["project_status"]
           title?: string
           updated_at?: string
           valor_mensal?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_parent_project_id_fkey"
+            columns: ["parent_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {

@@ -150,16 +150,16 @@ export function InviteCodeDetailsDialog({
           </div>
 
           {/* Project Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <FolderOpen className="h-3 w-3" />
-                Subprojeto
+                Projeto Temático
               </p>
-              <p className="text-sm font-medium">{project?.title || '—'}</p>
-              {project?.code && (
-                <p className="text-xs text-muted-foreground font-mono">{project.code}</p>
-              )}
+              <p className="text-sm font-medium">
+                Desenvolvimento e a aplicação de métodos quimiométricos para a análise multivariada de dados clínicos e instrumentais
+              </p>
+              <p className="text-xs text-muted-foreground">Financiador: LABORATÓRIO TOMMASI</p>
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground flex items-center gap-1">

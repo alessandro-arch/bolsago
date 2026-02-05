@@ -62,8 +62,9 @@ export function ReportUploadDialog({
         return;
       }
       // Validate file size (max 10MB)
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        toast.error("O arquivo deve ter no máximo 10MB");
+      // Validate file size (max 5MB)
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        toast.error("O arquivo deve ter no máximo 5MB");
         return;
       }
       setFile(selectedFile);
@@ -91,8 +92,8 @@ export function ReportUploadDialog({
         toast.error("Apenas arquivos PDF são permitidos");
         return;
       }
-      if (droppedFile.size > 10 * 1024 * 1024) {
-        toast.error("O arquivo deve ter no máximo 10MB");
+      if (droppedFile.size > 5 * 1024 * 1024) {
+        toast.error("O arquivo deve ter no máximo 5MB");
         return;
       }
       setFile(droppedFile);
@@ -235,7 +236,7 @@ export function ReportUploadDialog({
                   Clique para selecionar ou arraste o arquivo
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Apenas PDF • Máximo 10MB
+                  Apenas PDF • Máximo 5MB
                 </p>
                 <input
                   ref={fileInputRef}

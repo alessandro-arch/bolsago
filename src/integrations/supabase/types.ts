@@ -169,6 +169,77 @@ export type Database = {
           },
         ]
       }
+      invite_code_uses: {
+        Row: {
+          id: string
+          invite_code_id: string
+          used_at: string
+          used_by: string
+          used_by_email: string
+        }
+        Insert: {
+          id?: string
+          invite_code_id: string
+          used_at?: string
+          used_by: string
+          used_by_email: string
+        }
+        Update: {
+          id?: string
+          invite_code_id?: string
+          used_at?: string
+          used_by?: string
+          used_by_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_code_uses_invite_code_id_fkey"
+            columns: ["invite_code_id"]
+            isOneToOne: false
+            referencedRelation: "invite_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          partner_company_id: string
+          status: string
+          thematic_project_id: string
+          used_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          partner_company_id: string
+          status?: string
+          thematic_project_id: string
+          used_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          partner_company_id?: string
+          status?: string
+          thematic_project_id?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -236,10 +307,15 @@ export type Database = {
           full_name: string | null
           id: string
           institution: string | null
+          invite_code_used: string | null
+          invite_used_at: string | null
           is_active: boolean
           lattes_url: string | null
+          onboarding_status: string
           origin: string | null
+          partner_company_id: string | null
           phone: string | null
+          thematic_project_id: string | null
           updated_at: string
           user_id: string
         }
@@ -252,10 +328,15 @@ export type Database = {
           full_name?: string | null
           id?: string
           institution?: string | null
+          invite_code_used?: string | null
+          invite_used_at?: string | null
           is_active?: boolean
           lattes_url?: string | null
+          onboarding_status?: string
           origin?: string | null
+          partner_company_id?: string | null
           phone?: string | null
+          thematic_project_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -268,10 +349,15 @@ export type Database = {
           full_name?: string | null
           id?: string
           institution?: string | null
+          invite_code_used?: string | null
+          invite_used_at?: string | null
           is_active?: boolean
           lattes_url?: string | null
+          onboarding_status?: string
           origin?: string | null
+          partner_company_id?: string | null
           phone?: string | null
+          thematic_project_id?: string | null
           updated_at?: string
           user_id?: string
         }

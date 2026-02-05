@@ -10,7 +10,7 @@ import { Lock, Loader2, AlertCircle, CheckCircle, ShieldCheck } from "lucide-rea
 import { z } from "zod";
 
 const resetPasswordSchema = z.object({
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+  password: z.string().min(10, "A senha deve ter pelo menos 10 caracteres"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
@@ -46,6 +46,13 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
     if (error) {
       if (error.message.includes("same password")) {
         setError("A nova senha não pode ser igual à anterior.");
+      } else if (
+        error.message.toLowerCase().includes("password") ||
+        error.message.toLowerCase().includes("weak") ||
+        error.message.toLowerCase().includes("policy") ||
+        error.message.toLowerCase().includes("strength")
+      ) {
+        setError("A senha não atende aos requisitos de segurança. Use pelo menos 10 caracteres com letras, números e símbolos.");
       } else {
         setError("Erro ao redefinir senha. Tente novamente.");
       }
@@ -89,7 +96,7 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Redefinir senha</h3>
         <p className="text-sm text-muted-foreground">
-          Digite sua nova senha abaixo. A senha deve ter pelo menos 6 caracteres.
+          Digite sua nova senha abaixo. A senha deve ter pelo menos 10 caracteres, incluindo letras, números e símbolos.
         </p>
       </div>
       
@@ -107,7 +114,7 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
             <PasswordInput
               id="new-password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 10 caracteres"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10"
@@ -116,6 +123,9 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
             />
           </div>
           <PasswordStrengthIndicator password={password} />
+          <p className="text-xs text-muted-foreground">
+            Use letras maiúsculas, minúsculas, números e símbolos para maior segurança.
+          </p>
         </div>
         
         <div className="space-y-2">

@@ -115,3 +115,41 @@ export async function downloadReportPdf(filePath: string, fileName?: string): Pr
     toast.error("Erro ao baixar o arquivo");
   }
 }
+
+/**
+ * Utility function to download payment receipt using signed URL
+ */
+export async function downloadPaymentReceipt(filePath: string, fileName?: string): Promise<void> {
+  if (!filePath) {
+    toast.error("Comprovante não encontrado");
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from("payment-receipts")
+      .createSignedUrl(filePath, 600); // 10 minutes
+
+    if (error) {
+      console.error("Error creating signed URL for receipt:", error);
+      toast.error("Erro ao gerar link de download do comprovante");
+      return;
+    }
+
+    if (data?.signedUrl) {
+      // Create a temporary link element to trigger download
+      const link = document.createElement("a");
+      link.href = data.signedUrl;
+      link.download = fileName || "comprovante.pdf";
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      toast.error("Link de download não disponível");
+    }
+  } catch (err) {
+    console.error("Error downloading receipt:", err);
+    toast.error("Erro ao baixar o comprovante");
+  }
+}

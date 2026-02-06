@@ -41,7 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ReportVersionsDialog, type ReportVersion } from "./ReportVersionsDialog";
 import { ReportUploadDialog } from "./ReportUploadDialog";
-import { openReportPdf, downloadReportPdf } from "@/hooks/useSignedUrl";
+import { openReportPdf, downloadReportPdf, downloadPaymentReceipt } from "@/hooks/useSignedUrl";
 import type { PaymentWithReport } from "@/hooks/useScholarPayments";
 import { format, parseISO, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -68,6 +68,7 @@ interface Installment {
   reportFileUrl?: string;
   resubmissionDeadline?: string;
   isDeadlineExpired?: boolean;
+  receiptUrl?: string;
 }
 
 const reportStatusConfig: Record<ReportStatus, { label: string; icon: typeof Clock; className: string }> = {
@@ -141,7 +142,7 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
   const canSubmitReport = isPastOrCurrent && installment.reportStatus === "pending";
   const canResubmit = installment.reportStatus === "rejected" && !isDeadlineExpired;
   const canViewFeedback = (installment.reportStatus === "rejected" || installment.reportStatus === "deadline_expired") && installment.feedback;
-  const canDownloadReceipt = installment.paymentStatus === "paid";
+  const canDownloadReceipt = installment.paymentStatus === "paid" && installment.receiptUrl;
   const hasVersions = installment.versions && installment.versions.length > 0;
   const hasReportUnderReview = installment.hasReportUnderReview;
 
@@ -308,7 +309,10 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
             {canDownloadReceipt && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2">
+                <DropdownMenuItem 
+                  className="gap-2"
+                  onSelect={() => downloadPaymentReceipt(installment.receiptUrl!, `comprovante_${installment.referenceMonthRaw}.pdf`)}
+                >
                   <Download className="w-4 h-4" />
                   Baixar comprovante
                 </DropdownMenuItem>
@@ -454,6 +458,7 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number,
     reportFileUrl: payment.report?.file_url,
     resubmissionDeadline,
     isDeadlineExpired,
+    receiptUrl: payment.receipt_url || undefined,
   };
 }
 

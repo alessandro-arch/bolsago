@@ -12,6 +12,7 @@ import {
   Calendar,
   Download,
   Building2,
+  FileUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PaymentsThematicCard } from "./PaymentsThematicCard";
+import { PaymentReceiptUpload } from "./PaymentReceiptUpload";
 
 interface PaymentWithDetails {
   id: string;
@@ -87,6 +89,7 @@ export function PaymentsManagement() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['payments-management', selectedMonth],
@@ -228,7 +231,12 @@ export function PaymentsManagement() {
 
   const handleOpenConfirm = (payment: PaymentWithDetails) => {
     setSelectedPayment(payment);
+    setReceiptUrl(null);
     setConfirmDialogOpen(true);
+  };
+
+  const handleReceiptUploaded = (url: string) => {
+    setReceiptUrl(url);
   };
 
   const handleMarkAsPaid = async () => {
@@ -238,13 +246,19 @@ export function PaymentsManagement() {
     try {
       const now = new Date().toISOString();
 
-      // Update payment status
+      // Update payment status with receipt URL if provided
+      const updateData: { status: "paid"; paid_at: string; receipt_url?: string } = {
+        status: "paid" as const,
+        paid_at: now,
+      };
+      
+      if (receiptUrl) {
+        updateData.receipt_url = receiptUrl;
+      }
+
       const { error: paymentError } = await supabase
         .from("payments")
-        .update({
-          status: "paid",
-          paid_at: now,
-        })
+        .update(updateData)
         .eq("id", selectedPayment.id);
 
       if (paymentError) throw paymentError;
@@ -260,6 +274,7 @@ export function PaymentsManagement() {
           reference_month: selectedPayment.reference_month,
           amount: selectedPayment.amount,
           paid_at: now,
+          receipt_attached: !!receiptUrl,
         },
       });
 
@@ -438,6 +453,12 @@ export function PaymentsManagement() {
                   <span className="text-sm text-muted-foreground">Projeto</span>
                   <span className="font-medium">{selectedPayment.project_code}</span>
                 </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Referência</span>
+                  <span className="font-medium">
+                    {format(parseISO(`${selectedPayment.reference_month}-01`), "MMMM/yyyy", { locale: ptBR })}
+                  </span>
+                </div>
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <span className="text-sm font-medium">Valor</span>
                   <span className="text-lg font-bold text-success">
@@ -445,6 +466,21 @@ export function PaymentsManagement() {
                   </span>
                 </div>
               </div>
+
+              {/* Receipt Upload */}
+              <PaymentReceiptUpload
+                paymentId={selectedPayment.id}
+                userId={selectedPayment.user_id}
+                referenceMonth={selectedPayment.reference_month}
+                onUploadComplete={handleReceiptUploaded}
+              />
+
+              {receiptUrl && (
+                <div className="flex items-center gap-2 p-2 bg-success/10 rounded-lg text-success text-sm">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Comprovante anexado com sucesso</span>
+                </div>
+              )}
 
               <p className="text-sm text-muted-foreground text-center">
                 Esta ação irá registrar o pagamento como realizado.

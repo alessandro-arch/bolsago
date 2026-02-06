@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Email template HTML generator with institutional ICCA Bolsa Conecta branding
+// Email template HTML generator with institutional ICCA CONNECTA branding
 function generateConfirmationEmail(userEmail: string, confirmationUrl: string, logoUrl?: string): string {
   return `
 <!DOCTYPE html>
@@ -15,7 +15,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmação de E-mail | ICCA Bolsa Conecta</title>
+  <title>Confirmação de E-mail | ICCA CONNECTA</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, Helvetica, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8; padding:40px 0;">
@@ -28,7 +28,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
             <td align="center" style="padding:30px 20px 20px;">
               ${logoUrl 
                 ? `<img src="${logoUrl}" alt="ICCA - Instituto de Inovação, Conhecimento e Ciências Aplicadas" style="max-width:180px; height:auto;" />`
-                : `<h2 style="margin:0; color:#1e40af; font-size:24px; font-weight:700;">ICCA Bolsa Conecta</h2>`
+                : `<h2 style="margin:0; color:#1e40af; font-size:24px; font-weight:700;">ICCA CONNECTA</h2>`
               }
             </td>
           </tr>
@@ -46,7 +46,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
           <tr>
             <td style="padding:20px 40px; color:#374151; font-size:15px; line-height:1.6;">
               <p>
-                Seja bem-vindo(a) ao <strong>ICCA Bolsa Conecta</strong>.
+                Seja bem-vindo(a) ao <strong>ICCA CONNECTA</strong>.
               </p>
               <p>
                 Para concluir seu cadastro e acessar o portal com segurança, 
@@ -162,9 +162,9 @@ Deno.serve(async (req) => {
 
     // Send email via Resend
     const { error } = await resend.emails.send({
-      from: 'ICCA Bolsa Conecta <noreply@bolsaconecta.com.br>',
+      from: 'ICCA CONNECTA <noreply@bolsaconecta.com.br>',
       to: [user.email],
-      subject: 'Confirmação do seu e-mail • ICCA Bolsa Conecta',
+      subject: 'Confirmação do seu e-mail • ICCA CONNECTA',
       html,
     });
 

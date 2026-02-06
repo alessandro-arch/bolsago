@@ -1,19 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   FileSearch,
   CheckCircle,
   XCircle,
   Clock,
-  Eye,
-  Download,
   Filter,
   RefreshCw,
   Loader2,
-  FileText,
-  User,
+  Search,
   Calendar,
-  ChevronDown,
-  AlertCircle,
+  Building2,
   Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,19 +32,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { toast } from "sonner";
 import { format, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ReportsThematicCard } from "./ReportsThematicCard";
 
 interface ReportWithDetails {
   id: string;
@@ -69,32 +62,25 @@ interface ReportWithDetails {
   project_code: string;
   enrollment_id: string;
   payment_id: string | null;
+  thematic_project_id: string;
+  thematic_project_title: string;
 }
 
-const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
-  under_review: { label: "Em Análise", icon: Clock, className: "bg-warning/10 text-warning border-warning/20" },
-  approved: { label: "Aprovado", icon: CheckCircle, className: "bg-success/10 text-success border-success/20" },
-  rejected: { label: "Devolvido", icon: XCircle, className: "bg-destructive/10 text-destructive border-destructive/20" },
-};
-
-function formatReferenceMonth(refMonth: string): string {
-  try {
-    const [year, month] = refMonth.split("-").map(Number);
-    const date = new Date(year, month - 1, 1);
-    return format(date, "MMMM/yyyy", { locale: ptBR });
-  } catch {
-    return refMonth;
-  }
+interface ThematicReportsGroup {
+  id: string;
+  title: string;
+  sponsor_name: string;
+  status: string;
+  reports: ReportWithDetails[];
 }
 
 export function ReportsReviewManagement() {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
-  const [isOpen, setIsOpen] = useState(true);
-  const [reports, setReports] = useState<ReportWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
+  
   const [statusFilter, setStatusFilter] = useState<string>("under_review");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sponsorFilter, setSponsorFilter] = useState<string>("all");
   
   // Review dialog state
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -103,10 +89,18 @@ export function ReportsReviewManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const fetchReports = async () => {
-    setLoading(true);
-    try {
-      // Fetch reports with scholar and project details
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['reports-management'],
+    queryFn: async () => {
+      // Fetch thematic projects
+      const { data: thematicProjects, error: thematicError } = await supabase
+        .from('thematic_projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (thematicError) throw thematicError;
+
+      // Fetch reports
       const { data: reportsData, error: reportsError } = await supabase
         .from("reports")
         .select("*")
@@ -115,35 +109,38 @@ export function ReportsReviewManagement() {
       if (reportsError) throw reportsError;
 
       if (!reportsData || reportsData.length === 0) {
-        setReports([]);
-        setLoading(false);
-        return;
+        return { thematicProjects: thematicProjects || [], reports: [] };
       }
 
       // Get unique user IDs
       const userIds = [...new Set(reportsData.map(r => r.user_id))];
 
-      // Fetch profiles for all users
+      // Fetch profiles
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name, email")
         .in("user_id", userIds);
 
-      // Fetch enrollments to get project info
+      // Fetch enrollments with project info
       const { data: enrollments } = await supabase
         .from("enrollments")
         .select(`
           id,
           user_id,
-          project:projects(id, title, code)
+          project:projects(id, title, code, thematic_project_id)
         `)
         .in("user_id", userIds);
 
-      // Fetch payments to link reports
+      // Fetch payments
       const { data: payments } = await supabase
         .from("payments")
         .select("id, user_id, reference_month, enrollment_id")
         .in("user_id", userIds);
+
+      // Build thematic project map
+      const thematicMap = new Map(
+        (thematicProjects || []).map(tp => [tp.id, tp])
+      );
 
       // Build enriched reports
       const enrichedReports: ReportWithDetails[] = reportsData.map(report => {
@@ -153,7 +150,9 @@ export function ReportsReviewManagement() {
           p.user_id === report.user_id && 
           p.reference_month === report.reference_month
         );
-        const project = enrollment?.project as { id: string; title: string; code: string } | null;
+        const project = enrollment?.project as { id: string; title: string; code: string; thematic_project_id: string } | null;
+        const thematicProjectId = project?.thematic_project_id || '';
+        const thematicProject = thematicMap.get(thematicProjectId);
 
         return {
           ...report,
@@ -163,31 +162,72 @@ export function ReportsReviewManagement() {
           project_code: project?.code || "",
           enrollment_id: enrollment?.id || "",
           payment_id: payment?.id || null,
+          thematic_project_id: thematicProjectId,
+          thematic_project_title: thematicProject?.title || "Projeto Temático não encontrado",
         };
       });
 
-      setReports(enrichedReports);
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-      toast.error("Erro ao carregar relatórios");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReports();
-  }, []);
-
-  const filteredReports = reports.filter(report => {
-    const matchesStatus = statusFilter === "all" || report.status === statusFilter;
-    const matchesSearch = 
-      searchTerm === "" ||
-      report.scholar_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.project_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.reference_month.includes(searchTerm);
-    return matchesStatus && matchesSearch;
+      return { thematicProjects: thematicProjects || [], reports: enrichedReports };
+    },
   });
+
+  // Get unique sponsors for filter
+  const sponsors = useMemo(() => {
+    return [...new Set(data?.thematicProjects?.map(p => p.sponsor_name) || [])];
+  }, [data?.thematicProjects]);
+
+  // Group reports by thematic project and apply filters
+  const filteredGroups = useMemo(() => {
+    if (!data) return [];
+
+    const searchLower = searchTerm.toLowerCase();
+
+    // Filter reports
+    let filteredReports = data.reports.filter(report => {
+      const matchesSearch = 
+        !searchTerm ||
+        report.scholar_name.toLowerCase().includes(searchLower) ||
+        report.project_code.toLowerCase().includes(searchLower);
+      
+      const matchesStatus = statusFilter === "all" || report.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+
+    // Group by thematic project
+    const groupedMap = new Map<string, ReportWithDetails[]>();
+    filteredReports.forEach(report => {
+      const key = report.thematic_project_id;
+      if (!groupedMap.has(key)) {
+        groupedMap.set(key, []);
+      }
+      groupedMap.get(key)!.push(report);
+    });
+
+    // Build groups with thematic project info
+    const groups: ThematicReportsGroup[] = [];
+    data.thematicProjects.forEach(tp => {
+      const reports = groupedMap.get(tp.id) || [];
+      
+      // Filter by sponsor
+      if (sponsorFilter !== 'all' && tp.sponsor_name !== sponsorFilter) {
+        return;
+      }
+      
+      // Only include thematic projects with reports
+      if (reports.length > 0) {
+        groups.push({
+          id: tp.id,
+          title: tp.title,
+          sponsor_name: tp.sponsor_name,
+          status: tp.status,
+          reports,
+        });
+      }
+    });
+
+    return groups;
+  }, [data, searchTerm, statusFilter, sponsorFilter]);
 
   const handleViewPdf = async (fileUrl: string) => {
     setPdfLoading(true);
@@ -234,7 +274,7 @@ export function ReportsReviewManagement() {
 
       if (reportError) throw reportError;
 
-      // Update payment status to eligible (released)
+      // Update payment status to eligible
       if (selectedReport.payment_id) {
         const { error: paymentError } = await supabase
           .from("payments")
@@ -264,7 +304,7 @@ export function ReportsReviewManagement() {
 
       toast.success("Relatório aprovado com sucesso!");
       setReviewDialogOpen(false);
-      fetchReports();
+      refetch();
     } catch (error) {
       console.error("Error approving report:", error);
       toast.error("Erro ao aprovar relatório");
@@ -317,7 +357,7 @@ export function ReportsReviewManagement() {
 
       toast.success("Relatório devolvido para correção");
       setReviewDialogOpen(false);
-      fetchReports();
+      refetch();
     } catch (error) {
       console.error("Error rejecting report:", error);
       toast.error("Erro ao devolver relatório");
@@ -326,159 +366,115 @@ export function ReportsReviewManagement() {
     }
   };
 
-  const pendingCount = reports.filter(r => r.status === "under_review").length;
+  // Calculate global stats
+  const globalStats = useMemo(() => {
+    const allReports = data?.reports || [];
+    return {
+      underReview: allReports.filter(r => r.status === 'under_review').length,
+    };
+  }, [data?.reports]);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="card-institutional overflow-hidden p-0">
-        <CollapsibleTrigger asChild>
-          <button className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileSearch className="w-5 h-5 text-primary" />
-              </div>
-              <div className="text-left">
-                <h2 className="text-lg font-semibold text-foreground">
-                  Avaliação de Relatórios
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {pendingCount > 0 
-                    ? `${pendingCount} relatório(s) aguardando análise`
-                    : "Todos os relatórios foram analisados"
-                  }
-                </p>
-              </div>
-            </div>
-            <ChevronDown className={cn(
-              "w-5 h-5 text-muted-foreground transition-transform",
-              isOpen && "rotate-180"
-            )} />
-          </button>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <div className="border-t border-border">
-            {/* Filters */}
-            <div className="p-4 bg-muted/30 flex flex-wrap gap-3 items-center">
-              <div className="flex-1 min-w-[200px]">
-                <Input
-                  placeholder="Buscar por bolsista, projeto ou mês..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="under_review">Em Análise</SelectItem>
-                  <SelectItem value="approved">Aprovados</SelectItem>
-                  <SelectItem value="rejected">Devolvidos</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={fetchReports}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar
-              </Button>
-            </div>
-
-            {/* Reports List */}
-            <div className="divide-y divide-border">
-              {loading ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                  <p className="text-sm text-muted-foreground mt-2">Carregando relatórios...</p>
-                </div>
-              ) : filteredReports.length === 0 ? (
-                <div className="p-8 text-center">
-                  <FileText className="w-10 h-10 mx-auto text-muted-foreground/50" />
-                  <p className="text-muted-foreground mt-2">
-                    {statusFilter === "under_review" 
-                      ? "Nenhum relatório pendente de análise"
-                      : "Nenhum relatório encontrado"
-                    }
-                  </p>
-                </div>
-              ) : (
-                filteredReports.map((report) => {
-                  const config = statusConfig[report.status] || statusConfig.under_review;
-                  const StatusIcon = config.icon;
-
-                  return (
-                    <div key={report.id} className="p-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                            <User className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-foreground truncate">
-                                {report.scholar_name}
-                              </p>
-                              <Badge variant="outline" className="text-xs">
-                                {report.project_code}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-0.5">
-                              Referência: {formatReferenceMonth(report.reference_month)} • Parcela {report.installment_number}
-                            </p>
-                            <div className="flex items-center gap-3 mt-2">
-                              <span className={cn(
-                                "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border",
-                                config.className
-                              )}>
-                                <StatusIcon className="w-3 h-3" />
-                                {config.label}
-                              </span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {format(parseISO(report.submitted_at), "dd/MM/yyyy HH:mm")}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewPdf(report.file_url)}
-                            disabled={pdfLoading}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Ver PDF
-                          </Button>
-                          {report.status === "under_review" && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleOpenReview(report)}
-                            >
-                              <FileSearch className="w-4 h-4 mr-1" />
-                              Avaliar
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {report.feedback && (
-                        <div className="mt-3 ml-13 p-3 bg-muted/50 rounded-lg text-sm">
-                          <p className="font-medium text-foreground mb-1">Parecer:</p>
-                          <p className="text-muted-foreground">{report.feedback}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <FileSearch className="h-5 w-5" />
+              Avaliação de Relatórios
+            </CardTitle>
+            <CardDescription>
+              {globalStats.underReview > 0 
+                ? `${globalStats.underReview} relatório(s) aguardando análise`
+                : "Acompanhe relatórios por projeto temático"
+              }
+            </CardDescription>
           </div>
-        </CollapsibleContent>
-      </div>
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative lg:col-span-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por bolsista ou código..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="under_review">Em Análise</SelectItem>
+              <SelectItem value="approved">Aprovados</SelectItem>
+              <SelectItem value="rejected">Devolvidos</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sponsorFilter} onValueChange={setSponsorFilter}>
+            <SelectTrigger>
+              <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Financiador" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os financiadores</SelectItem>
+              {sponsors.map(sponsor => (
+                <SelectItem key={sponsor} value={sponsor}>{sponsor}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Thematic Project Cards */}
+        <div className="space-y-4">
+          {isLoading ? (
+            Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex gap-4">
+                    <Skeleton className="w-12 h-12 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-6 w-full max-w-lg" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div className="flex gap-6">
+                      <Skeleton className="w-16 h-16" />
+                      <Skeleton className="w-16 h-16" />
+                      <Skeleton className="w-16 h-16" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : filteredGroups.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border rounded-lg">
+              <FileSearch className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum relatório encontrado</p>
+            </div>
+          ) : (
+            filteredGroups.map(group => (
+              <ReportsThematicCard
+                key={group.id}
+                group={group}
+                onViewPdf={handleViewPdf}
+                onReview={handleOpenReview}
+              />
+            ))
+          )}
+        </div>
+      </CardContent>
 
       {/* Review Dialog */}
       <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
@@ -489,68 +485,51 @@ export function ReportsReviewManagement() {
               Avaliar Relatório
             </DialogTitle>
             <DialogDescription>
-              Analise o relatório e emita seu parecer
+              Analise o relatório e forneça seu parecer
             </DialogDescription>
           </DialogHeader>
 
           {selectedReport && (
             <div className="space-y-4">
-              {/* Report Info */}
               <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-muted-foreground" />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Bolsista</span>
                   <span className="font-medium">{selectedReport.scholar_name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {selectedReport.project_code} • {formatReferenceMonth(selectedReport.reference_month)}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Projeto</span>
+                  <span className="font-medium">{selectedReport.project_code}</span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => handleViewPdf(selectedReport.file_url)}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Visualizar PDF
-                </Button>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Arquivo</span>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 h-auto"
+                    onClick={() => handleViewPdf(selectedReport.file_url)}
+                  >
+                    {selectedReport.file_name}
+                  </Button>
+                </div>
               </div>
 
-              {selectedReport.observations && (
-                <div className="p-3 bg-info/5 border border-info/20 rounded-lg">
-                  <p className="text-sm font-medium text-info mb-1">Observações do bolsista:</p>
-                  <p className="text-sm text-muted-foreground">{selectedReport.observations}</p>
-                </div>
-              )}
-
-              {/* Feedback */}
-              <div>
-                <Label htmlFor="feedback" className="text-sm font-medium">
-                  Parecer <span className="text-muted-foreground">(obrigatório para devolução)</span>
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="feedback">Parecer / Observações</Label>
                 <Textarea
                   id="feedback"
                   placeholder="Adicione seu parecer sobre o relatório..."
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
-                  className="mt-2 resize-none"
                   rows={4}
                 />
-              </div>
-
-              {/* Warning for rejection */}
-              <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                <AlertCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-warning">
-                  Ao devolver o relatório, o bolsista terá <strong>5 dias</strong> para reenviar uma versão corrigida.
+                <p className="text-xs text-muted-foreground">
+                  * Obrigatório para devolução
                 </p>
               </div>
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button 
               variant="outline" 
               onClick={() => setReviewDialogOpen(false)}
@@ -561,7 +540,7 @@ export function ReportsReviewManagement() {
             <Button
               variant="destructive"
               onClick={handleReject}
-              disabled={submitting || !feedback.trim()}
+              disabled={submitting}
               className="gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
@@ -578,6 +557,6 @@ export function ReportsReviewManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Collapsible>
+    </Card>
   );
 }

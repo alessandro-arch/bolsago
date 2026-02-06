@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   DollarSign,
   CheckCircle,
@@ -7,11 +8,10 @@ import {
   Filter,
   RefreshCw,
   Loader2,
-  User,
+  Search,
   Calendar,
-  ChevronDown,
-  Receipt,
-  CreditCard,
+  Download,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,19 +30,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PaymentsThematicCard } from "./PaymentsThematicCard";
 
 interface PaymentWithDetails {
   id: string;
@@ -58,23 +54,16 @@ interface PaymentWithDetails {
   scholar_email: string;
   project_title: string;
   project_code: string;
+  thematic_project_id: string;
+  thematic_project_title: string;
 }
 
-const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
-  pending: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning border-warning/20" },
-  eligible: { label: "Liberado", icon: CheckCircle, className: "bg-success/10 text-success border-success/20" },
-  paid: { label: "Pago", icon: CreditCard, className: "bg-primary/10 text-primary border-primary/20" },
-  cancelled: { label: "Cancelado", icon: Lock, className: "bg-destructive/10 text-destructive border-destructive/20" },
-};
-
-function formatReferenceMonth(refMonth: string): string {
-  try {
-    const [year, month] = refMonth.split("-").map(Number);
-    const date = new Date(year, month - 1, 1);
-    return format(date, "MMMM/yyyy", { locale: ptBR });
-  } catch {
-    return refMonth;
-  }
+interface ThematicPaymentsGroup {
+  id: string;
+  title: string;
+  sponsor_name: string;
+  status: string;
+  payments: PaymentWithDetails[];
 }
 
 function formatCurrency(value: number): string {
@@ -87,21 +76,30 @@ function formatCurrency(value: number): string {
 export function PaymentsManagement() {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
-  const [isOpen, setIsOpen] = useState(true);
-  const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("eligible");
+  const currentMonth = format(new Date(), 'yyyy-MM');
+  
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sponsorFilter, setSponsorFilter] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   
   // Payment confirmation dialog
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchPayments = async () => {
-    setLoading(true);
-    try {
-      // Fetch payments with enrollment data
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['payments-management', selectedMonth],
+    queryFn: async () => {
+      // Fetch thematic projects
+      const { data: thematicProjects, error: thematicError } = await supabase
+        .from('thematic_projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (thematicError) throw thematicError;
+
+      // Fetch payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from("payments")
         .select(`
@@ -109,17 +107,16 @@ export function PaymentsManagement() {
           enrollment:enrollments(
             id,
             user_id,
-            project:projects(id, title, code)
+            project:projects(id, title, code, thematic_project_id)
           )
         `)
+        .eq('reference_month', selectedMonth)
         .order("reference_month", { ascending: false });
 
       if (paymentsError) throw paymentsError;
 
       if (!paymentsData || paymentsData.length === 0) {
-        setPayments([]);
-        setLoading(false);
-        return;
+        return { thematicProjects: thematicProjects || [], payments: [] };
       }
 
       // Get unique user IDs
@@ -131,14 +128,22 @@ export function PaymentsManagement() {
         .select("user_id, full_name, email")
         .in("user_id", userIds);
 
+      // Build thematic project map
+      const thematicMap = new Map(
+        (thematicProjects || []).map(tp => [tp.id, tp])
+      );
+
       // Build enriched payments
       const enrichedPayments: PaymentWithDetails[] = paymentsData.map(payment => {
         const profile = profiles?.find(p => p.user_id === payment.user_id);
         const enrollment = payment.enrollment as { 
           id: string; 
           user_id: string;
-          project: { id: string; title: string; code: string } | null;
+          project: { id: string; title: string; code: string; thematic_project_id: string } | null;
         } | null;
+        
+        const thematicProjectId = enrollment?.project?.thematic_project_id || '';
+        const thematicProject = thematicMap.get(thematicProjectId);
 
         return {
           id: payment.id,
@@ -154,31 +159,72 @@ export function PaymentsManagement() {
           scholar_email: profile?.email || "",
           project_title: enrollment?.project?.title || "Projeto não encontrado",
           project_code: enrollment?.project?.code || "",
+          thematic_project_id: thematicProjectId,
+          thematic_project_title: thematicProject?.title || "Projeto Temático não encontrado",
         };
       });
 
-      setPayments(enrichedPayments);
-    } catch (error) {
-      console.error("Error fetching payments:", error);
-      toast.error("Erro ao carregar pagamentos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  const filteredPayments = payments.filter(payment => {
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-    const matchesSearch = 
-      searchTerm === "" ||
-      payment.scholar_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.project_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.reference_month.includes(searchTerm);
-    return matchesStatus && matchesSearch;
+      return { thematicProjects: thematicProjects || [], payments: enrichedPayments };
+    },
   });
+
+  // Get unique sponsors for filter
+  const sponsors = useMemo(() => {
+    return [...new Set(data?.thematicProjects?.map(p => p.sponsor_name) || [])];
+  }, [data?.thematicProjects]);
+
+  // Group payments by thematic project and apply filters
+  const filteredGroups = useMemo(() => {
+    if (!data) return [];
+
+    const searchLower = searchTerm.toLowerCase();
+
+    // Filter payments
+    let filteredPayments = data.payments.filter(payment => {
+      const matchesSearch = 
+        !searchTerm ||
+        payment.scholar_name.toLowerCase().includes(searchLower) ||
+        payment.project_code.toLowerCase().includes(searchLower);
+      
+      const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+
+    // Group by thematic project
+    const groupedMap = new Map<string, PaymentWithDetails[]>();
+    filteredPayments.forEach(payment => {
+      const key = payment.thematic_project_id;
+      if (!groupedMap.has(key)) {
+        groupedMap.set(key, []);
+      }
+      groupedMap.get(key)!.push(payment);
+    });
+
+    // Build groups with thematic project info
+    const groups: ThematicPaymentsGroup[] = [];
+    data.thematicProjects.forEach(tp => {
+      const payments = groupedMap.get(tp.id) || [];
+      
+      // Filter by sponsor
+      if (sponsorFilter !== 'all' && tp.sponsor_name !== sponsorFilter) {
+        return;
+      }
+      
+      // Only include thematic projects with payments or that match search
+      if (payments.length > 0 || tp.title.toLowerCase().includes(searchLower)) {
+        groups.push({
+          id: tp.id,
+          title: tp.title,
+          sponsor_name: tp.sponsor_name,
+          status: tp.status,
+          payments,
+        });
+      }
+    });
+
+    return groups.filter(g => g.payments.length > 0);
+  }, [data, searchTerm, statusFilter, sponsorFilter]);
 
   const handleOpenConfirm = (payment: PaymentWithDetails) => {
     setSelectedPayment(payment);
@@ -219,7 +265,7 @@ export function PaymentsManagement() {
 
       toast.success("Pagamento registrado com sucesso!");
       setConfirmDialogOpen(false);
-      fetchPayments();
+      refetch();
     } catch (error) {
       console.error("Error marking payment as paid:", error);
       toast.error("Erro ao registrar pagamento");
@@ -228,159 +274,145 @@ export function PaymentsManagement() {
     }
   };
 
-  const eligibleCount = payments.filter(p => p.status === "eligible").length;
-  const totalEligibleAmount = payments
-    .filter(p => p.status === "eligible")
-    .reduce((sum, p) => sum + p.amount, 0);
+  // Generate month options (current and 11 previous months)
+  const monthOptions = useMemo(() => {
+    const options = [];
+    const today = new Date();
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      options.push({
+        value: format(date, 'yyyy-MM'),
+        label: format(date, "MMMM 'de' yyyy", { locale: ptBR })
+      });
+    }
+    return options;
+  }, []);
+
+  // Calculate global stats
+  const globalStats = useMemo(() => {
+    const allPayments = data?.payments || [];
+    const eligible = allPayments.filter(p => p.status === 'eligible');
+    return {
+      totalEligible: eligible.length,
+      totalEligibleAmount: eligible.reduce((sum, p) => sum + p.amount, 0),
+    };
+  }, [data?.payments]);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="card-institutional overflow-hidden p-0">
-        <CollapsibleTrigger asChild>
-          <button className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-success" />
-              </div>
-              <div className="text-left">
-                <h2 className="text-lg font-semibold text-foreground">
-                  Gestão de Pagamentos
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {eligibleCount > 0 
-                    ? `${eligibleCount} pagamento(s) liberado(s) • ${formatCurrency(totalEligibleAmount)}`
-                    : "Nenhum pagamento liberado no momento"
-                  }
-                </p>
-              </div>
-            </div>
-            <ChevronDown className={cn(
-              "w-5 h-5 text-muted-foreground transition-transform",
-              isOpen && "rotate-180"
-            )} />
-          </button>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <div className="border-t border-border">
-            {/* Filters */}
-            <div className="p-4 bg-muted/30 flex flex-wrap gap-3 items-center">
-              <div className="flex-1 min-w-[200px]">
-                <Input
-                  placeholder="Buscar por bolsista, projeto ou mês..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="pending">Pendentes</SelectItem>
-                  <SelectItem value="eligible">Liberados</SelectItem>
-                  <SelectItem value="paid">Pagos</SelectItem>
-                  <SelectItem value="cancelled">Cancelados</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={fetchPayments}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar
-              </Button>
-            </div>
-
-            {/* Payments List */}
-            <div className="divide-y divide-border">
-              {loading ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                  <p className="text-sm text-muted-foreground mt-2">Carregando pagamentos...</p>
-                </div>
-              ) : filteredPayments.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Receipt className="w-10 h-10 mx-auto text-muted-foreground/50" />
-                  <p className="text-muted-foreground mt-2">
-                    {statusFilter === "eligible" 
-                      ? "Nenhum pagamento liberado para processamento"
-                      : "Nenhum pagamento encontrado"
-                    }
-                  </p>
-                </div>
-              ) : (
-                filteredPayments.map((payment) => {
-                  const config = statusConfig[payment.status] || statusConfig.pending;
-                  const StatusIcon = config.icon;
-
-                  return (
-                    <div key={payment.id} className="p-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                            <User className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-foreground truncate">
-                                {payment.scholar_name}
-                              </p>
-                              <Badge variant="outline" className="text-xs">
-                                {payment.project_code}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-0.5">
-                              {formatReferenceMonth(payment.reference_month)} • Parcela {payment.installment_number}
-                            </p>
-                            <div className="flex items-center gap-3 mt-2">
-                              <span className={cn(
-                                "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border",
-                                config.className
-                              )}>
-                                <StatusIcon className="w-3 h-3" />
-                                {config.label}
-                              </span>
-                              <span className="font-semibold text-foreground">
-                                {formatCurrency(payment.amount)}
-                              </span>
-                              {payment.paid_at && (
-                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  Pago em {format(parseISO(payment.paid_at), "dd/MM/yyyy")}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {payment.status === "eligible" && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleOpenConfirm(payment)}
-                              className="gap-1.5"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Marcar como Pago
-                            </Button>
-                          )}
-                          {payment.status === "pending" && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Lock className="w-3 h-3" />
-                              Aguardando relatório
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Gestão de Pagamentos
+            </CardTitle>
+            <CardDescription>
+              {globalStats.totalEligible > 0 
+                ? `${globalStats.totalEligible} pagamento(s) liberado(s) • ${formatCurrency(globalStats.totalEligibleAmount)}`
+                : "Acompanhe pagamentos por projeto temático"
+              }
+            </CardDescription>
           </div>
-        </CollapsibleContent>
-      </div>
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="relative lg:col-span-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por bolsista ou código..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="eligible">Liberados</SelectItem>
+              <SelectItem value="paid">Pagos</SelectItem>
+              <SelectItem value="cancelled">Cancelados</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sponsorFilter} onValueChange={setSponsorFilter}>
+            <SelectTrigger>
+              <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Financiador" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os financiadores</SelectItem>
+              {sponsors.map(sponsor => (
+                <SelectItem key={sponsor} value={sponsor}>{sponsor}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger>
+              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Thematic Project Cards */}
+        <div className="space-y-4">
+          {isLoading ? (
+            Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex gap-4">
+                    <Skeleton className="w-12 h-12 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-6 w-full max-w-lg" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div className="flex gap-6">
+                      <Skeleton className="w-16 h-16" />
+                      <Skeleton className="w-16 h-16" />
+                      <Skeleton className="w-16 h-16" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : filteredGroups.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border rounded-lg">
+              <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum pagamento encontrado</p>
+            </div>
+          ) : (
+            filteredGroups.map(group => (
+              <PaymentsThematicCard
+                key={group.id}
+                group={group}
+                onMarkAsPaid={handleOpenConfirm}
+              />
+            ))
+          )}
+        </div>
+      </CardContent>
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -406,10 +438,6 @@ export function PaymentsManagement() {
                   <span className="text-sm text-muted-foreground">Projeto</span>
                   <span className="font-medium">{selectedPayment.project_code}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Referência</span>
-                  <span className="font-medium">{formatReferenceMonth(selectedPayment.reference_month)}</span>
-                </div>
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <span className="text-sm font-medium">Valor</span>
                   <span className="text-lg font-bold text-success">
@@ -419,7 +447,7 @@ export function PaymentsManagement() {
               </div>
 
               <p className="text-sm text-muted-foreground text-center">
-                Esta ação irá registrar o pagamento como realizado e ficará disponível para o bolsista.
+                Esta ação irá registrar o pagamento como realizado.
               </p>
             </div>
           )}
@@ -443,6 +471,6 @@ export function PaymentsManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Collapsible>
+    </Card>
   );
 }

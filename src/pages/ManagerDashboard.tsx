@@ -21,24 +21,24 @@ const ManagerDashboard = () => {
           <Header />
           
           <main className="flex-1 p-6 overflow-auto space-y-6">
-            {/* Users Management Section */}
+            {/* Projects Management Section - Grouped by Thematic Project */}
             <div className="animate-fade-in">
-              <UsersManagement />
+              <ProjectsManagement />
             </div>
             
-            {/* Bank Data Management Section */}
+            {/* Payments Management Section - Grouped by Thematic Project */}
             <div className="animate-fade-in">
-              <BankDataManagement />
+              <PaymentsManagement />
             </div>
             
-            {/* Reports Review Section */}
+            {/* Reports Review Section - Grouped by Thematic Project */}
             <div className="animate-fade-in">
               <ReportsReviewManagement />
             </div>
             
-            {/* Payments Management Section */}
+            {/* Bank Data Management Section - Grouped by Thematic Project */}
             <div className="animate-fade-in">
-              <PaymentsManagement />
+              <BankDataManagement />
             </div>
             
             {/* Scholars Management Section - Grouped by Thematic Project */}
@@ -46,9 +46,9 @@ const ManagerDashboard = () => {
               <ScholarsManagement />
             </div>
             
-            {/* Projects Management Section - Grouped by Thematic Project */}
+            {/* Users Management Section - At the end */}
             <div className="animate-fade-in">
-              <ProjectsManagement />
+              <UsersManagement />
             </div>
           </main>
           <Footer />

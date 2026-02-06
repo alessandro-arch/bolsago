@@ -1,6 +1,5 @@
-import { Bell, Search, ChevronDown, LogOut, Shield, User, Camera, Loader2 } from "lucide-react";
+import { Search, ChevronDown, LogOut, Shield, User, Camera, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAvatarUpload } from "@/hooks/useAvatarUpload";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useEffect, useRef } from "react";
-
 export function Header() {
   const { user, signOut } = useAuth();
   const { hasManagerAccess, role } = useUserRole();
@@ -63,10 +62,7 @@ export function Header() {
       {/* Right side */}
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-        </button>
+        <NotificationBell />
 
         {/* User Menu */}
         <DropdownMenu>

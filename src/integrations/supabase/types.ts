@@ -568,6 +568,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      encrypt_pix_key: { Args: { pix: string }; Returns: string }
       get_pix_key_secret: { Args: never; Returns: string }
       has_role: {
         Args: {

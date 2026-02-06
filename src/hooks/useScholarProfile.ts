@@ -118,7 +118,7 @@ export function useScholarProfile(): UseScholarProfileReturn {
           agency: bankAccountData.agency || "",
           account: bankAccountData.account_number || "",
           accountType: bankAccountData.account_type || "",
-          pixKey: bankAccountData.pix_key || "",
+          pixKey: bankAccountData.pix_key_masked || "",
           pixKeyType: bankAccountData.pix_key_type || "",
         });
       } else {
@@ -208,6 +208,9 @@ export function useScholarProfile(): UseScholarProfileReturn {
     setError(null);
 
     try {
+      // Note: PIX key encryption is handled by database triggers using encrypt_pix_key()
+      // We store the masked version for display purposes
+      const pixKeyValue = data.pixKey || bankData?.pixKey || null;
       const bankRecord = {
         user_id: user.id,
         bank_code: data.bankCode || bankData?.bankCode || "",
@@ -215,7 +218,6 @@ export function useScholarProfile(): UseScholarProfileReturn {
         agency: data.agency || bankData?.agency || "",
         account_number: data.account || bankData?.account || "",
         account_type: data.accountType || bankData?.accountType || "checking",
-        pix_key: data.pixKey || bankData?.pixKey || null,
         pix_key_type: data.pixKeyType || bankData?.pixKeyType || null,
       };
 
@@ -229,25 +231,35 @@ export function useScholarProfile(): UseScholarProfileReturn {
       let upsertError;
 
       if (existing) {
-        // Update existing
+        // Update existing - pix_key is handled by database trigger for encryption
+        const updateData: Record<string, string | null> = {
+          bank_code: bankRecord.bank_code,
+          bank_name: bankRecord.bank_name,
+          agency: bankRecord.agency,
+          account_number: bankRecord.account_number,
+          account_type: bankRecord.account_type,
+          pix_key_type: bankRecord.pix_key_type,
+        };
+        
+        // Only include PIX key fields if a new value is provided
+        if (pixKeyValue && pixKeyValue.trim() !== "") {
+          updateData.pix_key_masked = pixKeyValue; // Database trigger will encrypt and mask
+        }
+        
         const { error } = await supabase
           .from("bank_accounts")
-          .update({
-            bank_code: bankRecord.bank_code,
-            bank_name: bankRecord.bank_name,
-            agency: bankRecord.agency,
-            account_number: bankRecord.account_number,
-            account_type: bankRecord.account_type,
-            pix_key: bankRecord.pix_key,
-            pix_key_type: bankRecord.pix_key_type,
-          })
+          .update(updateData)
           .eq("user_id", user.id);
         upsertError = error;
       } else {
-        // Insert new
+        // Insert new - database trigger will handle PIX key encryption
+        const insertData = {
+          ...bankRecord,
+          pix_key_masked: pixKeyValue, // Database trigger will encrypt and mask
+        };
         const { error } = await supabase
           .from("bank_accounts")
-          .insert(bankRecord);
+          .insert(insertData);
         upsertError = error;
       }
 

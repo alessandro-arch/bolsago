@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { DocumentsGrid } from "@/components/documents/DocumentsGrid";
-import { FileText, Search, Filter } from "lucide-react";
+import { UploadDocumentDialog } from "@/components/documents/UploadDocumentDialog";
+import { FileText, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,8 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Documents = () => {
+  const { isManager, isAdmin } = useUserRole();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("todos");
+  const [sortOrder, setSortOrder] = useState("recentes");
+
+  const canUpload = isManager || isAdmin;
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       <Sidebar />
@@ -33,6 +42,8 @@ const Documents = () => {
                 <p className="text-muted-foreground">Manuais, templates e termos disponíveis para download</p>
               </div>
             </div>
+
+            {canUpload && <UploadDocumentDialog />}
           </div>
 
           {/* Filters */}
@@ -43,10 +54,12 @@ const Documents = () => {
                 <Input
                   placeholder="Buscar documentos..."
                   className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               
-              <Select defaultValue="todos">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
@@ -58,7 +71,7 @@ const Documents = () => {
                 </SelectContent>
               </Select>
 
-              <Select defaultValue="recentes">
+              <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Ordenar por" />
                 </SelectTrigger>
@@ -74,7 +87,11 @@ const Documents = () => {
 
           {/* Documents Grid */}
           <div className="animate-fade-in">
-            <DocumentsGrid />
+            <DocumentsGrid 
+              searchQuery={searchQuery}
+              typeFilter={typeFilter}
+              sortOrder={sortOrder}
+            />
           </div>
         </main>
         <Footer />

@@ -1,21 +1,9 @@
-import { FileText, Download, Eye, BookOpen, FileSpreadsheet, File, Calendar, HardDrive } from "lucide-react";
+import { FileText, Download, Eye, BookOpen, FileSpreadsheet, File, Calendar, HardDrive, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-type DocumentType = "manual" | "template" | "institutional";
-
-interface InstitutionalDocument {
-  id: string;
-  type: DocumentType;
-  title: string;
-  description: string;
-  updatedAt: string;
-  fileSize: string;
-  fileFormat: string;
-}
-
-// Empty array - documents will be loaded from backend or storage
-const documents: InstitutionalDocument[] = [];
+import { useInstitutionalDocuments, InstitutionalDocument, DocumentType } from "@/hooks/useInstitutionalDocuments";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const typeConfig: Record<DocumentType, { label: string; icon: typeof BookOpen; className: string }> = {
   manual: {
@@ -28,12 +16,19 @@ const typeConfig: Record<DocumentType, { label: string; icon: typeof BookOpen; c
     icon: FileSpreadsheet,
     className: "bg-success/10 text-success",
   },
-  institutional: {
-    label: "Institucional",
+  termo: {
+    label: "Termo",
     icon: File,
     className: "bg-info/10 text-info",
   },
 };
+
+function formatFileSize(bytes: number | null) {
+  if (!bytes) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function DocumentTypeBadge({ type }: { type: DocumentType }) {
   const config = typeConfig[type];
@@ -48,6 +43,17 @@ function DocumentTypeBadge({ type }: { type: DocumentType }) {
 function DocumentCard({ document }: { document: InstitutionalDocument }) {
   const config = typeConfig[document.type];
   const Icon = config.icon;
+
+  const handleView = () => {
+    window.open(document.file_url, "_blank");
+  };
+
+  const handleDownload = () => {
+    const link = window.document.createElement("a");
+    link.href = document.file_url;
+    link.download = document.file_name;
+    link.click();
+  };
 
   return (
     <div className="card-stat flex flex-col h-full">
@@ -66,31 +72,31 @@ function DocumentCard({ document }: { document: InstitutionalDocument }) {
 
       {/* Description */}
       <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">
-        {document.description}
+        {document.description || "Sem descrição"}
       </p>
 
       {/* Metadata */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 pb-4 border-b border-border">
         <div className="flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5" />
-          <span>{document.updatedAt}</span>
+          <span>{format(new Date(document.updated_at), "dd/MM/yyyy", { locale: ptBR })}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <HardDrive className="w-3.5 h-3.5" />
-          <span>{document.fileSize}</span>
+          <span>{formatFileSize(document.file_size)}</span>
         </div>
         <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
-          {document.fileFormat}
+          PDF
         </span>
       </div>
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="flex-1 gap-1.5">
+        <Button variant="ghost" size="sm" className="flex-1 gap-1.5" onClick={handleView}>
           <Eye className="w-4 h-4" />
           Visualizar
         </Button>
-        <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+        <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={handleDownload}>
           <Download className="w-4 h-4" />
           Baixar
         </Button>
@@ -100,6 +106,8 @@ function DocumentCard({ document }: { document: InstitutionalDocument }) {
 }
 
 export function DocumentsSection() {
+  const { data: documents, isLoading } = useInstitutionalDocuments();
+
   return (
     <div className="mb-6">
       {/* Header */}
@@ -116,7 +124,11 @@ export function DocumentsSection() {
       </div>
 
       {/* Documents Grid or Empty State */}
-      {documents.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : !documents || documents.length === 0 ? (
         <div className="card-institutional flex flex-col items-center justify-center py-12">
           <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
             <FileText className="w-6 h-6 text-muted-foreground" />

@@ -91,6 +91,12 @@ export function PaymentsManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
+  // Attach receipt dialog (for retroactive upload)
+  const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+  const [attachPayment, setAttachPayment] = useState<PaymentWithDetails | null>(null);
+  const [attachReceiptUrl, setAttachReceiptUrl] = useState<string | null>(null);
+  const [attachSubmitting, setAttachSubmitting] = useState(false);
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['payments-management', selectedMonth],
     queryFn: async () => {
@@ -235,8 +241,54 @@ export function PaymentsManagement() {
     setConfirmDialogOpen(true);
   };
 
+  const handleOpenAttachReceipt = (payment: PaymentWithDetails) => {
+    setAttachPayment(payment);
+    setAttachReceiptUrl(null);
+    setAttachDialogOpen(true);
+  };
+
   const handleReceiptUploaded = (url: string) => {
     setReceiptUrl(url);
+  };
+
+  const handleAttachReceiptUploaded = (url: string) => {
+    setAttachReceiptUrl(url);
+  };
+
+  const handleSaveAttachReceipt = async () => {
+    if (!attachPayment || !attachReceiptUrl || !user) return;
+    setAttachSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from("payments")
+        .update({ receipt_url: attachReceiptUrl })
+        .eq("id", attachPayment.id);
+
+      if (error) throw error;
+
+      await logAction({
+        action: "attach_payment_receipt",
+        entityType: "payment",
+        entityId: attachPayment.id,
+        details: {
+          scholar_id: attachPayment.user_id,
+          scholar_name: attachPayment.scholar_name,
+          reference_month: attachPayment.reference_month,
+          amount: attachPayment.amount,
+          retroactive: true,
+        },
+      });
+
+      toast.success("Comprovante anexado com sucesso!");
+      setAttachDialogOpen(false);
+      refetch();
+    } catch (error) {
+      console.error("Error attaching receipt:", error);
+      toast.error("Erro ao anexar comprovante");
+    } finally {
+      setAttachSubmitting(false);
+    }
   };
 
   const handleMarkAsPaid = async () => {
@@ -423,6 +475,7 @@ export function PaymentsManagement() {
                 key={group.id}
                 group={group}
                 onMarkAsPaid={handleOpenConfirm}
+                onAttachReceipt={handleOpenAttachReceipt}
               />
             ))
           )}
@@ -503,6 +556,80 @@ export function PaymentsManagement() {
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
               Confirmar Pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attach Receipt Dialog (Retroactive) */}
+      <Dialog open={attachDialogOpen} onOpenChange={setAttachDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileUp className="w-5 h-5 text-primary" />
+              Anexar Comprovante
+            </DialogTitle>
+            <DialogDescription>
+              Adicione o comprovante de pagamento retroativamente
+            </DialogDescription>
+          </DialogHeader>
+
+          {attachPayment && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Bolsista</span>
+                  <span className="font-medium">{attachPayment.scholar_name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Projeto</span>
+                  <span className="font-medium">{attachPayment.project_code}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Referência</span>
+                  <span className="font-medium">
+                    {format(parseISO(`${attachPayment.reference_month}-01`), "MMMM/yyyy", { locale: ptBR })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <span className="text-sm font-medium">Valor</span>
+                  <span className="text-lg font-bold text-primary">
+                    {formatCurrency(attachPayment.amount)}
+                  </span>
+                </div>
+              </div>
+
+              <PaymentReceiptUpload
+                paymentId={attachPayment.id}
+                userId={attachPayment.user_id}
+                referenceMonth={attachPayment.reference_month}
+                onUploadComplete={handleAttachReceiptUploaded}
+              />
+
+              {attachReceiptUrl && (
+                <div className="flex items-center gap-2 p-2 bg-success/10 rounded-lg text-success text-sm">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Comprovante anexado com sucesso</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setAttachDialogOpen(false)}
+              disabled={attachSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveAttachReceipt}
+              disabled={attachSubmitting || !attachReceiptUrl}
+              className="gap-2"
+            >
+              {attachSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              Salvar Comprovante
             </Button>
           </DialogFooter>
         </DialogContent>

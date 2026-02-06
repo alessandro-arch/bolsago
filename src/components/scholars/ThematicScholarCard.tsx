@@ -24,7 +24,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   archived: { label: 'Arquivado', className: 'bg-muted text-muted-foreground border-muted' },
 };
 
-export function ThematicScholarCard({ project, scholars, onRefresh }: ThematicScholarCardProps) {
+import { forwardRef } from 'react';
+
+export const ThematicScholarCard = forwardRef<HTMLDivElement, ThematicScholarCardProps>(
+  function ThematicScholarCard({ project, scholars, onRefresh }, ref) {
   const [isOpen, setIsOpen] = useState(false);
 
   const config = statusConfig[project.status] || statusConfig.active;
@@ -122,4 +125,6 @@ export function ThematicScholarCard({ project, scholars, onRefresh }: ThematicSc
       </Collapsible>
     </Card>
   );
-}
+});
+
+ThematicScholarCard.displayName = "ThematicScholarCard";

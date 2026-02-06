@@ -214,6 +214,45 @@ export type Database = {
         }
         Relationships: []
       }
+      institutional_documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          title: string
+          type: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          title: string
+          type: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       invite_code_uses: {
         Row: {
           id: string

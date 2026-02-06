@@ -71,6 +71,8 @@ export type Database = {
           locked_for_edit: boolean
           notes_gestor: string | null
           pix_key: string | null
+          pix_key_encrypted: string | null
+          pix_key_masked: string | null
           pix_key_type: string | null
           updated_at: string
           user_id: string
@@ -89,6 +91,8 @@ export type Database = {
           locked_for_edit?: boolean
           notes_gestor?: string | null
           pix_key?: string | null
+          pix_key_encrypted?: string | null
+          pix_key_masked?: string | null
           pix_key_type?: string | null
           updated_at?: string
           user_id: string
@@ -107,6 +111,8 @@ export type Database = {
           locked_for_edit?: boolean
           notes_gestor?: string | null
           pix_key?: string | null
+          pix_key_encrypted?: string | null
+          pix_key_masked?: string | null
           pix_key_type?: string | null
           updated_at?: string
           user_id?: string

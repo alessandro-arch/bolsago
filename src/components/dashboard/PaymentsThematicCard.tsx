@@ -18,10 +18,10 @@ import {
 import { 
   Building2, 
   ChevronDown, 
-  Users, 
   DollarSign,
-  FileText,
   CheckCircle,
+  FileUp,
+  Paperclip,
   Clock,
   CreditCard,
   Lock,
@@ -61,6 +61,7 @@ interface ThematicPaymentsGroup {
 interface PaymentsThematicCardProps {
   group: ThematicPaymentsGroup;
   onMarkAsPaid: (payment: PaymentWithDetails) => void;
+  onAttachReceipt?: (payment: PaymentWithDetails) => void;
 }
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
@@ -87,7 +88,7 @@ function formatReferenceMonth(refMonth: string): string {
   }
 }
 
-export function PaymentsThematicCard({ group, onMarkAsPaid }: PaymentsThematicCardProps) {
+export function PaymentsThematicCard({ group, onMarkAsPaid, onAttachReceipt }: PaymentsThematicCardProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Calculate KPIs
@@ -282,11 +283,27 @@ export function PaymentsThematicCard({ group, onMarkAsPaid }: PaymentsThematicCa
                                 Pagar
                               </Button>
                             )}
-                            {payment.status === "paid" && payment.paid_at && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {format(parseISO(payment.paid_at), "dd/MM/yyyy")}
-                              </span>
+                            {payment.status === "paid" && (
+                              <div className="flex items-center gap-2">
+                                {payment.paid_at && (
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {format(parseISO(payment.paid_at), "dd/MM/yyyy")}
+                                  </span>
+                                )}
+                                {onAttachReceipt && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onAttachReceipt(payment)}
+                                    className="gap-1 h-7 px-2"
+                                    title="Anexar comprovante"
+                                  >
+                                    <Paperclip className="w-3 h-3" />
+                                    <span className="hidden sm:inline text-xs">Comprovante</span>
+                                  </Button>
+                                )}
+                              </div>
                             )}
                             {payment.status === "pending" && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">

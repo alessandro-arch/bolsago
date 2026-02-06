@@ -61,7 +61,7 @@ export function useBankDataStatus(): UseBankDataStatusReturn {
           agency: data.agency,
           account: data.account_number,
           accountType: data.account_type || "",
-          pixKey: data.pix_key || "",
+          pixKey: data.pix_key_masked || "",
         });
         
         // Map database status to our status type

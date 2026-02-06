@@ -1,9 +1,21 @@
-import { FileText, Book, FileCheck, Eye, Download, AlertTriangle, Loader2 } from "lucide-react";
+import { FileText, Book, FileCheck, Eye, Download, AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useInstitutionalDocuments, InstitutionalDocument, DocumentType } from "@/hooks/useInstitutionalDocuments";
+import { useInstitutionalDocuments, useDeleteInstitutionalDocument, InstitutionalDocument, DocumentType } from "@/hooks/useInstitutionalDocuments";
+import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const typeConfig: Record<DocumentType, { label: string; icon: typeof FileText; className: string }> = {
   manual: { 
@@ -30,9 +42,10 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function DocumentCard({ document }: { document: InstitutionalDocument }) {
+function DocumentCard({ document, isAdmin }: { document: InstitutionalDocument; isAdmin: boolean }) {
   const config = typeConfig[document.type];
   const Icon = config.icon;
+  const deleteMutation = useDeleteInstitutionalDocument();
 
   const handleView = () => {
     window.open(document.file_url, "_blank");
@@ -43,6 +56,10 @@ function DocumentCard({ document }: { document: InstitutionalDocument }) {
     link.href = document.file_url;
     link.download = document.file_name;
     link.click();
+  };
+
+  const handleDelete = () => {
+    deleteMutation.mutate(document);
   };
 
   return (
@@ -58,6 +75,37 @@ function DocumentCard({ document }: { document: InstitutionalDocument }) {
           </span>
           <h3 className="font-semibold text-foreground leading-tight">{document.title}</h3>
         </div>
+        {isAdmin && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir documento</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir o documento "{document.title}"? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {/* Description */}
@@ -94,6 +142,7 @@ interface DocumentsGridProps {
 
 export function DocumentsGrid({ searchQuery = "", typeFilter = "todos", sortOrder = "recentes" }: DocumentsGridProps) {
   const { data: documents, isLoading } = useInstitutionalDocuments();
+  const { isAdmin } = useUserRole();
 
   // Filter and sort documents
   const filteredDocuments = documents?.filter((doc) => {
@@ -144,7 +193,7 @@ export function DocumentsGrid({ searchQuery = "", typeFilter = "todos", sortOrde
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredDocuments.map((document) => (
-            <DocumentCard key={document.id} document={document} />
+            <DocumentCard key={document.id} document={document} isAdmin={isAdmin} />
           ))}
         </div>
       )}

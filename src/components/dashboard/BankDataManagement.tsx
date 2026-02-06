@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,14 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -31,29 +23,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { 
   Search, 
   Landmark, 
-  Eye, 
-  EyeOff, 
   CheckCircle, 
   Clock,
   AlertCircle,
   XCircle,
   RotateCcw,
   FileCheck,
-  Info
+  Info,
+  RefreshCw,
+  Filter,
+  Building2,
 } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import type { Database } from '@/integrations/supabase/types';
+
+import { BankDataThematicCard } from './BankDataThematicCard';
 
 type BankValidationStatus = 'pending' | 'under_review' | 'validated' | 'returned';
 
@@ -79,6 +66,16 @@ interface BankAccountWithProfile {
     email: string | null;
     cpf: string | null;
   } | null;
+  thematic_project_id: string;
+  thematic_project_title: string;
+}
+
+interface ThematicBankDataGroup {
+  id: string;
+  title: string;
+  sponsor_name: string;
+  status: string;
+  accounts: BankAccountWithProfile[];
 }
 
 const STATUS_CONFIG = {
@@ -115,14 +112,24 @@ export function BankDataManagement() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sponsorFilter, setSponsorFilter] = useState<string>('all');
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [selectedAccount, setSelectedAccount] = useState<BankAccountWithProfile | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [gestorNotes, setGestorNotes] = useState('');
 
-  const { data: bankAccounts, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['bank-accounts-management'],
     queryFn: async () => {
+      // Fetch thematic projects
+      const { data: thematicProjects, error: thematicError } = await supabase
+        .from('thematic_projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (thematicError) throw thematicError;
+
+      // Fetch bank accounts
       const { data: accounts, error: accountsError } = await supabase
         .from('bank_accounts')
         .select('*')
@@ -131,21 +138,52 @@ export function BankDataManagement() {
       if (accountsError) throw accountsError;
 
       const userIds = accounts?.map(a => a.user_id) || [];
-      if (userIds.length === 0) return [];
+      if (userIds.length === 0) return { thematicProjects: thematicProjects || [], accounts: [] };
 
+      // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, full_name, email, cpf')
+        .select('user_id, full_name, email, cpf, thematic_project_id')
         .in('user_id', userIds);
 
       if (profilesError) throw profilesError;
 
+      // Fetch enrollments to get thematic project info
+      const { data: enrollments } = await supabase
+        .from('enrollments')
+        .select(`
+          user_id,
+          project:projects(thematic_project_id)
+        `)
+        .in('user_id', userIds)
+        .eq('status', 'active');
+
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]));
+      const enrollmentMap = new Map(
+        enrollments?.map(e => {
+          const project = e.project as { thematic_project_id: string } | null;
+          return [e.user_id, project?.thematic_project_id || ''];
+        })
+      );
+      const thematicMap = new Map(
+        (thematicProjects || []).map(tp => [tp.id, tp])
+      );
       
-      return accounts?.map(account => ({
-        ...account,
-        profile: profileMap.get(account.user_id) || null,
-      })) as BankAccountWithProfile[];
+      const enrichedAccounts: BankAccountWithProfile[] = accounts?.map(account => {
+        const profile = profileMap.get(account.user_id);
+        // First try enrollment, then profile thematic_project_id
+        const thematicProjectId = enrollmentMap.get(account.user_id) || profile?.thematic_project_id || '';
+        const thematicProject = thematicMap.get(thematicProjectId);
+        
+        return {
+          ...account,
+          profile: profile || null,
+          thematic_project_id: thematicProjectId,
+          thematic_project_title: thematicProject?.title || 'Não vinculado',
+        };
+      }) || [];
+
+      return { thematicProjects: thematicProjects || [], accounts: enrichedAccounts };
     },
   });
 
@@ -164,14 +202,12 @@ export function BankDataManagement() {
         notes_gestor: notes || null,
       };
 
-      // Set locked_for_edit based on status
       if (newStatus === 'under_review' || newStatus === 'validated') {
         updateData.locked_for_edit = true;
       } else if (newStatus === 'returned') {
         updateData.locked_for_edit = false;
       }
 
-      // Set validation metadata when validated
       if (newStatus === 'validated') {
         updateData.validated_by = user?.id;
         updateData.validated_at = new Date().toISOString();
@@ -189,7 +225,6 @@ export function BankDataManagement() {
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['bank-accounts-management'] });
       
-      // Log the action
       const actionMap: Record<string, 'bank_data_under_review' | 'bank_data_validated' | 'bank_data_returned'> = {
         under_review: 'bank_data_under_review',
         validated: 'bank_data_validated',
@@ -231,19 +266,79 @@ export function BankDataManagement() {
     },
   });
 
-  const filteredAccounts = bankAccounts?.filter(account => {
+  // Get unique sponsors for filter
+  const sponsors = useMemo(() => {
+    return [...new Set(data?.thematicProjects?.map(p => p.sponsor_name) || [])];
+  }, [data?.thematicProjects]);
+
+  // Group accounts by thematic project and apply filters
+  const filteredGroups = useMemo(() => {
+    if (!data) return [];
+
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = (
-      account.profile?.full_name?.toLowerCase().includes(searchLower) ||
-      account.profile?.email?.toLowerCase().includes(searchLower) ||
-      account.profile?.cpf?.includes(searchLower) ||
-      account.bank_name.toLowerCase().includes(searchLower)
-    );
+
+    // Filter accounts
+    let filteredAccounts = data.accounts.filter(account => {
+      const matchesSearch = (
+        !searchTerm ||
+        account.profile?.full_name?.toLowerCase().includes(searchLower) ||
+        account.profile?.email?.toLowerCase().includes(searchLower) ||
+        account.profile?.cpf?.includes(searchLower) ||
+        account.bank_name.toLowerCase().includes(searchLower)
+      );
+      
+      const matchesStatus = statusFilter === 'all' || account.validation_status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+
+    // Group by thematic project
+    const groupedMap = new Map<string, BankAccountWithProfile[]>();
+    filteredAccounts.forEach(account => {
+      const key = account.thematic_project_id || 'unassigned';
+      if (!groupedMap.has(key)) {
+        groupedMap.set(key, []);
+      }
+      groupedMap.get(key)!.push(account);
+    });
+
+    // Build groups with thematic project info
+    const groups: ThematicBankDataGroup[] = [];
     
-    const matchesStatus = statusFilter === 'all' || account.validation_status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+    data.thematicProjects.forEach(tp => {
+      const accounts = groupedMap.get(tp.id) || [];
+      
+      // Filter by sponsor
+      if (sponsorFilter !== 'all' && tp.sponsor_name !== sponsorFilter) {
+        return;
+      }
+      
+      // Only include thematic projects with accounts
+      if (accounts.length > 0) {
+        groups.push({
+          id: tp.id,
+          title: tp.title,
+          sponsor_name: tp.sponsor_name,
+          status: tp.status,
+          accounts,
+        });
+      }
+    });
+
+    // Add unassigned accounts group
+    const unassigned = groupedMap.get('unassigned') || [];
+    if (unassigned.length > 0 && sponsorFilter === 'all') {
+      groups.push({
+        id: 'unassigned',
+        title: 'Bolsistas não vinculados a projetos',
+        sponsor_name: '—',
+        status: 'active',
+        accounts: unassigned,
+      });
+    }
+
+    return groups;
+  }, [data, searchTerm, statusFilter, sponsorFilter]);
 
   const toggleReveal = (id: string) => {
     setRevealedIds(prev => {
@@ -255,18 +350,6 @@ export function BankDataManagement() {
       }
       return newSet;
     });
-  };
-
-  const maskValue = (value: string, revealed: boolean) => {
-    if (revealed) return value;
-    if (value.length <= 4) return '****';
-    return value.slice(0, 2) + '****' + value.slice(-2);
-  };
-
-  const maskCPF = (cpf: string | null, revealed: boolean) => {
-    if (!cpf) return '—';
-    if (revealed) return cpf;
-    return cpf.replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, '***.$2.***-**');
   };
 
   const getAccountTypeLabel = (type: string | null) => {
@@ -304,45 +387,57 @@ export function BankDataManagement() {
     });
   };
 
-  const statusCounts = bankAccounts?.reduce((acc, account) => {
-    acc[account.validation_status] = (acc[account.validation_status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>) || {};
+  // Calculate global stats
+  const globalStats = useMemo(() => {
+    const allAccounts = data?.accounts || [];
+    return {
+      pending: allAccounts.filter(a => a.validation_status === 'pending').length,
+      underReview: allAccounts.filter(a => a.validation_status === 'under_review').length,
+      validated: allAccounts.filter(a => a.validation_status === 'validated').length,
+    };
+  }, [data?.accounts]);
 
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Landmark className="h-5 w-5" />
                 Gestão de Dados Bancários
               </CardTitle>
               <CardDescription>
-                Visualize e gerencie os dados bancários de todos os bolsistas e valide informações para liberação de pagamentos.
+                {globalStats.pending > 0 || globalStats.underReview > 0
+                  ? `${globalStats.pending} pendente(s) • ${globalStats.underReview} em análise • ${globalStats.validated} validado(s)`
+                  : "Visualize e valide dados bancários por projeto temático"
+                }
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <Badge variant="outline" className="gap-1">
                 <Clock className="h-3 w-3 text-muted-foreground" />
-                {statusCounts.pending || 0} pendentes
+                {globalStats.pending} pendentes
               </Badge>
               <Badge variant="secondary" className="gap-1">
-                <Clock className="h-3 w-3 text-info" />
-                {statusCounts.under_review || 0} em análise
+                <Clock className="h-3 w-3" />
+                {globalStats.underReview} em análise
               </Badge>
               <Badge className="gap-1 bg-success">
                 <CheckCircle className="h-3 w-3" />
-                {statusCounts.validated || 0} validados
+                {globalStats.validated} validados
               </Badge>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 max-w-md">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative lg:col-span-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome, e-mail, CPF ou banco..."
@@ -351,8 +446,10 @@ export function BankDataManagement() {
                 className="pl-10"
               />
             </div>
+            
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger>
+                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -361,6 +458,19 @@ export function BankDataManagement() {
                 <SelectItem value="under_review">Em Análise</SelectItem>
                 <SelectItem value="validated">Validado</SelectItem>
                 <SelectItem value="returned">Devolvido</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sponsorFilter} onValueChange={setSponsorFilter}>
+              <SelectTrigger>
+                <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Financiador" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os financiadores</SelectItem>
+                {sponsors.map(sponsor => (
+                  <SelectItem key={sponsor} value={sponsor}>{sponsor}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -373,128 +483,44 @@ export function BankDataManagement() {
             </span>
           </div>
 
-          {/* Table */}
-          <ScrollArea className="h-[400px] rounded-lg border">
-            <Table>
-              <TableHeader className="sticky top-0 bg-card z-10">
-                <TableRow>
-                  <TableHead>Bolsista</TableHead>
-                  <TableHead>CPF</TableHead>
-                  <TableHead>Banco</TableHead>
-                  <TableHead>Agência</TableHead>
-                  <TableHead>Conta</TableHead>
-                  <TableHead>Chave PIX</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[120px]">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-20" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : filteredAccounts?.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Nenhum dado bancário encontrado
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredAccounts?.map((account) => {
-                    const isRevealed = revealedIds.has(account.id);
-                    const statusConfig = STATUS_CONFIG[account.validation_status];
-                    const StatusIcon = statusConfig.icon;
-                    
-                    return (
-                      <TableRow key={account.id}>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {account.profile?.full_name || 'Nome não informado'}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {account.profile?.email || '—'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {maskCPF(account.profile?.cpf || null, isRevealed)}
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-medium">{account.bank_name}</span>
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {maskValue(account.agency, isRevealed)}
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {maskValue(account.account_number, isRevealed)}
-                        </TableCell>
-                        <TableCell>
-                          {account.pix_key ? (
-                            <span className="font-mono text-sm">
-                              {maskValue(account.pix_key, isRevealed)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={statusConfig.variant} className="gap-1">
-                            <StatusIcon className={`h-3 w-3 ${statusConfig.color}`} />
-                            {statusConfig.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => toggleReveal(account.id)}
-                                  >
-                                    {isRevealed ? (
-                                      <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                      <Eye className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {isRevealed ? 'Ocultar dados' : 'Revelar dados'}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openDetails(account)}
-                            >
-                              Detalhes
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-
-          {/* Stats */}
-          <div className="flex gap-4 text-sm text-muted-foreground pt-2">
-            <span>{filteredAccounts?.length ?? 0} registro(s) encontrado(s)</span>
+          {/* Thematic Project Cards */}
+          <div className="space-y-4">
+            {isLoading ? (
+              Array.from({ length: 2 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="flex gap-4">
+                      <Skeleton className="w-12 h-12 rounded-lg" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-6 w-full max-w-lg" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                      <div className="flex gap-6">
+                        <Skeleton className="w-16 h-16" />
+                        <Skeleton className="w-16 h-16" />
+                        <Skeleton className="w-16 h-16" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : filteredGroups.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground border rounded-lg">
+                <Landmark className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum dado bancário encontrado</p>
+              </div>
+            ) : (
+              filteredGroups.map(group => (
+                <BankDataThematicCard
+                  key={group.id}
+                  group={group}
+                  onOpenDetails={openDetails}
+                  revealedIds={revealedIds}
+                  onToggleReveal={toggleReveal}
+                />
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

@@ -16,7 +16,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redefinição de senha • ICCA Bolsa Conecta</title>
+  <title>Redefinição de senha • ICCA CONNECTA</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #F8FAFC; line-height: 1.6;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -27,7 +27,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
           <!-- Header with Logo -->
           <tr>
             <td align="center" style="padding: 40px 40px 32px 40px; border-bottom: 1px solid #E2E8F0;">
-              <img src="${logoUrl}" alt="ICCA Bolsa Conecta" style="height: 48px; width: auto;" />
+              <img src="${logoUrl}" alt="ICCA CONNECTA" style="height: 48px; width: auto;" />
             </td>
           </tr>
           
@@ -39,7 +39,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
               </h1>
               
               <p style="margin: 0 0 20px 0; font-size: 15px; color: #475569; text-align: center;">
-                Recebemos uma solicitação para redefinir a senha da sua conta no ICCA Bolsa Conecta.
+                Recebemos uma solicitação para redefinir a senha da sua conta no ICCA CONNECTA.
               </p>
               
               <p style="margin: 0 0 32px 0; font-size: 15px; color: #475569; text-align: center;">
@@ -75,7 +75,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
           <tr>
             <td style="padding: 24px 40px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; border-radius: 0 0 12px 12px;">
               <p style="margin: 0; font-size: 13px; color: #64748B; text-align: center;">
-                Equipe ICCA Bolsa Conecta
+                Equipe ICCA CONNECTA
               </p>
               <p style="margin: 8px 0 0 0; font-size: 12px; color: #94A3B8; text-align: center;">
                 Este é um e-mail automático. Por favor, não responda.
@@ -140,9 +140,9 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Reset URL:", resetUrl);
 
     const emailResponse = await resend.emails.send({
-      from: "ICCA Bolsa Conecta <noreply@bolsaconecta.com.br>",
+      from: "ICCA CONNECTA <noreply@bolsaconecta.com.br>",
       to: [user.email],
-      subject: "Redefinição de senha • ICCA Bolsa Conecta",
+      subject: "Redefinição de senha • ICCA CONNECTA",
       html: generatePasswordResetEmail(resetUrl, logoUrl),
     });
 

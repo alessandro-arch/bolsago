@@ -26,7 +26,9 @@ export type AuditAction =
   | "create_thematic_project"
   | "update_thematic_project"
   | "archive_thematic_project"
-  | "delete_thematic_project";
+  | "delete_thematic_project"
+  | "upload_grant_term"
+  | "update_grant_term";
 
 export type EntityType = 
   | "user"
@@ -36,7 +38,8 @@ export type EntityType =
   | "user_role"
   | "project"
   | "bank_account"
-  | "thematic_project";
+  | "thematic_project"
+  | "grant_term";
 
 interface AuditLogParams {
   action: AuditAction;

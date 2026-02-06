@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Eye, Edit, Trash2, UserX, ShieldAlert, Users } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, Trash2, UserX, ShieldAlert, Users, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import { useAdminMasterMode } from '@/contexts/AdminMasterModeContext';
 import { getModalityLabel } from '@/lib/modality-labels';
 import { BulkRemovalDialog } from '@/components/dashboard/BulkRemovalDialog';
 import { AdminEditScholarDialog } from '@/components/admin/AdminEditScholarDialog';
+import { UploadGrantTermDialog } from './UploadGrantTermDialog';
 import type { ScholarWithProject, EnrollmentStatus } from './types';
 
 interface ScholarsTableInCardProps {
@@ -47,6 +48,8 @@ export function ScholarsTableInCard({ scholars, onRefresh }: ScholarsTableInCard
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [adminEditDialogOpen, setAdminEditDialogOpen] = useState(false);
   const [selectedScholarForEdit, setSelectedScholarForEdit] = useState<ScholarWithProject | null>(null);
+  const [grantTermDialogOpen, setGrantTermDialogOpen] = useState(false);
+  const [selectedScholarForGrantTerm, setSelectedScholarForGrantTerm] = useState<ScholarWithProject | null>(null);
 
   const getInitials = (name: string | null) => {
     if (!name) return '??';
@@ -184,6 +187,16 @@ export function ScholarsTableInCard({ scholars, onRefresh }: ScholarsTableInCard
                         <Edit className="w-4 h-4" />
                         Editar
                       </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="gap-2"
+                        onClick={() => {
+                          setSelectedScholarForGrantTerm(scholar);
+                          setGrantTermDialogOpen(true);
+                        }}
+                      >
+                        <FileText className="w-4 h-4" />
+                        Termo de Outorga
+                      </DropdownMenuItem>
                       {isAdmin && isAdminMasterMode && (
                         <>
                           <DropdownMenuSeparator />
@@ -242,6 +255,15 @@ export function ScholarsTableInCard({ scholars, onRefresh }: ScholarsTableInCard
           cpf: selectedScholarForEdit.cpf,
           phone: selectedScholarForEdit.phone,
         } : null}
+        onSuccess={onRefresh}
+      />
+
+      {/* Upload Grant Term Dialog */}
+      <UploadGrantTermDialog
+        open={grantTermDialogOpen}
+        onOpenChange={setGrantTermDialogOpen}
+        scholarUserId={selectedScholarForGrantTerm?.userId || ""}
+        scholarName={selectedScholarForGrantTerm?.fullName || "Bolsista"}
         onSuccess={onRefresh}
       />
     </>

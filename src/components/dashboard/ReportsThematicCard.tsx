@@ -274,19 +274,21 @@ export function ReportsThematicCard({ group, onViewPdf, onReview }: ReportsThema
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
+                                className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
                                 onClick={() => onViewPdf(report.file_url)}
                               >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Ver
+                                <Eye className="w-4 h-4" />
+                                Ver PDF
                               </Button>
                               {report.status === "under_review" && (
                                 <Button
                                   size="sm"
+                                  className="gap-1.5"
                                   onClick={() => onReview(report)}
                                 >
-                                  <FileSearch className="w-4 h-4 mr-1" />
+                                  <FileSearch className="w-4 h-4" />
                                   Avaliar
                                 </Button>
                               )}

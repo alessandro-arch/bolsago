@@ -124,3 +124,83 @@ export function useDeleteInstitutionalDocument() {
     },
   });
 }
+
+interface UpdateDocumentParams {
+  document: InstitutionalDocument;
+  title: string;
+  description: string;
+  type: DocumentType;
+  newFile?: File;
+}
+
+export function useUpdateInstitutionalDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ document, title, description, type, newFile }: UpdateDocumentParams) => {
+      let fileUrl = document.file_url;
+      let fileName = document.file_name;
+      let fileSize = document.file_size;
+
+      // If a new file is provided, upload it and delete the old one
+      if (newFile) {
+        // Generate unique file path for new file
+        const fileExt = newFile.name.split(".").pop();
+        const newFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${type}/${newFileName}`;
+
+        // Upload new file
+        const { error: uploadError } = await supabase.storage
+          .from("institutional-documents")
+          .upload(filePath, newFile);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL for new file
+        const { data: urlData } = supabase.storage
+          .from("institutional-documents")
+          .getPublicUrl(filePath);
+
+        // Delete old file
+        const oldUrlParts = document.file_url.split("/institutional-documents/");
+        if (oldUrlParts.length > 1) {
+          const oldFilePath = oldUrlParts[1];
+          await supabase.storage
+            .from("institutional-documents")
+            .remove([oldFilePath]);
+        }
+
+        fileUrl = urlData.publicUrl;
+        fileName = newFile.name;
+        fileSize = newFile.size;
+      }
+
+      // Update document record
+      const { data, error } = await supabase
+        .from("institutional_documents")
+        .update({
+          title,
+          description: description || null,
+          type,
+          file_url: fileUrl,
+          file_name: fileName,
+          file_size: fileSize,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", document.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["institutional-documents"] });
+      toast.success("Documento atualizado com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Error updating document:", error);
+      toast.error("Erro ao atualizar documento");
+    },
+  });
+}

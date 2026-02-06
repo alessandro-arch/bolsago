@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { EditDocumentDialog } from "./EditDocumentDialog";
 
 const typeConfig: Record<DocumentType, { label: string; icon: typeof FileText; className: string }> = {
   manual: { 
@@ -42,7 +43,7 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function DocumentCard({ document, isAdmin }: { document: InstitutionalDocument; isAdmin: boolean }) {
+function DocumentCard({ document, isAdmin, canEdit }: { document: InstitutionalDocument; isAdmin: boolean; canEdit: boolean }) {
   const config = typeConfig[document.type];
   const Icon = config.icon;
   const deleteMutation = useDeleteInstitutionalDocument();
@@ -75,8 +76,10 @@ function DocumentCard({ document, isAdmin }: { document: InstitutionalDocument; 
           </span>
           <h3 className="font-semibold text-foreground leading-tight">{document.title}</h3>
         </div>
-        {isAdmin && (
-          <AlertDialog>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {canEdit && <EditDocumentDialog document={document} />}
+          {isAdmin && (
+            <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -105,7 +108,8 @@ function DocumentCard({ document, isAdmin }: { document: InstitutionalDocument; 
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Description */}
@@ -142,7 +146,8 @@ interface DocumentsGridProps {
 
 export function DocumentsGrid({ searchQuery = "", typeFilter = "todos", sortOrder = "recentes" }: DocumentsGridProps) {
   const { data: documents, isLoading } = useInstitutionalDocuments();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isManager } = useUserRole();
+  const canEdit = isAdmin || isManager;
 
   // Filter and sort documents
   const filteredDocuments = documents?.filter((doc) => {
@@ -193,7 +198,7 @@ export function DocumentsGrid({ searchQuery = "", typeFilter = "todos", sortOrde
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredDocuments.map((document) => (
-            <DocumentCard key={document.id} document={document} isAdmin={isAdmin} />
+            <DocumentCard key={document.id} document={document} isAdmin={isAdmin} canEdit={canEdit} />
           ))}
         </div>
       )}

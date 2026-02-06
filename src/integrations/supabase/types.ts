@@ -568,6 +568,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_pix_key_secret: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -587,6 +588,7 @@ export type Database = {
         }
         Returns: string
       }
+      mask_pix_key: { Args: { pix: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "manager" | "scholar"

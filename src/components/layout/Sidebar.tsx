@@ -22,6 +22,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
+import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
 import logoIcca from "@/assets/logo-icca.png";
 
 interface NavItem {
@@ -40,6 +41,7 @@ const navigation: NavItem[] = [
   { name: "Projetos Temáticos", icon: FolderOpen, href: "/projetos-tematicos", managerOnly: true },
   { name: "Códigos de Convite", icon: Ticket, href: "/codigos-convite", managerOnly: true, section: "Gestão Institucional" },
   { name: "Importar Dados", icon: Upload, href: "/importar", managerOnly: true },
+  { name: "Organizações", icon: Building2, href: "/organizacoes", adminOnly: true },
   { name: "Trilha de Auditoria", icon: ShieldAlert, href: "/trilha-auditoria", adminOnly: true },
   { name: "Meu Perfil", icon: UserCircle, href: "/perfil-bolsista" },
   { name: "Meus Pagamentos", icon: Receipt, href: "/pagamentos-relatorios" },
@@ -104,21 +106,24 @@ export function Sidebar() {
 
       {/* Platform Name & Role Badge */}
       {!collapsed && (
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            ICCA CONNECTA
-          </span>
-          {!loading && (
-            <span className={cn(
-              "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
-              hasManagerAccess 
-                ? "bg-primary/10 text-primary" 
-                : "bg-info/10 text-info"
-            )}>
-              <span className="w-1.5 h-1.5 rounded-full bg-current" />
-              {hasManagerAccess ? "Gestor" : "Bolsista"}
+        <div className="px-4 py-3 border-b border-border space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              ICCA CONNECTA
             </span>
-          )}
+            {!loading && (
+              <span className={cn(
+                "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+                hasManagerAccess 
+                  ? "bg-primary/10 text-primary" 
+                  : "bg-info/10 text-info"
+              )}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                {hasManagerAccess ? "Gestor" : "Bolsista"}
+              </span>
+            )}
+          </div>
+          <OrganizationSwitcher collapsed={collapsed} />
         </div>
       )}
 

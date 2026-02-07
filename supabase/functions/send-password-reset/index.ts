@@ -9,6 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// IONOS-inspired professional email template
 const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string => {
   return `
 <!DOCTYPE html>
@@ -16,7 +17,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redefinição de senha • ICCA CONNECTA</title>
+  <title>Redefinição de Senha | ICCA CONNECTA</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -27,71 +28,65 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
   </noscript>
   <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   
-  <!-- Preheader text (hidden but shows in email preview) -->
+  <!-- Preheader text -->
   <div style="display: none; max-height: 0; overflow: hidden;">
     Redefina sua senha do ICCA CONNECTA - Sistema de Gestão de Bolsas Institucionais
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%); min-height: 100vh;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
     <tr>
-      <td align="center" style="padding: 48px 20px;">
+      <td align="center" style="padding: 40px 20px;">
         
-        <!-- Main Card -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);">
+        <!-- Main Container -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px;">
           
-          <!-- Header with gradient accent -->
+          <!-- Dark Header -->
           <tr>
-            <td style="height: 6px; background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #dc2626 100%);"></td>
-          </tr>
-          
-          <!-- Logo Section -->
-          <tr>
-            <td align="center" style="padding: 40px 40px 24px;">
-              <img src="${logoUrl}" alt="ICCA CONNECTA" style="max-width: 200px; height: auto;" />
-              <p style="margin: 12px 0 0 0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 500;">
-                Sistema de Gestão de Bolsas Institucionais
-              </p>
+            <td style="background-color: #003366; border-radius: 8px 8px 0 0; padding: 24px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <img src="${logoUrl}" alt="ICCA CONNECTA" style="max-height: 40px; width: auto;" onerror="this.style.display='none'" />
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="font-size: 12px; color: #ffffff; opacity: 0.9;">Gestão de Bolsas</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Icon -->
+          <!-- Title Section with Icon -->
           <tr>
-            <td align="center" style="padding: 0 40px 16px;">
-              <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
-                <span style="font-size: 32px;">🔐</span>
-              </div>
+            <td style="background-color: #ffffff; padding: 32px 32px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #003366; line-height: 1.3;">
+                      Redefinição de Senha
+                    </h1>
+                  </td>
+                  <td width="64" align="right" style="vertical-align: middle;">
+                    <div style="width: 56px; height: 56px; background-color: #e6f3ff; border-radius: 50%; text-align: center; line-height: 56px;">
+                      <span style="font-size: 28px;">🔐</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Title -->
+          <!-- Content Card -->
           <tr>
-            <td align="center" style="padding: 0 40px 8px;">
-              <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #1e293b; letter-spacing: -0.5px;">
-                Redefinição de senha
-              </h1>
-            </td>
-          </tr>
-
-          <!-- Subtitle -->
-          <tr>
-            <td align="center" style="padding: 0 40px 32px;">
-              <p style="margin: 0; font-size: 15px; color: #64748b; line-height: 1.6;">
-                Recebemos uma solicitação para redefinir sua senha.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Content -->
-          <tr>
-            <td style="padding: 0 40px 32px;">
-              <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0;">
-                <p style="margin: 0 0 16px 0; font-size: 15px; color: #475569; line-height: 1.7;">
-                  Olá! 👋
+            <td style="background-color: #ffffff; padding: 0 32px 32px;">
+              <div style="background-color: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 24px;">
+                <p style="margin: 0 0 16px 0; font-size: 16px; color: #333333; line-height: 1.6;">
+                  Olá,
                 </p>
-                <p style="margin: 0; font-size: 15px; color: #475569; line-height: 1.7;">
-                  Você solicitou a redefinição de senha da sua conta no <strong style="color: #1e40af;">ICCA CONNECTA</strong>. Clique no botão abaixo para criar uma nova senha segura.
+                <p style="margin: 0; font-size: 16px; color: #333333; line-height: 1.6;">
+                  Você solicitou a redefinição de senha da sua conta no <strong>ICCA CONNECTA</strong>. Clique no botão abaixo para criar uma nova senha segura.
                 </p>
               </div>
             </td>
@@ -99,12 +94,12 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 
           <!-- CTA Button -->
           <tr>
-            <td align="center" style="padding: 0 40px 32px;">
+            <td style="background-color: #ffffff; padding: 0 32px 32px;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="border-radius: 12px; background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); box-shadow: 0 8px 16px rgba(220, 38, 38, 0.3), 0 4px 8px rgba(220, 38, 38, 0.2);">
-                    <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 16px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: 0.3px;">
-                      🔑 Redefinir minha senha
+                  <td style="background-color: #003366; border-radius: 6px;">
+                    <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600;">
+                      Redefinir Senha
                     </a>
                   </td>
                 </tr>
@@ -112,36 +107,60 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
+          <!-- Security Notice Box -->
+          <tr>
+            <td style="background-color: #ffffff; padding: 0 32px 32px;">
+              <div style="background-color: #e6f3ff; border-left: 4px solid #003366; border-radius: 0 8px 8px 0; padding: 16px 20px;">
+                <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #003366;">
+                  Informações de Segurança
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #555555; line-height: 1.5;">
+                  <strong>Validade do link:</strong> 1 hora<br />
+                  Se você não solicitou esta redefinição, ignore este e-mail. Sua senha permanecerá inalterada.
+                </p>
+              </div>
+            </td>
+          </tr>
+
           <!-- Alternative Link -->
           <tr>
-            <td align="center" style="padding: 0 40px 32px;">
-              <p style="margin: 0; font-size: 13px; color: #94a3b8;">
-                Ou copie e cole este link no seu navegador:
+            <td style="background-color: #ffffff; padding: 0 32px 32px;">
+              <p style="margin: 0 0 8px 0; font-size: 13px; color: #666666;">
+                Caso o botão não funcione, copie e cole o link abaixo no seu navegador:
               </p>
-              <p style="margin: 8px 0 0 0; font-size: 12px; color: #ef4444; word-break: break-all; line-height: 1.5;">
+              <p style="margin: 0; font-size: 12px; color: #003366; word-break: break-all; line-height: 1.5;">
                 ${resetUrl}
               </p>
             </td>
           </tr>
 
-          <!-- Divider -->
+          <!-- Signature Section -->
           <tr>
-            <td style="padding: 0 40px;">
-              <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);"></div>
+            <td style="background-color: #ffffff; padding: 0 32px 32px; border-bottom: 1px solid #e8e8e8;">
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #333333;">
+                Atenciosamente,
+              </p>
+              <p style="margin: 0; font-size: 15px; font-weight: 600; color: #003366;">
+                Equipe ICCA CONNECTA
+              </p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #666666;">
+                Sistema de Gestão de Bolsas Institucionais
+              </p>
             </td>
           </tr>
 
-          <!-- Security Notice -->
+          <!-- Blue Footer -->
           <tr>
-            <td style="padding: 24px 40px;">
+            <td style="background-color: #003366; border-radius: 0 0 8px 8px; padding: 24px 32px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td width="36" valign="top">
-                    <span style="font-size: 18px;">⚠️</span>
-                  </td>
-                  <td style="padding-left: 8px;">
-                    <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.6;">
-                      <strong style="color: #475569;">Importante:</strong> Se você não solicitou esta redefinição, ignore este e-mail. Sua senha permanecerá inalterada.
+                  <td>
+                    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #ffffff;">
+                      Seu parceiro em inovação e conhecimento
+                    </p>
+                    <p style="margin: 0; font-size: 12px; color: #ffffff; opacity: 0.8; line-height: 1.5;">
+                      © ICCA – Instituto de Inovação, Conhecimento e Ciências Aplicadas<br />
+                      <a href="https://www.icca.org.br" style="color: #ffffff; text-decoration: underline;">www.icca.org.br</a>
                     </p>
                   </td>
                 </tr>
@@ -149,52 +168,13 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- Timer Notice -->
-          <tr>
-            <td style="padding: 0 40px 24px;">
-              <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 8px; padding: 12px 16px; border: 1px solid #f59e0b;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td width="24" valign="top">
-                      <span style="font-size: 14px;">⏱️</span>
-                    </td>
-                    <td style="padding-left: 8px;">
-                      <p style="margin: 0; font-size: 13px; color: #92400e; font-weight: 500;">
-                        Este link é válido por <strong>1 hora</strong> por motivos de segurança.
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 24px 40px 32px; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0 0 4px 0; font-size: 13px; color: #64748b; text-align: center;">
-                Atenciosamente,
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #334155; text-align: center;">
-                Equipe ICCA CONNECTA
-              </p>
-              <p style="margin: 0 0 8px 0; font-size: 11px; color: #94a3b8; text-align: center;">
-                Este é um e-mail automático. Por favor, não responda.
-              </p>
-              <p style="margin: 0; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5;">
-                © ICCA – Instituto de Inovação, Conhecimento e Ciências Aplicadas<br />
-                <a href="https://www.icca.org.br" style="color: #3b82f6; text-decoration: none;">www.icca.org.br</a>
-              </p>
-            </td>
-          </tr>
-
         </table>
 
         <!-- Email Tips -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; margin-top: 24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin-top: 24px;">
           <tr>
             <td align="center">
-              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+              <p style="margin: 0; font-size: 12px; color: #999999; line-height: 1.5;">
                 E-mail não está na caixa de entrada? Verifique sua pasta de spam.
               </p>
             </td>
@@ -259,7 +239,7 @@ serve(async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "ICCA CONNECTA <noreply@bolsaconecta.com.br>",
       to: [user.email],
-      subject: "🔑 Redefinição de senha • ICCA CONNECTA",
+      subject: "Redefinição de Senha • ICCA CONNECTA",
       html: generatePasswordResetEmail(resetUrl, logoUrl),
     });
 

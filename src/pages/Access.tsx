@@ -8,30 +8,33 @@ export default function Access() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex flex-col">
       {/* Top Bar */}
       <header className="w-full border-b border-border bg-card/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img 
-              src={logoIcca} 
-              alt="ICCA" 
-              className="h-10 w-auto"
-            />
-            <span className="text-xl font-semibold text-foreground">SisConnecta</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          {/* Mobile: stacked layout, Desktop: side by side */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <img 
+                src={logoIcca} 
+                alt="ICCA" 
+                className="h-8 sm:h-10 w-auto"
+              />
+              <span className="hidden sm:inline text-xl font-semibold text-foreground">SisConnecta</span>
+            </div>
+            <nav className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+              <Link 
+                to="/recuperar-senha" 
+                className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+              >
+                Esqueci minha senha
+              </Link>
+              <a 
+                href="mailto:suporte@icca.org.br" 
+                className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 whitespace-nowrap"
+              >
+                <Mail className="h-4 w-4" />
+                Suporte
+              </a>
+            </nav>
           </div>
-          <nav className="flex items-center gap-4 text-sm">
-            <Link 
-              to="/recuperar-senha" 
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Esqueci minha senha
-            </Link>
-            <a 
-              href="mailto:suporte@icca.org.br" 
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <Mail className="h-4 w-4" />
-              Suporte
-            </a>
-          </nav>
         </div>
       </header>
 

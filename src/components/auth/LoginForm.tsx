@@ -50,7 +50,7 @@ export function LoginForm({ onForgotPassword, onError }: LoginFormProps) {
       return;
     }
     
-    navigate("/");
+    navigate("/acesso");
   };
 
   return (

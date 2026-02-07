@@ -28,7 +28,7 @@ const Index = () => {
   const approvedReportsCount = data?.reports?.filter(r => r.status === "approved").length ?? 0;
 
   const handleNavigateToProfile = () => {
-    navigate("/perfil-bolsista");
+    navigate("/bolsista/perfil");
   };
 
   // Determine which bank status banner to show

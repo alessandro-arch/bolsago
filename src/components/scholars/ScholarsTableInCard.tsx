@@ -175,14 +175,14 @@ export function ScholarsTableInCard({ scholars, onRefresh }: ScholarsTableInCard
                     <DropdownMenuContent align="end" className="bg-popover">
                       <DropdownMenuItem 
                         className="gap-2"
-                        onClick={() => navigate(`/perfil-bolsista/${scholar.userId}`)}
+                        onClick={() => navigate(`/admin/bolsista/${scholar.userId}`)}
                       >
                         <Eye className="w-4 h-4" />
                         Ver perfil
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         className="gap-2"
-                        onClick={() => navigate(`/perfil-bolsista/${scholar.userId}`)}
+                        onClick={() => navigate(`/admin/bolsista/${scholar.userId}`)}
                       >
                         <Edit className="w-4 h-4" />
                         Editar

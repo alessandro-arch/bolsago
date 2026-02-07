@@ -3,17 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 
-interface RoleProtectedRouteProps {
+interface ScholarProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ("admin" | "manager" | "scholar")[];
-  requireManagerAccess?: boolean;
 }
 
-export function RoleProtectedRoute({ 
-  children, 
-  allowedRoles,
-  requireManagerAccess = false 
-}: RoleProtectedRouteProps) {
+export function ScholarProtectedRoute({ children }: ScholarProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, hasManagerAccess } = useUserRole();
   const location = useLocation();
@@ -32,17 +26,17 @@ export function RoleProtectedRoute({
   }
 
   if (!user) {
-    return <Navigate to="/acesso" state={{ from: location }} replace />;
+    return <Navigate to="/bolsista/login" state={{ from: location }} replace />;
   }
 
-  // Check manager access requirement
-  if (requireManagerAccess && !hasManagerAccess) {
-    return <Navigate to="/" replace />;
+  // If user is admin/manager, redirect them to admin panel
+  if (hasManagerAccess) {
+    return <Navigate to="/admin/painel" replace />;
   }
 
-  // Check specific role requirements
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/" replace />;
+  // Only scholars can access scholar routes
+  if (role !== "scholar") {
+    return <Navigate to="/acesso-negado" replace />;
   }
 
   return <>{children}</>;

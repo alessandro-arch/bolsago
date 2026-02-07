@@ -218,7 +218,7 @@ const ScholarProfileView = () => {
         <main className="flex-1 p-6 overflow-auto">
           {/* Back button */}
           <div className="flex items-center gap-4 mb-6">
-            <Link to="/painel-gestor">
+            <Link to="/admin/painel">
               <Button variant="ghost" size="sm" className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Voltar ao Painel
@@ -233,7 +233,7 @@ const ScholarProfileView = () => {
           ) : !profile ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Bolsista não encontrado.</p>
-              <Link to="/painel-gestor">
+              <Link to="/admin/painel">
                 <Button variant="link">Voltar ao Painel</Button>
               </Link>
             </div>

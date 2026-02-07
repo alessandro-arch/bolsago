@@ -65,7 +65,7 @@ export function ResetPasswordForm({ onSuccess }: ResetPasswordFormProps) {
     setTimeout(async () => {
       await supabase.auth.signOut();
       onSuccess();
-      navigate("/auth");
+      navigate("/acesso");
     }, 3000);
   };
 

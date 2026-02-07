@@ -183,7 +183,7 @@ export default function ThematicProjectsList() {
   };
 
   const handleOpenProject = (projectId: string) => {
-    navigate(`/projetos-tematicos/${projectId}`);
+    navigate(`/admin/projetos-tematicos/${projectId}`);
   };
 
   const handleEditProject = (project: ThematicProjectWithStats) => {

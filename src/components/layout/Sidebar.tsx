@@ -35,17 +35,20 @@ interface NavItem {
   section?: string;
 }
 
-const navigation: NavItem[] = [
-  { name: "Meu Painel", icon: LayoutDashboard, href: "/" },
-  { name: "Painel Gestor", icon: Users, href: "/painel-gestor", managerOnly: true },
-  { name: "Projetos Temáticos", icon: FolderOpen, href: "/projetos-tematicos", managerOnly: true },
-  { name: "Códigos de Convite", icon: Ticket, href: "/codigos-convite", managerOnly: true, section: "Gestão Institucional" },
-  { name: "Importar Dados", icon: Upload, href: "/importar", managerOnly: true },
-  { name: "Organizações", icon: Building2, href: "/organizacoes", adminOnly: true },
-  { name: "Trilha de Auditoria", icon: ShieldAlert, href: "/trilha-auditoria", adminOnly: true },
-  { name: "Meu Perfil", icon: UserCircle, href: "/perfil-bolsista" },
-  { name: "Meus Pagamentos", icon: Receipt, href: "/pagamentos-relatorios" },
-  { name: "Documentos", icon: FileText, href: "/documentos" },
+const scholarNavigation: NavItem[] = [
+  { name: "Meu Painel", icon: LayoutDashboard, href: "/bolsista/painel" },
+  { name: "Meu Perfil", icon: UserCircle, href: "/bolsista/perfil" },
+  { name: "Meus Pagamentos", icon: Receipt, href: "/bolsista/pagamentos-relatorios" },
+  { name: "Documentos", icon: FileText, href: "/bolsista/documentos" },
+];
+
+const adminNavigation: NavItem[] = [
+  { name: "Painel Gestor", icon: Users, href: "/admin/painel", managerOnly: true },
+  { name: "Projetos Temáticos", icon: FolderOpen, href: "/admin/projetos-tematicos", managerOnly: true },
+  { name: "Códigos de Convite", icon: Ticket, href: "/admin/codigos-convite", managerOnly: true, section: "Gestão Institucional" },
+  { name: "Importar Dados", icon: Upload, href: "/admin/importar", managerOnly: true },
+  { name: "Organizações", icon: Building2, href: "/admin/organizacoes", adminOnly: true },
+  { name: "Trilha de Auditoria", icon: ShieldAlert, href: "/admin/trilha-auditoria", adminOnly: true },
 ];
 
 const secondaryNavigation = [
@@ -59,7 +62,10 @@ export function Sidebar() {
   const location = useLocation();
   const { hasManagerAccess, isAdmin, loading } = useUserRole();
 
-  const filteredNavigation = navigation.filter(item => {
+  // Select navigation based on user role
+  const baseNavigation = hasManagerAccess ? adminNavigation : scholarNavigation;
+  
+  const filteredNavigation = baseNavigation.filter(item => {
     if (item.managerOnly && !hasManagerAccess) return false;
     if (item.adminOnly && !isAdmin) return false;
     if (item.scholarOnly && hasManagerAccess) return false;

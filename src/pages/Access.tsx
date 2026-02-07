@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logoIcca from "@/assets/logo-icca.png";
+import heroBackground from "@/assets/hero-background-preview.png";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -159,8 +160,11 @@ export default function Access() {
       {/* Main Content */}
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="px-4 py-12 sm:py-16">
-          <div className="max-w-4xl mx-auto text-center">
+        <section 
+          className="px-4 py-12 sm:py-16 bg-cover bg-center bg-no-repeat relative"
+          style={{ backgroundImage: `url(${heroBackground})` }}
+        >
+          <div className="max-w-4xl mx-auto text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
               SisConnecta
             </h1>

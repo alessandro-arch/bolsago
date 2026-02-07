@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganizationContext } from '@/contexts/OrganizationContext';
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ export function CreateInviteCodeDialog({
   onSuccess,
 }: CreateInviteCodeDialogProps) {
   const { user } = useAuth();
+  const { currentOrganization } = useOrganizationContext();
   const [isLoading, setIsLoading] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
@@ -59,16 +61,18 @@ export function CreateInviteCodeDialog({
   const [hasExpiration, setHasExpiration] = useState(false);
   const [expirationDate, setExpirationDate] = useState<Date | undefined>();
 
-  // Fetch thematic projects on mount
+  // Fetch thematic projects on mount - filtered by organization
   useEffect(() => {
     const fetchThematicProjects = async () => {
+      if (!currentOrganization) return;
+      
       setIsLoadingProjects(true);
       try {
-        // Fetch thematic projects from the new dedicated table
         const { data, error } = await supabase
           .from('thematic_projects')
           .select('id, title, sponsor_name')
           .eq('status', 'active')
+          .eq('organization_id', currentOrganization.id)
           .order('title');
         
         if (error) throw error;
@@ -88,7 +92,7 @@ export function CreateInviteCodeDialog({
     if (open) {
       fetchThematicProjects();
     }
-  }, [open]);
+  }, [open, currentOrganization]);
 
   const selectedProject = thematicProjects.find(p => p.id === selectedProjectId);
 
@@ -120,6 +124,11 @@ export function CreateInviteCodeDialog({
       return;
     }
 
+    if (!currentOrganization) {
+      toast.error('Nenhuma organização selecionada');
+      return;
+    }
+
     if (!selectedProjectId) {
       toast.error('Selecione um Projeto Temático');
       return;
@@ -141,6 +150,7 @@ export function CreateInviteCodeDialog({
           max_uses: maxUses === 'unlimited' ? null : parseInt(maxUses),
           expires_at: hasExpiration && expirationDate ? expirationDate.toISOString().split('T')[0] : null,
           created_by: user.id,
+          organization_id: currentOrganization.id,
         })
         .select()
         .single();

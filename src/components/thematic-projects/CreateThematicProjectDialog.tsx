@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationContext } from '@/contexts/OrganizationContext';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ export function CreateThematicProjectDialog({
   onSuccess,
 }: CreateThematicProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentOrganization } = useOrganizationContext();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -56,6 +58,11 @@ export function CreateThematicProjectDialog({
   });
 
   const onSubmit = async (data: FormData) => {
+    if (!currentOrganization) {
+      toast.error('Nenhuma organização selecionada');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -64,6 +71,7 @@ export function CreateThematicProjectDialog({
         sponsor_name: data.sponsor_name,
         observations: data.observations || null,
         status: 'active',
+        organization_id: currentOrganization.id,
       });
 
       if (error) throw error;

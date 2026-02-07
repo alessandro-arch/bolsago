@@ -112,7 +112,7 @@ export default function Auth() {
             alt="ICCA - Instituto de Inovação, Conhecimento e Ciências Aplicadas" 
             className="h-16 mx-auto mb-4"
           />
-          <h1 className="text-xl font-bold text-foreground">ICCA CONNECTA</h1>
+          <h1 className="text-xl font-bold text-foreground">SisConnecta</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Portal de Gestão de Bolsas
           </p>

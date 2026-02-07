@@ -26,6 +26,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { getModalityLabel } from '@/lib/modality-labels';
 import { cn } from '@/lib/utils';
 import type { ThematicProjectWithScholars, ScholarWithProject } from './types';
+import { useOrganizationContext } from '@/contexts/OrganizationContext';
 
 type StatusFilter = 'all' | 'active' | 'suspended' | 'completed' | 'cancelled' | 'no_enrollment' | 'inactive';
 type OriginFilter = 'all' | 'manual' | 'import';
@@ -33,6 +34,7 @@ type PeriodFilter = 'all' | 'today' | '7days' | '30days';
 
 export function ScholarsManagement() {
   const { hasManagerAccess } = useUserRole();
+  const { currentOrganization } = useOrganizationContext();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -43,9 +45,9 @@ export function ScholarsManagement() {
 
   // Fetch all data
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['scholars-management'],
+    queryKey: ['scholars-management', currentOrganization?.id],
     queryFn: async () => {
-      // Fetch profiles that are scholars (have role = scholar)
+      // Fetch profiles that are scholars (have role = scholar) filtered by organization
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -59,11 +61,18 @@ export function ScholarsManagement() {
         return { scholars: [], thematicProjects: [] };
       }
 
-      // Fetch profiles for scholars
-      const { data: profiles, error: profilesError } = await supabase
+      // Fetch profiles for scholars, filtered by organization
+      let profilesQuery = supabase
         .from('profiles')
-        .select('user_id, full_name, email, cpf, phone, is_active, origin, created_at')
+        .select('user_id, full_name, email, cpf, phone, is_active, origin, created_at, organization_id')
         .in('user_id', scholarUserIds);
+
+      // Filter by current organization
+      if (currentOrganization?.id) {
+        profilesQuery = profilesQuery.eq('organization_id', currentOrganization.id);
+      }
+
+      const { data: profiles, error: profilesError } = await profilesQuery;
 
       if (profilesError) throw profilesError;
 
@@ -174,11 +183,17 @@ export function ScholarsManagement() {
         };
       });
 
-      // Fetch all thematic projects
-      const { data: thematicProjects, error: tpError } = await supabase
+      // Fetch all thematic projects filtered by organization
+      let thematicQuery = supabase
         .from('thematic_projects')
         .select('*')
         .order('title');
+
+      if (currentOrganization?.id) {
+        thematicQuery = thematicQuery.eq('organization_id', currentOrganization.id);
+      }
+
+      const { data: thematicProjects, error: tpError } = await thematicQuery;
 
       if (tpError) throw tpError;
 

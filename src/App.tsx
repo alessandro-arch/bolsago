@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import Index from "./pages/Index";
@@ -11,6 +12,7 @@ import ManagerDashboard from "./pages/ManagerDashboard";
 import ThematicProjectsList from "./pages/ThematicProjectsList";
 import ThematicProjectDetail from "./pages/ThematicProjectDetail";
 import InviteCodes from "./pages/InviteCodes";
+import Organizations from "./pages/Organizations";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
@@ -26,11 +28,12 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
+        <OrganizationProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
             
             {/* Scholar Dashboard - default route */}
             <Route path="/" element={
@@ -77,6 +80,11 @@ const App = () => (
                 <AuditTrail />
               </RoleProtectedRoute>
             } />
+            <Route path="/organizacoes" element={
+              <RoleProtectedRoute allowedRoles={["admin"]}>
+                <Organizations />
+              </RoleProtectedRoute>
+            } />
             
             {/* Scholar routes */}
             <Route path="/pagamentos-relatorios" element={
@@ -99,6 +107,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </OrganizationProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

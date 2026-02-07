@@ -109,7 +109,7 @@ export function Sidebar() {
         <div className="px-4 py-3 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              ICCA CONNECTA
+              SisConnecta
             </span>
             {!loading && (
               <span className={cn(

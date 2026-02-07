@@ -17,7 +17,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redefinição de Senha | ICCA CONNECTA</title>
+  <title>Redefinição de Senha | SisConnecta</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -32,7 +32,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
   
   <!-- Preheader text -->
   <div style="display: none; max-height: 0; overflow: hidden;">
-    Redefina sua senha do ICCA CONNECTA - Sistema de Gestão de Bolsas Institucionais
+    Redefina sua senha do SisConnecta - Sistema de Gestão de Bolsas Institucionais
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
@@ -48,7 +48,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <img src="${logoUrl}" alt="ICCA CONNECTA" style="max-height: 40px; width: auto;" onerror="this.style.display='none'" />
+                    <img src="${logoUrl}" alt="SisConnecta" style="max-height: 40px; width: auto;" onerror="this.style.display='none'" />
                   </td>
                   <td align="right" style="vertical-align: middle;">
                     <span style="font-size: 12px; color: #ffffff; opacity: 0.9;">Gestão de Bolsas</span>
@@ -86,7 +86,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
                   Olá,
                 </p>
                 <p style="margin: 0; font-size: 16px; color: #333333; line-height: 1.6;">
-                  Você solicitou a redefinição de senha da sua conta no <strong>ICCA CONNECTA</strong>. Clique no botão abaixo para criar uma nova senha segura.
+                  Você solicitou a redefinição de senha da sua conta no <strong>SisConnecta</strong>. Clique no botão abaixo para criar uma nova senha segura.
                 </p>
               </div>
             </td>
@@ -141,7 +141,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
                 Atenciosamente,
               </p>
               <p style="margin: 0; font-size: 15px; font-weight: 600; color: #003366;">
-                Equipe ICCA CONNECTA
+                Equipe SisConnecta
               </p>
               <p style="margin: 4px 0 0 0; font-size: 13px; color: #666666;">
                 Sistema de Gestão de Bolsas Institucionais
@@ -237,9 +237,9 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Reset URL:", resetUrl);
 
     const emailResponse = await resend.emails.send({
-      from: "ICCA CONNECTA <noreply@bolsaconecta.com.br>",
+      from: "SisConnecta <noreply@bolsaconecta.com.br>",
       to: [user.email],
-      subject: "Redefinição de Senha • ICCA CONNECTA",
+      subject: "Redefinição de Senha • SisConnecta",
       html: generatePasswordResetEmail(resetUrl, logoUrl),
     });
 

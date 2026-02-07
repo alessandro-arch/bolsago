@@ -23,12 +23,14 @@ import { ThematicProjectCard } from './ThematicProjectCard';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ThematicProjectWithStats, SubprojectWithScholar } from './types';
+import { useOrganizationContext } from '@/contexts/OrganizationContext';
 
 type StatusFilter = 'all' | 'active' | 'archived' | 'paused';
 type PendencyFilter = 'all' | 'pending_report' | 'under_review' | 'blocked_payment' | 'awaiting_assignment';
 
 export function ProjectsManagement() {
   const currentMonth = format(new Date(), 'yyyy-MM');
+  const { currentOrganization } = useOrganizationContext();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -38,13 +40,18 @@ export function ProjectsManagement() {
 
   // Fetch all thematic projects with subprojects and stats
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['projects-management', statusFilter, selectedMonth],
+    queryKey: ['projects-management', statusFilter, selectedMonth, currentOrganization?.id],
     queryFn: async () => {
-      // Fetch thematic projects
+      // Fetch thematic projects filtered by organization
       let thematicQuery = supabase
         .from('thematic_projects')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Filter by current organization
+      if (currentOrganization?.id) {
+        thematicQuery = thematicQuery.eq('organization_id', currentOrganization.id);
+      }
 
       if (statusFilter !== 'all') {
         thematicQuery = thematicQuery.eq('status', statusFilter);

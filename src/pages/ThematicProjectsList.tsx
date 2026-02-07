@@ -44,6 +44,7 @@ import { ArchiveThematicProjectDialog } from '@/components/thematic-projects/Arc
 import { DeleteThematicProjectDialog } from '@/components/thematic-projects/DeleteThematicProjectDialog';
 import { format } from 'date-fns';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOrganizationContext } from '@/contexts/OrganizationContext';
 
 interface ThematicProjectWithStats {
   id: string;
@@ -64,6 +65,7 @@ export default function ThematicProjectsList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAdmin } = useUserRole();
+  const { currentOrganization } = useOrganizationContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sponsorFilter, setSponsorFilter] = useState<string>('all');
@@ -73,14 +75,19 @@ export default function ThematicProjectsList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ThematicProjectWithStats | null>(null);
 
-  // Fetch all thematic projects with stats
+  // Fetch all thematic projects with stats filtered by organization
   const { data: thematicProjects, isLoading } = useQuery({
-    queryKey: ['thematic-projects-list', statusFilter],
+    queryKey: ['thematic-projects-list', statusFilter, currentOrganization?.id],
     queryFn: async () => {
       let query = supabase
         .from('thematic_projects')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Filter by current organization
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);

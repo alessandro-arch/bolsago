@@ -52,6 +52,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { CreateInviteCodeDialog } from './CreateInviteCodeDialog';
 import { InviteCodeDetailsDialog } from './InviteCodeDetailsDialog';
 import { CriticalActionDialog } from '@/components/admin/CriticalActionDialog';
+import { useOrganizationContext } from '@/contexts/OrganizationContext';
 
 type InviteCodeStatus = 'active' | 'disabled' | 'expired' | 'exhausted';
 
@@ -86,15 +87,21 @@ export function InviteCodesManagement() {
   
   const { isAdminMasterMode } = useAdminMasterMode();
   const { isAdmin } = useUserRole();
+  const { currentOrganization } = useOrganizationContext();
 
-  // Fetch invite codes
+  // Fetch invite codes filtered by organization
   const { data: inviteCodes, isLoading, refetch } = useQuery({
-    queryKey: ['invite-codes', statusFilter, projectFilter],
+    queryKey: ['invite-codes', statusFilter, projectFilter, currentOrganization?.id],
     queryFn: async () => {
       let query = supabase
         .from('invite_codes')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Filter by current organization
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -110,16 +117,21 @@ export function InviteCodesManagement() {
     },
   });
 
-  // Fetch thematic projects for filters and references
+  // Fetch thematic projects for filters and references (filtered by organization)
   const { data: thematicProjects } = useQuery({
-    queryKey: ['thematic-projects-for-invite-codes'],
+    queryKey: ['thematic-projects-for-invite-codes', currentOrganization?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('thematic_projects')
         .select('id, title, sponsor_name')
         .eq('status', 'active')
         .order('title');
 
+      if (currentOrganization?.id) {
+        query = query.eq('organization_id', currentOrganization.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as ThematicProject[];
     },

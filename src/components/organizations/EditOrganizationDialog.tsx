@@ -12,8 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Building2, Loader2, Save } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Building2, Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
+import { DeleteOrganizationDialog } from "./DeleteOrganizationDialog";
 import type { Organization } from "@/hooks/useOrganization";
 
 interface EditOrganizationDialogProps {
@@ -29,10 +32,12 @@ export function EditOrganizationDialog({
   organization,
   onSuccess,
 }: EditOrganizationDialogProps) {
+  const { isAdmin } = useUserRole();
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (organization) {
@@ -111,81 +116,117 @@ export function EditOrganizationDialog({
     }
   };
 
+  const handleDeleteSuccess = () => {
+    onSuccess();
+    handleClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[480px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              Editar Organização
-            </DialogTitle>
-            <DialogDescription>
-              Atualize as informações da organização "{organization.name}".
-            </DialogDescription>
-          </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-[480px]">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                Editar Organização
+              </DialogTitle>
+              <DialogDescription>
+                Atualize as informações da organização "{organization.name}".
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome da Organização</Label>
-              <Input
-                id="edit-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Instituto de Pesquisa XYZ"
-                disabled={isLoading}
-              />
-            </div>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nome da Organização</Label>
+                <Input
+                  id="edit-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Instituto de Pesquisa XYZ"
+                  disabled={isLoading}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-slug">Slug (identificador único)</Label>
-              <Input
-                id="edit-slug"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                placeholder="instituto-xyz"
-                disabled={isLoading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Cuidado ao alterar o slug de uma organização ativa.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Status</Label>
+              <div className="space-y-2">
+                <Label htmlFor="edit-slug">Slug (identificador único)</Label>
+                <Input
+                  id="edit-slug"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                  placeholder="instituto-xyz"
+                  disabled={isLoading}
+                />
                 <p className="text-xs text-muted-foreground">
-                  Organizações inativas não aparecem para seleção
+                  Cuidado ao alterar o slug de uma organização ativa.
                 </p>
               </div>
-              <Switch
-                checked={isActive}
-                onCheckedChange={setIsActive}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-2">
-              {isLoading ? (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Status</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Organizações inativas não aparecem para seleção
+                  </p>
+                </div>
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                  disabled={isLoading}
+                />
+              </div>
+
+              {isAdmin && (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Salvar Alterações
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="text-destructive">Zona de Perigo</Label>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="w-full gap-2"
+                      onClick={() => setDeleteDialogOpen(true)}
+                      disabled={isLoading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir Organização
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Esta ação é irreversível e removerá todos os dados associados.
+                    </p>
+                  </div>
                 </>
               )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading} className="gap-2">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Salvar Alterações
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <DeleteOrganizationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        organization={organization}
+        onSuccess={handleDeleteSuccess}
+      />
+    </>
   );
 }

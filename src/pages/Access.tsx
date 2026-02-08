@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logoIcca from "@/assets/logo-icca.png";
-import heroBackground from "@/assets/hero-background-preview.png";
+import heroBackground from "@/assets/hero-background.png";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -86,10 +86,20 @@ export default function Access() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex flex-col">
+    <div 
+      className="min-h-screen flex flex-col relative"
+      style={{ 
+        backgroundImage: `url(${heroBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      {/* Overlay for readability */}
+      <div className="absolute inset-0 bg-background/85 backdrop-blur-[2px]" />
       {/* Sticky Header */}
       <header 
-        className={`sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur-sm transition-shadow duration-300 ${
+        className={`sticky top-0 z-50 w-full border-b border-border bg-card/98 backdrop-blur-md transition-shadow duration-300 ${
           isScrolled ? "shadow-md" : ""
         }`}
       >
@@ -158,12 +168,9 @@ export default function Access() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 relative z-10">
         {/* Hero Section */}
-        <section 
-          className="px-4 py-12 sm:py-16 bg-cover bg-center bg-no-repeat relative"
-          style={{ backgroundImage: `url(${heroBackground})` }}
-        >
+        <section className="px-4 py-12 sm:py-16 relative">
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
               SisConnecta

@@ -277,10 +277,28 @@ export function UsersManagement() {
           referenceCode,
         });
 
-        toast.error("Erro ao processar solicitação", {
-          description: `${error.message || "Falha na comunicação com o servidor"}. Código: ${referenceCode}`,
-          duration: 10000,
-        });
+        // Try to extract structured error from response context
+        let userMessage = error.message || "Falha na comunicação com o servidor";
+        
+        // Check if data contains the actual error details (e.g., 409 has_dependencies)
+        if (data?.message) {
+          userMessage = data.message;
+        } else if (data?.details?.failed?.length > 0) {
+          userMessage = data.details.failed.map((f: { error: string }) => f.error).join("; ");
+        }
+
+        // Show contextual message for dependency errors
+        if (data?.error === "has_dependencies") {
+          toast.warning("Não é possível excluir este usuário", {
+            description: `${userMessage} Sugestão: desative o usuário em vez de excluí-lo.`,
+            duration: 10000,
+          });
+        } else {
+          toast.error("Erro ao processar solicitação", {
+            description: `${userMessage}. Código: ${referenceCode}`,
+            duration: 10000,
+          });
+        }
         return;
       }
 

@@ -337,10 +337,16 @@ export default function Import() {
             });
 
           if (error) {
-            let reason = error.message;
-            if (error.code === '23505') {
-              reason = `Projeto com código "${code}" já existe`;
-            }
+            const dbErrorMap: Record<string, string> = {
+              '23505': `Projeto com código "${code}" já existe`,
+              '23503': 'Referência inválida - dados relacionados não encontrados',
+              '23502': 'Campo obrigatório não preenchido',
+              '23514': 'Valor inválido para o campo',
+              '22001': 'Texto muito longo para o campo',
+              '22P02': 'Formato de dado inválido',
+            };
+            const reason = dbErrorMap[error.code] || 'Erro ao processar registro. Verifique os dados e tente novamente.';
+            console.error('Import error:', { code: error.code, row: row.rowNumber });
             rejectedRecords.push({
               rowNumber: row.rowNumber,
               data: row.data,

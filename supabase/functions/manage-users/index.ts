@@ -7,6 +7,10 @@ const corsHeaders = {
 };
 
 // Structured error response helper
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
 function errorResponse(
   status: number,
   errorCode: string,
@@ -100,6 +104,17 @@ Deno.serve(async (req) => {
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return errorResponse(400, "invalid_request", "Lista de usuários inválida ou vazia.");
+    }
+
+    // Array size limit to prevent DoS
+    if (userIds.length > 100) {
+      return errorResponse(400, "limit_exceeded", "Máximo de 100 usuários por requisição.");
+    }
+
+    // Validate UUID format for all IDs
+    const invalidIds = userIds.filter((id: string) => typeof id !== 'string' || !isValidUUID(id));
+    if (invalidIds.length > 0) {
+      return errorResponse(400, "invalid_uuid", "Um ou mais IDs de usuário possuem formato inválido.");
     }
 
     // Prevent self-action

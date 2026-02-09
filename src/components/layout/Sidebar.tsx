@@ -48,6 +48,7 @@ const adminNavigation: NavItem[] = [
   { name: "Dashboard ICCA", icon: Globe, href: "/admin/dashboard-icca", adminOnly: true, section: "Governança" },
   { name: "Painel Gestor", icon: Users, href: "/admin/painel", managerOnly: true },
   { name: "Projetos Temáticos", icon: FolderOpen, href: "/admin/projetos-tematicos", managerOnly: true },
+  { name: "Documentos", icon: FileText, href: "/admin/documentos", managerOnly: true },
   { name: "Códigos de Convite", icon: Ticket, href: "/admin/codigos-convite", managerOnly: true, section: "Gestão Institucional" },
   { name: "Importar Dados", icon: Upload, href: "/admin/importar", managerOnly: true },
   { name: "Organizações", icon: Building2, href: "/admin/organizacoes", adminOnly: true },

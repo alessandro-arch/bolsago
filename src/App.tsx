@@ -23,6 +23,7 @@ import Index from "./pages/Index";
 import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
+import ScholarManual from "./pages/ScholarManual";
 
 // Admin pages (reusing existing)
 import ManagerDashboard from "./pages/ManagerDashboard";
@@ -81,6 +82,11 @@ const App = () => (
               <Route path="/bolsista/perfil" element={
                 <ScholarProtectedRoute>
                   <ScholarProfile />
+                </ScholarProtectedRoute>
+              } />
+              <Route path="/bolsista/manual" element={
+                <ScholarProtectedRoute>
+                  <ScholarManual />
                 </ScholarProtectedRoute>
               } />
               

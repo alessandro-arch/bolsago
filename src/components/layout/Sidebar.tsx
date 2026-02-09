@@ -41,6 +41,7 @@ const scholarNavigation: NavItem[] = [
   { name: "Meu Perfil", icon: UserCircle, href: "/bolsista/perfil" },
   { name: "Meus Pagamentos", icon: Receipt, href: "/bolsista/pagamentos-relatorios" },
   { name: "Documentos", icon: FileText, href: "/bolsista/documentos" },
+  { name: "Manual", icon: HelpCircle, href: "/bolsista/manual" },
 ];
 
 const adminNavigation: NavItem[] = [

@@ -254,26 +254,31 @@ Deno.serve(async (req) => {
 
     console.log(`[ASSIGN] Enrollment created: ${enrollment.id}`);
 
-    // Create first payment (auto-eligible)
-    const referenceMonth = `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, '0')}`;
+    // Create ALL payment installments
+    const paymentRows = [];
+    for (let i = 0; i < totalInstallments; i++) {
+      const refDate = new Date(startDateObj.getFullYear(), startDateObj.getMonth() + i, 1);
+      const refMonth = `${refDate.getFullYear()}-${String(refDate.getMonth() + 1).padStart(2, '0')}`;
+      paymentRows.push({
+        user_id: scholar_id,
+        enrollment_id: enrollment.id,
+        installment_number: i + 1,
+        reference_month: refMonth,
+        amount: project.valor_mensal,
+        status: 'pending' as const,
+      });
+    }
 
     const { error: paymentError } = await supabaseAdmin
       .from('payments')
-      .insert({
-        user_id: scholar_id,
-        enrollment_id: enrollment.id,
-        installment_number: 1,
-        reference_month: referenceMonth,
-        amount: project.valor_mensal,
-        status: 'eligible',
-      });
+      .insert(paymentRows);
 
     if (paymentError) {
       console.error('[ASSIGN] Payment creation error:', paymentError);
       // Rollback enrollment
       await supabaseAdmin.from('enrollments').delete().eq('id', enrollment.id);
       return new Response(
-        JSON.stringify({ error: 'Erro ao criar primeira parcela. Operação cancelada.', code: 'PAYMENT_INSERT_FAILED' }),
+        JSON.stringify({ error: 'Erro ao criar parcelas. Operação cancelada.', code: 'PAYMENT_INSERT_FAILED' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

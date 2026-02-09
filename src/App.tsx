@@ -26,6 +26,7 @@ import ScholarProfile from "./pages/ScholarProfile";
 
 // Admin pages (reusing existing)
 import ManagerDashboard from "./pages/ManagerDashboard";
+import AdminIccaDashboard from "./pages/AdminIccaDashboard";
 import ThematicProjectsList from "./pages/ThematicProjectsList";
 import ThematicProjectDetail from "./pages/ThematicProjectDetail";
 import InviteCodes from "./pages/InviteCodes";
@@ -118,6 +119,11 @@ const App = () => (
               } />
               
               {/* Admin-only routes */}
+              <Route path="/admin/dashboard-icca" element={
+                <AdminProtectedRoute allowedRoles={["admin"]}>
+                  <AdminIccaDashboard />
+                </AdminProtectedRoute>
+              } />
               <Route path="/admin/trilha-auditoria" element={
                 <AdminProtectedRoute allowedRoles={["admin"]}>
                   <AuditTrail />

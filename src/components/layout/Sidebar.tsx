@@ -16,7 +16,8 @@ import {
   FolderOpen,
   ShieldAlert,
   Ticket,
-  Building2
+  Building2,
+  Globe
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -43,6 +44,7 @@ const scholarNavigation: NavItem[] = [
 ];
 
 const adminNavigation: NavItem[] = [
+  { name: "Dashboard ICCA", icon: Globe, href: "/admin/dashboard-icca", adminOnly: true, section: "Governança" },
   { name: "Painel Gestor", icon: Users, href: "/admin/painel", managerOnly: true },
   { name: "Projetos Temáticos", icon: FolderOpen, href: "/admin/projetos-tematicos", managerOnly: true },
   { name: "Códigos de Convite", icon: Ticket, href: "/admin/codigos-convite", managerOnly: true, section: "Gestão Institucional" },

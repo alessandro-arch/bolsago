@@ -20,12 +20,19 @@ export function useUserRole(): UseUserRoleReturn {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchUserRole() {
       if (!user) {
-        setRole(null);
-        setLoading(false);
+        if (isMounted) {
+          setRole(null);
+          setLoading(false);
+        }
         return;
       }
+
+      // CRITICAL: Set loading true when user changes to prevent race conditions
+      if (isMounted) setLoading(true);
 
       try {
         const { data, error } = await supabase
@@ -33,6 +40,8 @@ export function useUserRole(): UseUserRoleReturn {
           .select("role")
           .eq("user_id", user.id)
           .single();
+
+        if (!isMounted) return;
 
         if (error) {
           console.error("Error fetching user role:", error);
@@ -43,13 +52,17 @@ export function useUserRole(): UseUserRoleReturn {
         }
       } catch (error) {
         console.error("Error fetching user role:", error);
-        setRole("scholar");
+        if (isMounted) setRole("scholar");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     fetchUserRole();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   const isAdmin = role === "admin";

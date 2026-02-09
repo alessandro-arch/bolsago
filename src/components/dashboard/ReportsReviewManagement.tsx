@@ -78,7 +78,7 @@ export function ReportsReviewManagement() {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
   
-  const [statusFilter, setStatusFilter] = useState<string>("under_review");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sponsorFilter, setSponsorFilter] = useState<string>("all");
   

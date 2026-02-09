@@ -810,6 +810,10 @@ export type Database = {
         Returns: string
       }
       mask_pix_key: { Args: { pix: string }; Returns: string }
+      user_can_access_profile_by_org: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       user_has_org_access: { Args: { p_org_id: string }; Returns: boolean }
       user_org_role: { Args: { p_org_id: string }; Returns: string }
     }

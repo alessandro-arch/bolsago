@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -55,7 +56,9 @@ import {
   Trash2,
   UserX,
   UserCheck,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
+  Edit
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -92,6 +95,7 @@ type DialogAction = "deactivate" | "reactivate" | "delete" | null;
 export function UsersManagement() {
   const { user: currentUser } = useAuth();
   const { role: currentUserRole } = useUserRole();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -676,8 +680,20 @@ export function UsersManagement() {
                                   <DropdownMenuSeparator />
                                 </>
                               )}
-                              <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                              <DropdownMenuItem>Editar perfil</DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="gap-2"
+                                onClick={() => navigate(`/admin/bolsista/${user.user_id}`)}
+                              >
+                                <Eye className="w-4 h-4" />
+                                Ver detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="gap-2"
+                                onClick={() => navigate(`/admin/bolsista/${user.user_id}`)}
+                              >
+                                <Edit className="w-4 h-4" />
+                                Editar perfil
+                              </DropdownMenuItem>
                               {!isCurrentUser && (
                                 <>
                                   <DropdownMenuSeparator />

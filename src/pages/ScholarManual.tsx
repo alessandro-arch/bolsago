@@ -1,7 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { ArrowLeft, BookOpen, UserCircle, Building2, FileText, Banknote, ShieldCheck, Bell, HelpCircle, ChevronDown } from "lucide-react";
+import { ArrowLeft, BookOpen, UserCircle, Building2, FileText, Banknote, ShieldCheck, Bell, HelpCircle, ChevronDown, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -117,8 +117,22 @@ const ScholarManual = () => {
               </Tip>
             </ManualSection>
 
-            {/* 2. Dados Pessoais */}
-            <ManualSection icon={UserCircle} title="2. Atualizar Dados Pessoais">
+            {/* 2. Foto de Perfil */}
+            <ManualSection icon={Camera} title="2. Alterar Foto de Perfil">
+              <p>Personalize seu perfil adicionando uma foto que será exibida no cabeçalho do sistema.</p>
+              <StepList steps={[
+                "No canto superior direito, clique no ícone com suas iniciais ou na sua foto atual.",
+                "No menu que abrir, clique na área da foto/iniciais para abrir o seletor de arquivo.",
+                "Selecione uma imagem do seu computador (formatos JPG ou PNG, máximo 2 MB).",
+                "A foto será enviada automaticamente e aparecerá no cabeçalho em poucos segundos.",
+              ]} />
+              <Tip>
+                <strong>Dica:</strong> Use uma foto com rosto visível e boa iluminação para facilitar a identificação. Caso queira remover a foto, o sistema voltará a exibir suas iniciais.
+              </Tip>
+            </ManualSection>
+
+            {/* 3. Dados Pessoais */}
+            <ManualSection icon={UserCircle} title="3. Atualizar Dados Pessoais">
               <p>Mantenha seus dados pessoais sempre atualizados para garantir a comunicação e o vínculo institucional correto.</p>
               <StepList steps={[
                 "No menu lateral, clique em \"Meu Perfil\".",
@@ -132,8 +146,8 @@ const ScholarManual = () => {
               </Tip>
             </ManualSection>
 
-            {/* 3. Dados Bancários */}
-            <ManualSection icon={Building2} title="3. Cadastrar / Atualizar Dados Bancários">
+            {/* 4. Dados Bancários */}
+            <ManualSection icon={Building2} title="4. Cadastrar / Atualizar Dados Bancários">
               <p>Os dados bancários são necessários para o recebimento das parcelas de bolsa. Sem eles, o pagamento não poderá ser processado.</p>
               <StepList steps={[
                 "Acesse \"Meu Perfil\" no menu lateral.",
@@ -147,8 +161,8 @@ const ScholarManual = () => {
               </Tip>
             </ManualSection>
 
-            {/* 4. Enviar Relatório */}
-            <ManualSection icon={FileText} title="4. Enviar Relatório Mensal">
+            {/* 5. Enviar Relatório */}
+            <ManualSection icon={FileText} title="5. Enviar Relatório Mensal">
               <p>O envio do relatório mensal é <strong className="text-foreground">obrigatório</strong> para a liberação do pagamento da parcela correspondente.</p>
               <StepList steps={[
                 "No menu lateral, clique em \"Meus Pagamentos\".",
@@ -167,8 +181,8 @@ const ScholarManual = () => {
               </div>
             </ManualSection>
 
-            {/* 5. Pagamentos */}
-            <ManualSection icon={Banknote} title="5. Acompanhar Pagamentos">
+            {/* 6. Pagamentos */}
+            <ManualSection icon={Banknote} title="6. Acompanhar Pagamentos">
               <p>Acompanhe o status de todas as suas parcelas em tempo real.</p>
               <StepList steps={[
                 "Acesse \"Meus Pagamentos\" no menu lateral.",
@@ -186,8 +200,8 @@ const ScholarManual = () => {
               </div>
             </ManualSection>
 
-            {/* 6. Termo de Outorga */}
-            <ManualSection icon={ShieldCheck} title="6. Termo de Outorga (Contrato)">
+            {/* 7. Termo de Outorga */}
+            <ManualSection icon={ShieldCheck} title="7. Termo de Outorga (Contrato)">
               <p>O Termo de Outorga é o <strong className="text-foreground">contrato oficial</strong> que formaliza o vínculo entre você e o programa de bolsas. Ele contém as condições, direitos e deveres relacionados à sua bolsa.</p>
               <StepList steps={[
                 "Acesse \"Meu Perfil\" no menu lateral.",
@@ -210,8 +224,8 @@ const ScholarManual = () => {
               </div>
             </ManualSection>
 
-            {/* 7. Documentos */}
-            <ManualSection icon={FileText} title="7. Documentos Institucionais">
+            {/* 8. Documentos */}
+            <ManualSection icon={FileText} title="8. Documentos Institucionais">
               <p>A seção de documentos disponibiliza manuais, templates e termos necessários para o andamento do programa.</p>
               <StepList steps={[
                 "Acesse \"Documentos\" no menu lateral.",
@@ -223,8 +237,8 @@ const ScholarManual = () => {
               </Tip>
             </ManualSection>
 
-            {/* 8. Notificações */}
-            <ManualSection icon={Bell} title="8. Notificações">
+            {/* 9. Notificações */}
+            <ManualSection icon={Bell} title="9. Notificações">
               <p>O sistema envia notificações automáticas sobre eventos importantes, como:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Avaliação de relatório (aprovado ou recusado)</li>
@@ -235,8 +249,8 @@ const ScholarManual = () => {
               <p className="mt-2">Fique atento ao ícone de sino no cabeçalho para não perder nenhuma atualização.</p>
             </ManualSection>
 
-            {/* 9. Dúvidas */}
-            <ManualSection icon={HelpCircle} title="9. Dúvidas Frequentes">
+            {/* 10. Dúvidas */}
+            <ManualSection icon={HelpCircle} title="10. Dúvidas Frequentes">
               <div className="space-y-4">
                 <div>
                   <p className="font-medium text-foreground">Posso alterar meu CPF após o cadastro?</p>

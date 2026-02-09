@@ -18,7 +18,9 @@ export function RoleProtectedRoute({
   const { role, loading: roleLoading, hasManagerAccess } = useUserRole();
   const location = useLocation();
 
-  const isLoading = authLoading || roleLoading;
+  // Avoid race conditions: after auth resolves, role might still be unknown for one render
+  const roleUnknown = !!user && role === null;
+  const isLoading = authLoading || roleLoading || roleUnknown;
 
   if (isLoading) {
     return (

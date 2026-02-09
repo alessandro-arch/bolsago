@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -11,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, Archive } from 'lucide-react';
 import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface ThematicProject {
@@ -35,6 +36,7 @@ export function DeleteThematicProjectDialog({
   onSuccess,
 }: DeleteThematicProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [hasDependencies, setHasDependencies] = useState(false);
   const [subprojectsCount, setSubprojectsCount] = useState(0);
   const [isChecking, setIsChecking] = useState(true);
@@ -109,6 +111,43 @@ export function DeleteThematicProjectDialog({
     }
   };
 
+  const handleArchive = async () => {
+    setIsArchiving(true);
+    try {
+      // Archive all subprojects first
+      const { error: subError } = await supabase
+        .from('projects')
+        .update({ status: 'archived' })
+        .eq('thematic_project_id', project.id);
+      if (subError) throw subError;
+
+      // Archive the thematic project
+      const { error } = await supabase
+        .from('thematic_projects')
+        .update({ status: 'archived' })
+        .eq('id', project.id);
+      if (error) throw error;
+
+      await logAction({
+        action: 'archive_thematic_project',
+        entityType: 'thematic_project',
+        entityId: project.id,
+        previousValue: { status: project.status },
+        newValue: { status: 'archived' },
+        details: { reason: 'Arquivamento via dialog de exclusão (dependências existentes)' },
+      });
+
+      toast.success('Projeto Temático e subprojetos arquivados com sucesso!');
+      onOpenChange(false);
+      onSuccess();
+    } catch (error) {
+      console.error('Error archiving thematic project:', error);
+      toast.error('Erro ao arquivar Projeto Temático');
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -137,10 +176,7 @@ export function DeleteThematicProjectDialog({
                   </div>
                 </div>
                 <p className="text-sm">
-                  Para excluir este Projeto Temático, você deve primeiro remover ou transferir todos os subprojetos vinculados.
-                </p>
-                <p className="text-sm">
-                  Alternativamente, você pode <strong>arquivar</strong> o projeto para preservar o histórico.
+140:                   Para excluir, remova primeiro todos os subprojetos. Ou use a opção abaixo para <strong>arquivar</strong> o projeto e preservar o histórico.
                 </p>
               </div>
             ) : (
@@ -164,10 +200,21 @@ export function DeleteThematicProjectDialog({
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogCancel disabled={isSubmitting || isArchiving}>
             {hasDependencies ? 'Fechar' : 'Cancelar'}
           </AlertDialogCancel>
+          {hasDependencies && !isChecking && (
+            <Button
+              onClick={handleArchive}
+              disabled={isArchiving}
+              className="gap-2"
+              variant="default"
+            >
+              {isArchiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
+              Arquivar Projeto e Subprojetos
+            </Button>
+          )}
           {!hasDependencies && !isChecking && (
             <AlertDialogAction
               onClick={handleDelete}

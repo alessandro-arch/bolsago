@@ -56,14 +56,63 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { users, inviteCode } = await req.json() as {
+    const body = await req.json() as {
+      action?: string;
       users: Array<{ email: string; cpf: string; full_name?: string }>;
-      inviteCode: string;
+      inviteCode?: string;
     };
+
+    const { action, users, inviteCode } = body;
 
     if (!users || !Array.isArray(users) || users.length === 0) {
       return new Response(JSON.stringify({ error: "Lista de usuários vazia" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action: reset-password - set default password for existing users
+    if (action === "reset-password") {
+      const resetResults = {
+        success: [] as Array<{ email: string }>,
+        failed: [] as Array<{ email: string; error: string }>,
+      };
+
+      for (const user of users) {
+        try {
+          const cpfClean = user.cpf.replace(/\D/g, "");
+          const defaultPassword = `SisConnecta${cpfClean.slice(-4)}!`;
+
+          // Find user by email
+          const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+          const authUser = listData?.users?.find(u => u.email === user.email);
+
+          if (!authUser) {
+            resetResults.failed.push({ email: user.email, error: "Usuário não encontrado" });
+            continue;
+          }
+
+          const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+            authUser.id,
+            { password: defaultPassword }
+          );
+
+          if (updateError) {
+            resetResults.failed.push({ email: user.email, error: updateError.message });
+          } else {
+            resetResults.success.push({ email: user.email });
+            console.log(`Password reset for: ${user.email}`);
+          }
+        } catch (err) {
+          resetResults.failed.push({ email: user.email, error: String(err) });
+        }
+      }
+
+      return new Response(JSON.stringify({
+        message: `${resetResults.success.length} senha(s) redefinida(s)`,
+        results: resetResults,
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -97,12 +146,13 @@ Deno.serve(async (req) => {
     for (const user of users) {
       try {
         const cpfClean = user.cpf.replace(/\D/g, "");
-        const tempPassword = `Temp@${Date.now()}#${Math.random().toString(36).slice(2, 8)}`;
+        // Senha padrão para primeiro login: SisConnecta + 4 últimos dígitos do CPF + !
+        const defaultPassword = `SisConnecta${cpfClean.slice(-4)}!`;
 
         // Create auth user with auto-confirm
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
           email: user.email,
-          password: tempPassword,
+          password: defaultPassword,
           email_confirm: true,
           user_metadata: {
             full_name: user.full_name || user.email.split("@")[0],
@@ -141,6 +191,7 @@ Deno.serve(async (req) => {
             origin: "manual",
             thematic_project_id: inviteRecord.thematic_project_id,
             partner_company_id: inviteRecord.partner_company_id,
+            organization_id: inviteRecord.organization_id,
             invite_code_used: inviteCode,
             invite_used_at: new Date().toISOString(),
           });
@@ -154,16 +205,6 @@ Deno.serve(async (req) => {
             user_id: authData.user.id,
             role: "scholar",
           }, { onConflict: "user_id,role" });
-        }
-
-        // Send password reset email so user can set their own password
-        const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-          type: "recovery",
-          email: user.email,
-        });
-
-        if (resetError) {
-          console.error(`Error sending reset for ${user.email}:`, resetError);
         }
 
         results.success.push({ email: user.email, user_id: authData.user.id });

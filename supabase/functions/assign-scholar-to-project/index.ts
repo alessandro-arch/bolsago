@@ -12,6 +12,10 @@ interface AssignScholarRequest {
   end_date: string;
 }
 
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -91,6 +95,20 @@ Deno.serve(async (req) => {
     if (!project_id) {
       return new Response(
         JSON.stringify({ error: 'Campo obrigatório ausente: subprojeto_id', code: 'MISSING_PROJECT_ID' }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate UUID format
+    if (!isValidUUID(scholar_id)) {
+      return new Response(
+        JSON.stringify({ error: 'Formato de ID de bolsista inválido.', code: 'INVALID_SCHOLAR_ID' }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!isValidUUID(project_id)) {
+      return new Response(
+        JSON.stringify({ error: 'Formato de ID de subprojeto inválido.', code: 'INVALID_PROJECT_ID' }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

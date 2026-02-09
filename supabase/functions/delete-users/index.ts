@@ -6,6 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -79,6 +83,23 @@ Deno.serve(async (req) => {
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return new Response(
         JSON.stringify({ error: "Lista de usuários inválida" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Array size limit to prevent DoS
+    if (userIds.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Máximo de 100 usuários por requisição" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate UUID format for all IDs
+    const invalidIds = userIds.filter((id: string) => typeof id !== 'string' || !isValidUUID(id));
+    if (invalidIds.length > 0) {
+      return new Response(
+        JSON.stringify({ error: "Um ou mais IDs de usuário possuem formato inválido" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

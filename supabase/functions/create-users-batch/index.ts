@@ -71,6 +71,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Array size limit to prevent DoS
+    if (users.length > 100) {
+      return new Response(JSON.stringify({ error: "Máximo de 100 usuários por requisição" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: reset-password - set default password for existing users
     if (action === "reset-password") {
       const resetResults = {
@@ -143,8 +151,22 @@ Deno.serve(async (req) => {
       failed: [] as Array<{ email: string; error: string }>,
     };
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     for (const user of users) {
       try {
+        // Validate email format
+        if (!user.email || !emailRegex.test(user.email.trim())) {
+          results.failed.push({ email: user.email || '(vazio)', error: "Formato de email inválido" });
+          continue;
+        }
+
+        // Validate CPF
+        if (!user.cpf || user.cpf.replace(/\D/g, "").length < 11) {
+          results.failed.push({ email: user.email, error: "CPF inválido" });
+          continue;
+        }
+
         const cpfClean = user.cpf.replace(/\D/g, "");
         // Senha padrão para primeiro login: SisConnecta + 4 últimos dígitos do CPF + !
         const defaultPassword = `SisConnecta${cpfClean.slice(-4)}!`;

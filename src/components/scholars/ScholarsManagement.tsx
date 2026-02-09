@@ -112,12 +112,11 @@ export function ScholarsManagement() {
 
       if (reportsError) throw reportsError;
 
-      // Fetch pending payments count
+      // Fetch all payments (for paid/total counts and pending count)
       const { data: payments, error: paymentsError } = await supabase
         .from('payments')
         .select('user_id, status')
-        .in('user_id', scholarUserIds)
-        .eq('status', 'pending');
+        .in('user_id', scholarUserIds);
 
       if (paymentsError) throw paymentsError;
 
@@ -128,8 +127,16 @@ export function ScholarsManagement() {
       });
 
       const pendingPaymentsMap = new Map<string, number>();
+      const paidInstallmentsMap = new Map<string, number>();
+      const totalInstallmentsMap = new Map<string, number>();
       payments?.forEach(p => {
-        pendingPaymentsMap.set(p.user_id, (pendingPaymentsMap.get(p.user_id) || 0) + 1);
+        totalInstallmentsMap.set(p.user_id, (totalInstallmentsMap.get(p.user_id) || 0) + 1);
+        if (p.status === 'pending') {
+          pendingPaymentsMap.set(p.user_id, (pendingPaymentsMap.get(p.user_id) || 0) + 1);
+        }
+        if (p.status === 'paid') {
+          paidInstallmentsMap.set(p.user_id, (paidInstallmentsMap.get(p.user_id) || 0) + 1);
+        }
       });
 
       // Map enrollments by user_id (get most recent or active one)
@@ -178,6 +185,8 @@ export function ScholarsManagement() {
           enrollmentId: enrollment?.id || null,
           pendingReports: pendingReportsMap.get(profile.user_id) || 0,
           pendingPayments: pendingPaymentsMap.get(profile.user_id) || 0,
+          paidInstallments: paidInstallmentsMap.get(profile.user_id) || 0,
+          totalInstallments: totalInstallmentsMap.get(profile.user_id) || 0,
           origin: profile.origin || 'manual',
           createdAt: profile.created_at,
         };

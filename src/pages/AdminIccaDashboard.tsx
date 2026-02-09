@@ -10,7 +10,8 @@ import {
   FolderOpen, 
   GraduationCap, 
   DollarSign, 
-  ShieldAlert 
+  ShieldAlert,
+  BarChart3
 } from "lucide-react";
 
 // Tab components
@@ -20,6 +21,7 @@ import { ThematicProjectsTab } from "@/components/admin-icca/ThematicProjectsTab
 import { ScholarsTab } from "@/components/admin-icca/ScholarsTab";
 import { PaymentsGovernanceTab } from "@/components/admin-icca/PaymentsGovernanceTab";
 import { AuditGovernanceTab } from "@/components/admin-icca/AuditGovernanceTab";
+import { AnalyticsTab } from "@/components/admin-icca/AnalyticsTab";
 
 const AdminIccaDashboard = () => {
   return (
@@ -42,7 +44,7 @@ const AdminIccaDashboard = () => {
             </div>
 
             <Tabs defaultValue="institucional" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6 h-auto p-1 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-7 h-auto p-1 bg-muted/50">
                 <TabsTrigger 
                   value="institucional" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -50,6 +52,14 @@ const AdminIccaDashboard = () => {
                   <LayoutDashboard className="h-4 w-4" />
                   <span className="hidden sm:inline">Visão Institucional</span>
                   <span className="sm:hidden">Visão</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="analytics" 
+                  className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Analytics</span>
+                  <span className="sm:hidden">Stats</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="organizacoes" 
@@ -95,6 +105,10 @@ const AdminIccaDashboard = () => {
 
               <TabsContent value="institucional" className="space-y-6 animate-fade-in">
                 <InstitutionalOverviewTab />
+              </TabsContent>
+
+              <TabsContent value="analytics" className="space-y-6 animate-fade-in">
+                <AnalyticsTab />
               </TabsContent>
 
               <TabsContent value="organizacoes" className="space-y-6 animate-fade-in">

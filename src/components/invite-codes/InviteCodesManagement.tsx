@@ -42,7 +42,8 @@ import {
   MoreHorizontal,
   ShieldAlert,
   Info,
-  CheckCircle2
+  CheckCircle2,
+  Edit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -50,6 +51,7 @@ import { toast } from 'sonner';
 import { useAdminMasterMode } from '@/contexts/AdminMasterModeContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { CreateInviteCodeDialog } from './CreateInviteCodeDialog';
+import { EditInviteCodeDialog } from './EditInviteCodeDialog';
 import { InviteCodeDetailsDialog } from './InviteCodeDetailsDialog';
 import { CriticalActionDialog } from '@/components/admin/CriticalActionDialog';
 import { useOrganizationContext } from '@/contexts/OrganizationContext';
@@ -82,6 +84,8 @@ export function InviteCodesManagement() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedCode, setSelectedCode] = useState<InviteCode | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [codeToEdit, setCodeToEdit] = useState<InviteCode | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [codeToDelete, setCodeToDelete] = useState<InviteCode | null>(null);
   
@@ -226,6 +230,11 @@ export function InviteCodesManagement() {
   const handleViewDetails = (code: InviteCode) => {
     setSelectedCode(code);
     setDetailsDialogOpen(true);
+  };
+
+  const handleEditCode = (code: InviteCode) => {
+    setCodeToEdit(code);
+    setEditDialogOpen(true);
   };
 
   const handleRegenerateCode = async (code: InviteCode) => {
@@ -467,6 +476,10 @@ export function InviteCodesManagement() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 Ver detalhes
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditCode(code)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar limite de usos
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleToggleStatus(code)}>
                                 <Power className="h-4 w-4 mr-2" />
                                 {code.status === 'active' ? 'Desativar' : 'Ativar'}
@@ -514,6 +527,15 @@ export function InviteCodesManagement() {
           onOpenChange={setDetailsDialogOpen}
           inviteCode={selectedCode}
           project={getThematicProjectInfo(selectedCode.thematic_project_id)}
+        />
+      )}
+
+      {codeToEdit && (
+        <EditInviteCodeDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          inviteCode={codeToEdit}
+          onSuccess={refetch}
         />
       )}
 

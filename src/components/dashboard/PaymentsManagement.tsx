@@ -41,6 +41,7 @@ import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PaymentsThematicCard } from "./PaymentsThematicCard";
 import { PaymentReceiptUpload } from "./PaymentReceiptUpload";
+import { cn } from "@/lib/utils";
 
 interface PaymentWithDetails {
   id: string;
@@ -97,7 +98,7 @@ export function PaymentsManagement() {
   const [attachReceiptUrl, setAttachReceiptUrl] = useState<string | null>(null);
   const [attachSubmitting, setAttachSubmitting] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['payments-management', selectedMonth],
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -384,8 +385,8 @@ export function PaymentsManagement() {
               }
             </CardDescription>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
             Atualizar
           </Button>
         </div>

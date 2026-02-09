@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { format, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ReportsThematicCard } from "./ReportsThematicCard";
+import { cn } from "@/lib/utils";
 
 interface ReportWithDetails {
   id: string;
@@ -89,7 +90,7 @@ export function ReportsReviewManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['reports-management'],
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -393,8 +394,8 @@ export function ReportsReviewManagement() {
               }
             </CardDescription>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
             Atualizar
           </Button>
         </div>

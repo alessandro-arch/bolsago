@@ -44,7 +44,7 @@ export function ScholarsManagement() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
 
   // Fetch all data
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['scholars-management', currentOrganization?.id],
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -429,10 +429,10 @@ export function ScholarsManagement() {
               variant="outline"
               size="sm"
               onClick={() => refetch()}
-              disabled={isLoading}
+              disabled={isFetching}
               className="gap-2"
             >
-              <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+              <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
               Atualizar
             </Button>
             <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredCount === 0}>

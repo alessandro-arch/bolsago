@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { 
   Search, 
   Landmark, 
@@ -118,7 +119,7 @@ export function BankDataManagement() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [gestorNotes, setGestorNotes] = useState('');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['bank-accounts-management'],
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -430,8 +431,8 @@ export function BankDataManagement() {
                 <CheckCircle className="h-3 w-3" />
                 {globalStats.validated} validados
               </Badge>
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
                 Atualizar
               </Button>
             </div>

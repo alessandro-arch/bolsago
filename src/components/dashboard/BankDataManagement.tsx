@@ -120,6 +120,9 @@ export function BankDataManagement() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['bank-accounts-management'],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       // Fetch thematic projects
       const { data: thematicProjects, error: thematicError } = await supabase

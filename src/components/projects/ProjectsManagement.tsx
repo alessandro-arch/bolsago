@@ -41,6 +41,9 @@ export function ProjectsManagement() {
   // Fetch all thematic projects with subprojects and stats
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['projects-management', statusFilter, selectedMonth, currentOrganization?.id],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       // Fetch thematic projects filtered by organization
       let thematicQuery = supabase

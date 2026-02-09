@@ -46,6 +46,9 @@ export function ScholarsManagement() {
   // Fetch all data
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['scholars-management', currentOrganization?.id],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       // Fetch profiles that are scholars (have role = scholar) filtered by organization
       const { data: rolesData, error: rolesError } = await supabase

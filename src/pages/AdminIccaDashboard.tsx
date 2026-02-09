@@ -11,7 +11,8 @@ import {
   GraduationCap, 
   DollarSign, 
   ShieldAlert,
-  BarChart3
+  BarChart3,
+  Brain
 } from "lucide-react";
 
 // Tab components
@@ -22,6 +23,7 @@ import { ScholarsTab } from "@/components/admin-icca/ScholarsTab";
 import { PaymentsGovernanceTab } from "@/components/admin-icca/PaymentsGovernanceTab";
 import { AuditGovernanceTab } from "@/components/admin-icca/AuditGovernanceTab";
 import { AnalyticsTab } from "@/components/admin-icca/AnalyticsTab";
+import { PredictiveTab } from "@/components/admin-icca/PredictiveTab";
 
 const AdminIccaDashboard = () => {
   return (
@@ -44,62 +46,70 @@ const AdminIccaDashboard = () => {
             </div>
 
             <Tabs defaultValue="institucional" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-7 h-auto p-1 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-8 h-auto p-1 bg-muted/50">
                 <TabsTrigger 
                   value="institucional" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <LayoutDashboard className="h-4 w-4" />
-                  <span className="hidden sm:inline">Visão Institucional</span>
-                  <span className="sm:hidden">Visão</span>
+                  <span className="hidden lg:inline">Visão Institucional</span>
+                  <span className="lg:hidden">Visão</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="analytics" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Analytics</span>
-                  <span className="sm:hidden">Stats</span>
+                  <span className="hidden lg:inline">Analytics</span>
+                  <span className="lg:hidden">Stats</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="predictive" 
+                  className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <Brain className="h-4 w-4" />
+                  <span className="hidden lg:inline">Preditivo</span>
+                  <span className="lg:hidden">AI</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="organizacoes" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <Building2 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Organizações</span>
-                  <span className="sm:hidden">Orgs</span>
+                  <span className="hidden lg:inline">Organizações</span>
+                  <span className="lg:hidden">Orgs</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="projetos" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <FolderOpen className="h-4 w-4" />
-                  <span className="hidden sm:inline">Projetos Temáticos</span>
-                  <span className="sm:hidden">Projetos</span>
+                  <span className="hidden lg:inline">Projetos</span>
+                  <span className="lg:hidden">Proj</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="bolsistas" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <GraduationCap className="h-4 w-4" />
-                  <span className="hidden sm:inline">Bolsistas</span>
-                  <span className="sm:hidden">Bolsas</span>
+                  <span className="hidden lg:inline">Bolsistas</span>
+                  <span className="lg:hidden">Bolsas</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="pagamentos" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <DollarSign className="h-4 w-4" />
-                  <span className="hidden sm:inline">Pagamentos</span>
-                  <span className="sm:hidden">Pagtos</span>
+                  <span className="hidden lg:inline">Pagamentos</span>
+                  <span className="lg:hidden">Pagtos</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="auditoria" 
                   className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <ShieldAlert className="h-4 w-4" />
-                  <span className="hidden sm:inline">Auditoria</span>
-                  <span className="sm:hidden">Audit</span>
+                  <span className="hidden lg:inline">Auditoria</span>
+                  <span className="lg:hidden">Audit</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -109,6 +119,10 @@ const AdminIccaDashboard = () => {
 
               <TabsContent value="analytics" className="space-y-6 animate-fade-in">
                 <AnalyticsTab />
+              </TabsContent>
+
+              <TabsContent value="predictive" className="space-y-6 animate-fade-in">
+                <PredictiveTab />
               </TabsContent>
 
               <TabsContent value="organizacoes" className="space-y-6 animate-fade-in">

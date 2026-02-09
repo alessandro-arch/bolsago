@@ -137,24 +137,17 @@ export function CreateProjectDialog({
 
       if (insertError) throw insertError;
 
-      // Log audit
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('user_id', user.id)
-        .single();
-
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        user_email: userData?.email || user.email,
-        action: 'subproject_created',
-        entity_type: 'project',
-        entity_id: newProject.id,
-        new_value: projectData,
-        details: {
+      // Log audit using secure RPC function
+      await supabase.rpc('insert_audit_log', {
+        p_action: 'subproject_created',
+        p_entity_type: 'project',
+        p_entity_id: newProject.id,
+        p_new_value: projectData,
+        p_details: {
           project_code: values.code,
           thematic_project_id: thematicProjectId,
         },
+        p_user_agent: navigator.userAgent,
       });
 
       toast({

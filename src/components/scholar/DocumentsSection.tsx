@@ -86,7 +86,7 @@ function DocumentCard({ document }: { document: InstitutionalDocument }) {
           <span>{formatFileSize(document.file_size)}</span>
         </div>
         <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
-          PDF
+          {document.file_name.endsWith(".docx") || document.file_name.endsWith(".doc") ? "WORD" : "PDF"}
         </span>
       </div>
 

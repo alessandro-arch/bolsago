@@ -24,6 +24,12 @@ import { useUploadInstitutionalDocument, DocumentType } from "@/hooks/useInstitu
 import { cn } from "@/lib/utils";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const ACCEPTED_EXTENSIONS = ".pdf,.doc,.docx";
 
 const typeOptions: { value: DocumentType; label: string }[] = [
   { value: "manual", label: "Manual" },
@@ -70,7 +76,7 @@ export function UploadDocumentDialog() {
     setDragActive(false);
 
     const droppedFile = e.dataTransfer.files?.[0];
-    if (droppedFile && droppedFile.type === "application/pdf") {
+    if (droppedFile && ACCEPTED_TYPES.includes(droppedFile.type)) {
       if (droppedFile.size <= MAX_FILE_SIZE) {
         setFile(droppedFile);
       }
@@ -165,7 +171,7 @@ export function UploadDocumentDialog() {
 
           {/* File Upload */}
           <div className="space-y-2">
-            <Label>Arquivo PDF *</Label>
+            <Label>Arquivo (PDF ou Word) *</Label>
             <div
               className={cn(
                 "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
@@ -181,7 +187,7 @@ export function UploadDocumentDialog() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf"
+                accept={ACCEPTED_EXTENSIONS}
                 onChange={handleFileChange}
                 className="hidden"
               />
@@ -212,7 +218,7 @@ export function UploadDocumentDialog() {
                 <>
                   <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Arraste um PDF ou clique para selecionar
+                    Arraste um arquivo PDF ou Word, ou clique para selecionar
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Máximo 10MB

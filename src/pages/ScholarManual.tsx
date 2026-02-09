@@ -186,8 +186,32 @@ const ScholarManual = () => {
               </div>
             </ManualSection>
 
-            {/* 6. Documentos */}
-            <ManualSection icon={FileText} title="6. Documentos Institucionais">
+            {/* 6. Termo de Outorga */}
+            <ManualSection icon={ShieldCheck} title="6. Termo de Outorga (Contrato)">
+              <p>O Termo de Outorga é o <strong className="text-foreground">contrato oficial</strong> que formaliza o vínculo entre você e o programa de bolsas. Ele contém as condições, direitos e deveres relacionados à sua bolsa.</p>
+              <StepList steps={[
+                "Acesse \"Meu Perfil\" no menu lateral.",
+                "Role até a seção \"Termo de Outorga (Contrato)\".",
+                "Clique em \"Visualizar\" para abrir o documento em uma nova aba.",
+                "Clique em \"Baixar\" para salvar uma cópia no seu computador.",
+              ]} />
+              <Tip>
+                <strong>Importante:</strong> O termo é carregado pela gestão do programa após a assinatura. Enquanto não estiver disponível, a seção exibirá uma mensagem informando que o documento ainda não foi carregado. Guarde sempre uma cópia para seus registros pessoais.
+              </Tip>
+              <div className="mt-2 space-y-2">
+                <p className="font-medium text-foreground">O que contém o Termo de Outorga?</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Dados do bolsista e do projeto vinculado</li>
+                  <li>Modalidade e valor da bolsa</li>
+                  <li>Período de vigência</li>
+                  <li>Obrigações e responsabilidades</li>
+                  <li>Condições para suspensão ou cancelamento</li>
+                </ul>
+              </div>
+            </ManualSection>
+
+            {/* 7. Documentos */}
+            <ManualSection icon={FileText} title="7. Documentos Institucionais">
               <p>A seção de documentos disponibiliza manuais, templates e termos necessários para o andamento do programa.</p>
               <StepList steps={[
                 "Acesse \"Documentos\" no menu lateral.",
@@ -199,8 +223,8 @@ const ScholarManual = () => {
               </Tip>
             </ManualSection>
 
-            {/* 7. Notificações */}
-            <ManualSection icon={Bell} title="7. Notificações">
+            {/* 8. Notificações */}
+            <ManualSection icon={Bell} title="8. Notificações">
               <p>O sistema envia notificações automáticas sobre eventos importantes, como:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Avaliação de relatório (aprovado ou recusado)</li>
@@ -211,8 +235,8 @@ const ScholarManual = () => {
               <p className="mt-2">Fique atento ao ícone de sino no cabeçalho para não perder nenhuma atualização.</p>
             </ManualSection>
 
-            {/* 8. Dúvidas */}
-            <ManualSection icon={HelpCircle} title="8. Dúvidas Frequentes">
+            {/* 9. Dúvidas */}
+            <ManualSection icon={HelpCircle} title="9. Dúvidas Frequentes">
               <div className="space-y-4">
                 <div>
                   <p className="font-medium text-foreground">Posso alterar meu CPF após o cadastro?</p>

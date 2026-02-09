@@ -68,10 +68,21 @@ export default function ScholarSignup() {
     setLoading(false);
     
     if (error) {
-      if (error.message.includes("User already registered")) {
+      const errorMessage = error.message.toLowerCase();
+      
+      if (errorMessage.includes("user already registered")) {
         setError("Este email já está cadastrado. Tente fazer login.");
+      } else if (errorMessage.includes("weak_password") || errorMessage.includes("weak password") || errorMessage.includes("pwned")) {
+        setError("Esta senha é muito fraca ou foi encontrada em vazamentos de dados. Por favor, escolha uma senha diferente e mais segura.");
+      } else if (errorMessage.includes("password") && (errorMessage.includes("short") || errorMessage.includes("min"))) {
+        setError("A senha deve ter pelo menos 8 caracteres.");
+      } else if (errorMessage.includes("invite") || errorMessage.includes("convite") || errorMessage.includes("código")) {
+        setError("Código de convite inválido, expirado ou já atingiu o limite de usos.");
+      } else if (errorMessage.includes("cpf")) {
+        setError("Este CPF já está cadastrado no sistema.");
       } else {
-        setError("Erro ao criar conta. Verifique o código de convite e tente novamente.");
+        console.error("Signup error:", error.message);
+        setError("Erro ao criar conta. Verifique os dados e tente novamente.");
       }
     } else {
       setSuccess("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.");

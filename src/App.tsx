@@ -113,6 +113,11 @@ const App = () => (
                   <ThematicProjectDetail />
                 </AdminProtectedRoute>
               } />
+              <Route path="/admin/documentos" element={
+                <AdminProtectedRoute>
+                  <Documents />
+                </AdminProtectedRoute>
+              } />
               <Route path="/admin/codigos-convite" element={
                 <AdminProtectedRoute>
                   <InviteCodes />

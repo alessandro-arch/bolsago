@@ -4,7 +4,7 @@ const workflowSteps = [
   {
     icon: FileUp,
     label: "Enviar Relatório",
-    description: "Até o dia 10",
+    description: "Até o dia 25",
     status: "default" as const,
   },
   {
@@ -85,7 +85,7 @@ export function ScholarWorkflowBanner() {
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-warning" />
           <strong className="text-foreground font-medium">Dica:</strong> 
-          Envie seu relatório até o dia 10 de cada mês para evitar atrasos no pagamento.
+          Envie seu relatório até o dia 25 de cada mês para evitar atrasos no pagamento no mês posterior.
         </p>
       </div>
     </div>

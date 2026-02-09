@@ -32,6 +32,8 @@ export interface ScholarWithProject {
   enrollmentId: string | null;
   pendingReports: number;
   pendingPayments: number;
+  paidInstallments: number;
+  totalInstallments: number;
   origin: string | null;
   createdAt: string;
 }

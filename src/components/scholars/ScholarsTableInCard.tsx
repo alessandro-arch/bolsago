@@ -89,6 +89,7 @@ export function ScholarsTableInCard({ scholars, onRefresh }: ScholarsTableInCard
               <th>Subprojeto</th>
               <th>Modalidade</th>
               <th>Status</th>
+              <th>Parcelas</th>
               <th>Pendências</th>
               <th className="w-12">Ações</th>
             </tr>
@@ -146,6 +147,16 @@ export function ScholarsTableInCard({ scholars, onRefresh }: ScholarsTableInCard
                     <Badge variant="outline" className="text-muted-foreground">
                       Sem Vínculo
                     </Badge>
+                  )}
+                </td>
+                <td>
+                  {scholar.totalInstallments > 0 ? (
+                    <span className="text-sm font-medium text-foreground">
+                      {scholar.paidInstallments}
+                      <span className="text-muted-foreground font-normal">/{scholar.totalInstallments}</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </td>
                 <td>

@@ -159,7 +159,7 @@ const ScholarManual = () => {
                 "Aguarde a avaliação do gestor. Se aprovado, o pagamento será liberado automaticamente.",
               ]} />
               <Tip>
-                <strong>Prazo:</strong> Envie seu relatório até o <strong>dia 10 de cada mês</strong> para evitar atrasos no pagamento.
+                <strong>Prazo:</strong> Envie seu relatório até o <strong>dia 25 de cada mês</strong> para evitar atrasos no pagamento no mês posterior. O pagamento é realizado até o 5º dia útil do mês seguinte.
               </Tip>
               <div className="mt-2 space-y-2">
                 <p className="font-medium text-foreground">E se o relatório for recusado?</p>

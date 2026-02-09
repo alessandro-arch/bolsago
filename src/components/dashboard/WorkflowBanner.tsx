@@ -4,7 +4,7 @@ const steps = [
   {
     icon: Send,
     title: "Envio do Relatório",
-    description: "Bolsista envia até o dia 10",
+    description: "Bolsista envia até o dia 25",
     status: "Pendente → Enviado",
   },
   {
@@ -67,7 +67,7 @@ export function WorkflowBanner() {
 
       <div className="mt-4 pt-4 border-t border-border/50">
         <p className="text-xs text-muted-foreground">
-          <strong>Prazo:</strong> Envio até o dia 10 do mês seguinte • 
+          <strong>Prazo:</strong> Envio até o dia 25 do mês • Pagamento até o 5º dia útil do mês seguinte • 
           <strong> Exceção:</strong> Primeira parcela é liberada automaticamente • 
           <strong> Devolução:</strong> Permite reenvio com histórico de versões
         </p>

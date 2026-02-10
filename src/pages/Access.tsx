@@ -159,7 +159,9 @@ export default function Access() {
               Seja bem-vindo ao Portal do Bolsista!
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mb-8">
-              Organize, acompanhe e comprove atividades de Pesquisa, Desenvolvimento e Inovação com rastreabilidade e conformidade regulatória.
+              Aqui você registra suas atividades, acompanha progressos, organiza evidências e contribui para a qualidade e a integridade dos projetos de P,D&I.
+              <br /><br />
+              <span className="italic">Ciência com método. Inovação com responsabilidade.</span>
             </p>
           </div>
         </section>

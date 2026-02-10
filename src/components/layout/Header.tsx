@@ -1,4 +1,4 @@
-import { Search, ChevronDown, LogOut, Shield, User, Camera, Loader2 } from "lucide-react";
+import { Search, ChevronDown, LogOut, Shield, User, Camera, Loader2, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -12,10 +12,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAvatarUpload } from "@/hooks/useAvatarUpload";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 export function Header() {
   const { user, signOut } = useAuth();
   const { hasManagerAccess, role } = useUserRole();
+  const navigate = useNavigate();
   const { avatarUrl, uploading, uploadAvatar, refreshAvatar } = useAvatarUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +64,17 @@ export function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-4">
+        {/* Change Password */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => navigate("/recuperar-senha")}
+        >
+          <KeyRound className="w-4 h-4" />
+          Alterar senha
+        </Button>
+
         {/* Notifications */}
         <NotificationBell />
 

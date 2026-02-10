@@ -228,7 +228,7 @@ export default function Access() {
               SOBRE A PLATAFORMA
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 text-center">
-              Construído por quem faz PD&I na prática.
+              Desenvolvido por quem faz P,D&I na prática.
             </h2>
             <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-4 leading-relaxed">
               O SisConnecta combina rigor metodológico, governança institucional e a experiência real do ICCA em projetos de pesquisa e inovação.

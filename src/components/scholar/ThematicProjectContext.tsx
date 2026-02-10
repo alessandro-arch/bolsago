@@ -108,9 +108,9 @@ export function ThematicProjectContext({ project, enrollment, loading }: Themati
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
               Plano de Trabalho
             </p>
-            <p className="text-sm font-medium text-foreground">
+            <h3 className="text-base font-semibold text-foreground leading-snug">
               {project.title}
-            </p>
+            </h3>
           </div>
         </div>
       </div>

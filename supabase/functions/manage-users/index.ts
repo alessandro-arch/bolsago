@@ -1,41 +1,49 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://sisconnecta.lovable.app",
+  "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+];
 
-// Structured error response helper
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 }
 
-function errorResponse(
-  status: number,
-  errorCode: string,
-  message: string,
-  details?: Record<string, unknown>
-) {
-  return new Response(
-    JSON.stringify({
-      error: errorCode,
-      message,
-      ...(details && { details }),
-    }),
-    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
-}
-
-// Success response helper
-function successResponse(data: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
+  function errorResponse(
+    status: number,
+    errorCode: string,
+    message: string,
+    details?: Record<string, unknown>
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: errorCode,
+        message,
+        ...(details && { details }),
+      }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  function successResponse(data: Record<string, unknown>, status = 200) {
+    return new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -122,8 +130,6 @@ Deno.serve(async (req) => {
       return errorResponse(400, "self_action", "Você não pode executar esta ação na própria conta.");
     }
 
-    // supabaseAdmin is already created above for role verification
-
     const results = {
       success: [] as string[],
       failed: [] as { id: string; error: string; code: string }[],
@@ -171,7 +177,6 @@ Deno.serve(async (req) => {
 
             if (enrollmentError) {
               console.error(`Error suspending enrollments for ${targetUserId}:`, enrollmentError);
-              // Don't fail the whole operation, just log
             }
           }
 
@@ -294,6 +299,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error("Unexpected error:", error);
-    return errorResponse(500, "server_error", "Falha interna do servidor.");
+    return new Response(
+      JSON.stringify({ error: "server_error", message: "Falha interna do servidor." }),
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
+    );
   }
 });

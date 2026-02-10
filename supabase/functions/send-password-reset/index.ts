@@ -1,15 +1,21 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = [
+  "https://sisconnecta.lovable.app",
+  "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+];
 
-// IONOS-inspired professional email template
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
 const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string => {
   return `
 <!DOCTYPE html>
@@ -30,7 +36,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   
-  <!-- Preheader text -->
   <div style="display: none; max-height: 0; overflow: hidden;">
     Redefina sua senha do SisConnecta - Sistema de Gestão de Bolsas Institucionais
   </div>
@@ -39,10 +44,8 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
     <tr>
       <td align="center" style="padding: 40px 20px;">
         
-        <!-- Main Container -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px;">
           
-          <!-- Dark Header -->
           <tr>
             <td style="background-color: #003366; border-radius: 8px 8px 0 0; padding: 24px 32px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -58,7 +61,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- Title Section with Icon -->
           <tr>
             <td style="background-color: #ffffff; padding: 32px 32px 24px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -78,7 +80,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- Content Card -->
           <tr>
             <td style="background-color: #ffffff; padding: 0 32px 32px;">
               <div style="background-color: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 24px;">
@@ -92,7 +93,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- CTA Button -->
           <tr>
             <td style="background-color: #ffffff; padding: 0 32px 32px;">
               <table role="presentation" cellpadding="0" cellspacing="0">
@@ -107,7 +107,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- Security Notice Box -->
           <tr>
             <td style="background-color: #ffffff; padding: 0 32px 32px;">
               <div style="background-color: #e6f3ff; border-left: 4px solid #003366; border-radius: 0 8px 8px 0; padding: 16px 20px;">
@@ -122,7 +121,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- Alternative Link -->
           <tr>
             <td style="background-color: #ffffff; padding: 0 32px 32px;">
               <p style="margin: 0 0 8px 0; font-size: 13px; color: #666666;">
@@ -134,7 +132,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- Signature Section -->
           <tr>
             <td style="background-color: #ffffff; padding: 0 32px 32px; border-bottom: 1px solid #e8e8e8;">
               <p style="margin: 0 0 16px 0; font-size: 15px; color: #333333;">
@@ -149,7 +146,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
             </td>
           </tr>
 
-          <!-- Blue Footer -->
           <tr>
             <td style="background-color: #003366; border-radius: 0 0 8px 8px; padding: 24px 32px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -170,7 +166,6 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 
         </table>
 
-        <!-- Email Tips -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin-top: 24px;">
           <tr>
             <td align="center">
@@ -189,8 +184,9 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
   `;
 };
 
-serve(async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
+Deno.serve(async (req: Request): Promise<Response> => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -212,7 +208,6 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Only process recovery emails
     if (email_action_type !== "recovery") {
       console.log("Not a recovery email, skipping:", email_action_type);
       return new Response(
@@ -226,11 +221,9 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("SUPABASE_URL not configured");
     }
 
-    // Build the password reset URL
     const finalRedirectTo = redirect_to || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?recovery=true`;
     const resetUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(finalRedirectTo)}`;
 
-    // Logo URL - using the uploaded asset
     const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-icca.png?v=1`;
 
     console.log("Sending password reset email to:", user.email);

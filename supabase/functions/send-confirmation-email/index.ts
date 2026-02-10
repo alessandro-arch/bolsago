@@ -2,12 +2,20 @@ import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+const ALLOWED_ORIGINS = [
+  "https://sisconnecta.lovable.app",
+  "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+];
 
-// IONOS-inspired professional email template
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
 function generateConfirmationEmail(userEmail: string, confirmationUrl: string, logoUrl?: string): string {
   return `
 <!DOCTYPE html>
@@ -191,7 +199,8 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -204,7 +213,6 @@ Deno.serve(async (req) => {
     const payload = await req.text();
     let data;
 
-    // Try to parse as webhook from Supabase Auth Hook
     try {
       data = JSON.parse(payload);
     } catch {
@@ -231,7 +239,6 @@ Deno.serve(async (req) => {
 
     console.log(`Processing ${email_action_type} email for: ${user.email}`);
 
-    // Only handle signup confirmation emails
     if (email_action_type !== 'signup' && email_action_type !== 'email_change') {
       console.log(`Skipping email type: ${email_action_type}`);
       return new Response(
@@ -240,18 +247,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build confirmation URL
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const finalRedirectTo = redirect_to || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth`;
     const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(finalRedirectTo)}`;
 
-    // Logo URL from storage bucket
     const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-icca.png?v=1`;
 
-    // Generate email HTML
     const html = generateConfirmationEmail(user.email, confirmationUrl, logoUrl);
 
-    // Send email via Resend
     const { error } = await resend.emails.send({
       from: 'SisConnecta <noreply@bolsaconecta.com.br>',
       to: [user.email],

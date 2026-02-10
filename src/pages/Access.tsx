@@ -136,7 +136,7 @@ export default function Access() {
                     </button>
                   ))}
                   <div className="pt-4 border-t border-border mt-2">
-                    <Button className="w-full bg-[hsl(220,20%,14%)] hover:bg-[hsl(220,20%,20%)] text-white" onClick={scrollToAccess}>
+                    <Button className="w-full bg-primary hover:bg-primary/90 text-white" onClick={scrollToAccess}>
                       Acessar Plataforma
                     </Button>
                   </div>

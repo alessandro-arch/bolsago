@@ -66,7 +66,6 @@ export function Sidebar() {
   const baseNavigation = hasManagerAccess ? adminNavigation : scholarNavigation;
 
   const secondaryNavigation: NavItem[] = [
-    { name: "Configurações", icon: Settings, href: "/alterar-senha" },
     ...(hasManagerAccess ? [] : [{ name: "Ajuda", icon: HelpCircle, href: "/bolsista/manual" } as NavItem]),
   ];
   

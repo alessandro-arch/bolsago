@@ -164,7 +164,7 @@ export default function Access() {
               <span className="italic">Ciência com método. Inovação com responsabilidade.</span>
             </p>
             <p className="text-sm font-medium text-muted-foreground tracking-wide">
-              Construído por quem faz P,D&I na prática.
+              Desenvolvido por quem faz P,D&I na prática.
             </p>
           </div>
         </section>

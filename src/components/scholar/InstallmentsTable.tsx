@@ -135,11 +135,15 @@ function InstallmentActions({ installment, onRefresh }: InstallmentActionsProps)
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
 
+
   const isFutureMonth = installment.monthStatus === "future";
   const isPastOrCurrent = installment.monthStatus === "past" || installment.monthStatus === "current";
   const isDeadlineExpired = installment.isDeadlineExpired;
-  // Allow submission for any past or current month with pending report status
-  const canSubmitReport = isPastOrCurrent && installment.reportStatus === "pending";
+  const hasExistingReport = installment.reportStatus === "approved" || 
+    installment.reportStatus === "submitted" || 
+    installment.reportStatus === "under_review";
+  // Allow submission only for past/current months with pending report and no existing report
+  const canSubmitReport = isPastOrCurrent && installment.reportStatus === "pending" && !hasExistingReport;
   const canResubmit = installment.reportStatus === "rejected" && !isDeadlineExpired;
   const canViewFeedback = (installment.reportStatus === "rejected" || installment.reportStatus === "deadline_expired") && installment.feedback;
   const canDownloadReceipt = installment.paymentStatus === "paid" && installment.receiptUrl;
@@ -421,7 +425,15 @@ function mapPaymentToInstallment(payment: PaymentWithReport, grantValue: number,
     else if (status === "rejected") {
       reportStatus = isDeadlineExpired ? "deadline_expired" : "rejected";
     }
-    else reportStatus = "submitted";
+    else if (status === "submitted") reportStatus = "submitted";
+    else reportStatus = "submitted"; // Any other status with a report means it was submitted
+  } else {
+    // No report object - check if payment has a report_id (report exists but wasn't joined)
+    if (payment.report_id) {
+      // There IS a report for this payment but it wasn't loaded - treat as submitted
+      reportStatus = "submitted";
+      console.warn(`[InstallmentsTable] Payment ${payment.id} has report_id ${payment.report_id} but report object is null`);
+    }
   }
 
   // Map payment status

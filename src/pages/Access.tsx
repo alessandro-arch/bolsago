@@ -156,19 +156,11 @@ export default function Access() {
               UMA SOLUÇÃO DO ICCA
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
-              A plataforma para gestão e comprovação de bolsas de PD&I.
+              Seja bem-vindo ao Portal do Bolsista!
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mb-8">
               Organize, acompanhe e comprove atividades de Pesquisa, Desenvolvimento e Inovação com rastreabilidade e conformidade regulatória.
             </p>
-            <Button 
-              onClick={scrollToAccess}
-              variant="outline"
-              size="lg"
-              className="border-foreground text-foreground hover:bg-foreground hover:text-white rounded-md px-8"
-            >
-              Conhecer agora
-            </Button>
           </div>
         </section>
 

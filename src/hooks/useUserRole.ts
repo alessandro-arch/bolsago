@@ -38,17 +38,24 @@ export function useUserRole(): UseUserRoleReturn {
         const { data, error } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", user.id)
-          .single();
+          .eq("user_id", user.id);
 
         if (!isMounted) return;
 
-        if (error) {
+        if (error || !data || data.length === 0) {
           console.error("Error fetching user role:", error);
           // Default to scholar if no role found
           setRole("scholar");
         } else {
-          setRole(data?.role ?? "scholar");
+          // Prioritize highest role: admin > manager > scholar
+          const roles = data.map((r) => r.role);
+          if (roles.includes("admin")) {
+            setRole("admin");
+          } else if (roles.includes("manager")) {
+            setRole("manager");
+          } else {
+            setRole("scholar");
+          }
         }
       } catch (error) {
         console.error("Error fetching user role:", error);

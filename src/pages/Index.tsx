@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ScholarGreeting } from "@/components/scholar/ScholarGreeting";
 import { ThematicProjectContext } from "@/components/scholar/ThematicProjectContext";
+import { ScholarProfileCard } from "@/components/scholar/ScholarProfileCard";
 import { ScholarSummaryCards } from "@/components/scholar/ScholarSummaryCards";
 import { ScholarWorkflowBanner } from "@/components/scholar/ScholarWorkflowBanner";
 import { GrantTermSection } from "@/components/scholar/GrantTermSection";
@@ -97,6 +98,14 @@ const Index = () => {
                   project={data?.enrollment?.project ?? null} 
                   enrollment={data?.enrollment ?? null} 
                   loading={false} 
+                />
+              </div>
+
+              {/* Scholar Profile Card */}
+              <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+                <ScholarProfileCard 
+                  enrollment={data?.enrollment ?? null}
+                  loading={false}
                 />
               </div>
 

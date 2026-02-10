@@ -152,7 +152,7 @@ export function GrantTermSection() {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="gap-1.5"
+            className="gap-1.5 text-primary hover:text-primary"
             onClick={handleView}
             disabled={!signedUrl}
           >
@@ -162,7 +162,7 @@ export function GrantTermSection() {
           <Button 
             variant="outline" 
             size="sm" 
-            className="gap-1.5"
+            className="gap-1.5 text-primary hover:text-primary border-primary/30"
             onClick={handleDownload}
             disabled={!signedUrl}
           >

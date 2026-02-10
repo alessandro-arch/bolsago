@@ -92,11 +92,11 @@ function DocumentCard({ document }: { document: InstitutionalDocument }) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="flex-1 gap-1.5" onClick={handleView}>
+        <Button variant="ghost" size="sm" className="flex-1 gap-1.5 text-primary hover:text-primary" onClick={handleView}>
           <Eye className="w-4 h-4" />
           Visualizar
         </Button>
-        <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={handleDownload}>
+        <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-primary hover:text-primary border-primary/30" onClick={handleDownload}>
           <Download className="w-4 h-4" />
           Baixar
         </Button>

@@ -1,12 +1,12 @@
-import { Building2, BookOpen, Briefcase } from "lucide-react";
+import { Building2, BookOpen, Briefcase, FileText } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { ProjectWithThematic } from "@/hooks/useScholarPayments";
 import type { Database } from "@/integrations/supabase/types";
 
-type Project = Database["public"]["Tables"]["projects"]["Row"];
 type Enrollment = Database["public"]["Tables"]["enrollments"]["Row"];
 
 interface ThematicProjectContextProps {
-  project: Project | null;
+  project: ProjectWithThematic | null;
   enrollment: Enrollment | null;
   loading: boolean;
 }
@@ -49,8 +49,13 @@ export function ThematicProjectContext({ project, enrollment, loading }: Themati
     );
   }
 
+  const thematicProject = project.thematic_project;
+  const thematicTitle = thematicProject?.title || "—";
+  const sponsorName = thematicProject?.sponsor_name || "—";
+
   return (
-    <div className="bg-card border border-border rounded-xl p-5 mb-6">
+    <div className="bg-card border border-border rounded-xl p-5 mb-6 space-y-4">
+      {/* Projeto Temático */}
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
           <BookOpen className="w-6 h-6 text-primary" />
@@ -60,7 +65,7 @@ export function ThematicProjectContext({ project, enrollment, loading }: Themati
             Projeto Temático
           </p>
           <h2 className="text-base font-semibold text-foreground leading-snug">
-            {project.title}
+            {thematicTitle}
           </h2>
           
           <div className="flex flex-wrap items-center gap-4 mt-3">
@@ -68,7 +73,7 @@ export function ThematicProjectContext({ project, enrollment, loading }: Themati
               <Building2 className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-foreground">
                 <span className="text-muted-foreground">Financiamento: </span>
-                <span className="font-medium">LABORATÓRIO TOMMASI</span>
+                <span className="font-medium">{sponsorName}</span>
               </span>
             </div>
             
@@ -90,6 +95,23 @@ export function ThematicProjectContext({ project, enrollment, loading }: Themati
               </span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Plano de Trabalho (Subprojeto) */}
+      <div className="border-t border-border pt-4">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-5 h-5 text-info" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+              Plano de Trabalho
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {project.title}
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -10,9 +10,14 @@ type Report = Database["public"]["Tables"]["reports"]["Row"] & {
   reviewed_by?: string | null;
 };
 type Project = Database["public"]["Tables"]["projects"]["Row"];
+type ThematicProject = Database["public"]["Tables"]["thematic_projects"]["Row"];
+
+export interface ProjectWithThematic extends Project {
+  thematic_project: ThematicProject | null;
+}
 
 export interface EnrollmentWithProject extends Enrollment {
-  project: Project | null;
+  project: ProjectWithThematic | null;
 }
 
 export interface ReportVersionInfo {
@@ -72,7 +77,9 @@ export function useScholarPayments(): UseScholarPaymentsReturn {
         .from("enrollments")
         .select(`
           *,
-          project:projects(*)
+          project:projects(*,
+            thematic_project:thematic_projects(*)
+          )
         `)
         .eq("user_id", user.id)
         .eq("status", "active")

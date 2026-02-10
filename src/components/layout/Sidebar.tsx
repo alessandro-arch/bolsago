@@ -55,11 +55,7 @@ const adminNavigation: NavItem[] = [
   { name: "Trilha de Auditoria", icon: ShieldAlert, href: "/admin/trilha-auditoria", adminOnly: true },
 ];
 
-const secondaryNavigation = [
-  { name: "Notificações", icon: Bell, href: "#" },
-  { name: "Configurações", icon: Settings, href: "#" },
-  { name: "Ajuda", icon: HelpCircle, href: "#" },
-];
+// Secondary nav is built dynamically based on role
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -68,6 +64,11 @@ export function Sidebar() {
 
   // Select navigation based on user role
   const baseNavigation = hasManagerAccess ? adminNavigation : scholarNavigation;
+
+  const secondaryNavigation: NavItem[] = [
+    { name: "Configurações", icon: Settings, href: "/alterar-senha" },
+    ...(hasManagerAccess ? [] : [{ name: "Ajuda", icon: HelpCircle, href: "/bolsista/manual" } as NavItem]),
+  ];
   
   const filteredNavigation = baseNavigation.filter(item => {
     if (item.managerOnly && !hasManagerAccess) return false;
@@ -174,20 +175,24 @@ export function Sidebar() {
 
       {/* Secondary Navigation */}
       <div className="p-3 border-t border-border space-y-1">
-        {secondaryNavigation.map((item) => (
-          <a
-            key={item.name}
-            href={item.href}
-            className={cn(
-              "nav-item",
-              collapsed && "justify-center px-2"
-            )}
-            title={collapsed ? item.name : undefined}
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && <span>{item.name}</span>}
-          </a>
-        ))}
+        {secondaryNavigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                "nav-item",
+                isActive && "active",
+                collapsed && "justify-center px-2"
+              )}
+              title={collapsed ? item.name : undefined}
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span>{item.name}</span>}
+            </Link>
+          );
+        })}
       </div>
     </aside>
   );

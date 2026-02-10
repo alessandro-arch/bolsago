@@ -24,6 +24,7 @@ import PaymentsReports from "./pages/PaymentsReports";
 import Documents from "./pages/Documents";
 import ScholarProfile from "./pages/ScholarProfile";
 import ScholarManual from "./pages/ScholarManual";
+import ChangePassword from "./pages/ChangePassword";
 
 // Admin pages (reusing existing)
 import ManagerDashboard from "./pages/ManagerDashboard";
@@ -88,6 +89,13 @@ const App = () => (
                 <ScholarProtectedRoute>
                   <ScholarManual />
                 </ScholarProtectedRoute>
+              } />
+              
+              {/* Change Password - accessible by all authenticated users */}
+              <Route path="/alterar-senha" element={
+                <ProtectedRoute>
+                  <ChangePassword />
+                </ProtectedRoute>
               } />
               
               {/* =================== */}

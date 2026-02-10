@@ -69,7 +69,7 @@ export function Header() {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={() => navigate("/recuperar-senha")}
+          onClick={() => navigate("/alterar-senha")}
         >
           <KeyRound className="w-4 h-4" />
           Alterar senha

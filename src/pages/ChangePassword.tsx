@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -14,7 +15,9 @@ import { AlertCircle, CheckCircle, Lock, Loader2, ArrowLeft } from "lucide-react
 
 export default function ChangePassword() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +28,13 @@ export default function ChangePassword() {
     setError(null);
     setSuccess(null);
 
+    if (!currentPassword) {
+      setError("Informe sua senha atual.");
+      return;
+    }
+
     if (password.length < 10) {
-      setError("A senha deve ter pelo menos 10 caracteres.");
+      setError("A nova senha deve ter pelo menos 10 caracteres.");
       return;
     }
 
@@ -36,6 +44,18 @@ export default function ChangePassword() {
     }
 
     setLoading(true);
+
+    // Verify current password by re-authenticating
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email || "",
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      setLoading(false);
+      setError("Senha atual incorreta.");
+      return;
+    }
 
     const { error } = await supabase.auth.updateUser({ password });
 
@@ -49,7 +69,9 @@ export default function ChangePassword() {
       }
     } else {
       setSuccess("Senha alterada com sucesso!");
+      setCurrentPassword("");
       setPassword("");
+      setConfirmPassword("");
       setConfirmPassword("");
     }
   };
@@ -94,6 +116,22 @@ export default function ChangePassword() {
                 )}
 
                 <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Senha Atual</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                      <PasswordInput
+                        id="currentPassword"
+                        placeholder="••••••••••"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <hr className="border-border" />
                   <div className="space-y-2">
                     <Label htmlFor="password">Nova Senha</Label>
                     <div className="relative">

@@ -96,7 +96,7 @@ function DocumentCard({ document }: { document: InstitutionalDocument }) {
           <Eye className="w-4 h-4" />
           Visualizar
         </Button>
-        <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-primary hover:text-primary border-primary/30" onClick={handleDownload}>
+        <Button variant="default" size="sm" className="flex-1 gap-1.5" onClick={handleDownload}>
           <Download className="w-4 h-4" />
           Baixar
         </Button>

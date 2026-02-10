@@ -160,9 +160,9 @@ export function GrantTermSection() {
             <span className="hidden sm:inline">Visualizar</span>
           </Button>
           <Button 
-            variant="outline" 
+            variant="default" 
             size="sm" 
-            className="gap-1.5 text-primary hover:text-primary border-primary/30"
+            className="gap-1.5"
             onClick={handleDownload}
             disabled={!signedUrl}
           >

@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import logoIcca from "@/assets/logo-icca.png";
+import logoIccaWhite from "@/assets/logo-icca-white.png";
 import { useState, useEffect } from "react";
 
 const navLinks = [
@@ -392,7 +393,7 @@ export default function Access() {
               <p className="text-sm text-gray-400 leading-relaxed mb-5">
                 Plataforma para gestão e comprovação de projetos de Pesquisa, Desenvolvimento e Inovação (PD&I).
               </p>
-              <img src={logoIcca} alt="ICCA" className="h-10 w-auto brightness-0 invert opacity-60" />
+              <img src={logoIccaWhite} alt="ICCA" className="h-10 w-auto opacity-70" />
             </div>
 
             {/* Col 2 - Acesso */}

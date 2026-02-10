@@ -364,7 +364,7 @@ export default function Access() {
               <Button 
                 size="lg" 
                 onClick={scrollToAccess} 
-                className="bg-foreground hover:bg-foreground/90 text-white rounded-md px-8 inline-flex items-center gap-2"
+                className="bg-primary hover:bg-primary/90 text-white rounded-md px-8 inline-flex items-center gap-2"
               >
                 Acessar Plataforma
                 <ArrowRight className="h-4 w-4" />

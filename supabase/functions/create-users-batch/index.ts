@@ -1,12 +1,38 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://sisconnecta.lovable.app",
+  "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
+// Generate a cryptographically random password
+function generateRandomPassword(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const specialChars = "!@#$%&*";
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  let password = "";
+  for (let i = 0; i < 14; i++) {
+    password += chars[array[i] % chars.length];
+  }
+  // Ensure at least one special char and one digit
+  password += specialChars[array[14] % specialChars.length];
+  password += String(array[15] % 10);
+  return password;
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -79,7 +105,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Action: reset-password - set default password for existing users
+    // Action: reset-password - generate random password for existing users
     if (action === "reset-password") {
       const resetResults = {
         success: [] as Array<{ email: string }>,
@@ -88,8 +114,7 @@ Deno.serve(async (req) => {
 
       for (const user of users) {
         try {
-          const cpfClean = user.cpf.replace(/\D/g, "");
-          const defaultPassword = `SisConnecta${cpfClean.slice(-4)}!`;
+          const defaultPassword = generateRandomPassword();
 
           // Find user by email
           const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
@@ -168,8 +193,8 @@ Deno.serve(async (req) => {
         }
 
         const cpfClean = user.cpf.replace(/\D/g, "");
-        // Senha padrão para primeiro login: SisConnecta + 4 últimos dígitos do CPF + !
-        const defaultPassword = `SisConnecta${cpfClean.slice(-4)}!`;
+        // Generate cryptographically random password instead of predictable pattern
+        const defaultPassword = generateRandomPassword();
 
         // Create auth user with auto-confirm
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -181,6 +206,7 @@ Deno.serve(async (req) => {
             cpf: cpfClean,
             invite_code: inviteCode,
             origin: "manual",
+            requires_password_change: true,
           },
         });
 
@@ -196,7 +222,6 @@ Deno.serve(async (req) => {
         }
 
         // The handle_new_user trigger should have created the profile.
-        // Verify it was created:
         const { data: profile } = await supabaseAdmin
           .from("profiles")
           .select("id")
@@ -222,7 +247,6 @@ Deno.serve(async (req) => {
             console.error(`Error creating profile for ${user.email}:`, profileError);
           }
 
-          // Also ensure role is set
           await supabaseAdmin.from("user_roles").upsert({
             user_id: authData.user.id,
             role: "scholar",
@@ -257,7 +281,7 @@ Deno.serve(async (req) => {
     console.error("Error:", error);
     return new Response(JSON.stringify({ error: "Erro interno" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

@@ -108,7 +108,7 @@ export default function Access() {
               <Button 
                 size="sm" 
                 onClick={scrollToAccess}
-                className="bg-[hsl(220,20%,14%)] hover:bg-[hsl(220,20%,20%)] text-white rounded-md px-5"
+                className="bg-primary hover:bg-primary/90 text-white rounded-md px-5"
               >
                 Acessar Plataforma
               </Button>

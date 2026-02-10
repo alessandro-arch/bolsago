@@ -108,7 +108,7 @@ export default function Access() {
               <Button 
                 size="sm" 
                 onClick={scrollToAccess}
-                className="bg-[hsl(220,20%,14%)] hover:bg-[hsl(220,20%,20%)] text-white rounded-md px-5"
+                className="bg-primary hover:bg-primary/90 text-white rounded-md px-5"
               >
                 Acessar Plataforma
               </Button>
@@ -136,7 +136,7 @@ export default function Access() {
                     </button>
                   ))}
                   <div className="pt-4 border-t border-border mt-2">
-                    <Button className="w-full bg-[hsl(220,20%,14%)] hover:bg-[hsl(220,20%,20%)] text-white" onClick={scrollToAccess}>
+                    <Button className="w-full bg-primary hover:bg-primary/90 text-white" onClick={scrollToAccess}>
                       Acessar Plataforma
                     </Button>
                   </div>
@@ -364,7 +364,7 @@ export default function Access() {
               <Button 
                 size="lg" 
                 onClick={scrollToAccess} 
-                className="bg-foreground hover:bg-foreground/90 text-white rounded-md px-8 inline-flex items-center gap-2"
+                className="bg-primary hover:bg-primary/90 text-white rounded-md px-8 inline-flex items-center gap-2"
               >
                 Acessar Plataforma
                 <ArrowRight className="h-4 w-4" />

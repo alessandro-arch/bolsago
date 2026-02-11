@@ -23,7 +23,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redefinição de Senha | SisConnecta</title>
+  <title>Redefinição de Senha | InnovaGO</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -37,7 +37,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   
   <div style="display: none; max-height: 0; overflow: hidden;">
-    Redefina sua senha do SisConnecta - Sistema de Gestão de Bolsas Institucionais
+    Redefina sua senha do InnovaGO - Sistema de Gestão de Bolsas Institucionais
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
@@ -51,7 +51,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <img src="${logoUrl}" alt="SisConnecta" style="max-height: 40px; width: auto;" onerror="this.style.display='none'" />
+                    <img src="${logoUrl}" alt="InnovaGO" style="max-height: 40px; width: auto;" onerror="this.style.display='none'" />
                   </td>
                   <td align="right" style="vertical-align: middle;">
                     <span style="font-size: 12px; color: #ffffff; opacity: 0.9;">Gestão de Bolsas</span>
@@ -87,7 +87,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
                   Olá,
                 </p>
                 <p style="margin: 0; font-size: 16px; color: #333333; line-height: 1.6;">
-                  Você solicitou a redefinição de senha da sua conta no <strong>SisConnecta</strong>. Clique no botão abaixo para criar uma nova senha segura.
+                  Você solicitou a redefinição de senha da sua conta no <strong>InnovaGO</strong>. Clique no botão abaixo para criar uma nova senha segura.
                 </p>
               </div>
             </td>
@@ -138,7 +138,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
                 Atenciosamente,
               </p>
               <p style="margin: 0; font-size: 15px; font-weight: 600; color: #003366;">
-                Equipe SisConnecta
+                Equipe InnovaGO
               </p>
               <p style="margin: 4px 0 0 0; font-size: 13px; color: #666666;">
                 Sistema de Gestão de Bolsas Institucionais
@@ -155,8 +155,8 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
                       Seu parceiro em inovação e conhecimento
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #ffffff; opacity: 0.8; line-height: 1.5;">
-                      © SisConnecta – Sistema de Gestão de Bolsas Institucionais<br />
-                      <a href="https://sisconnecta.com" style="color: #ffffff; text-decoration: underline;">sisconnecta.com</a>
+                      © InnovaGO – Sistema de Gestão de Bolsas Institucionais<br />
+                      <a href="https://innovago.com.br" style="color: #ffffff; text-decoration: underline;">innovago.com.br</a>
                     </p>
                   </td>
                 </tr>
@@ -224,15 +224,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const finalRedirectTo = redirect_to || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?recovery=true`;
     const resetUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(finalRedirectTo)}`;
 
-    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-sisconnecta.png?v=1`;
+    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-innovago.png?v=1`;
 
     console.log("Sending password reset email to:", user.email);
     console.log("Reset URL:", resetUrl);
 
     const emailResponse = await resend.emails.send({
-      from: "SisConnecta <noreply@bolsaconecta.com.br>",
+      from: "InnovaGO <noreply@bolsaconecta.com.br>",
       to: [user.email],
-      subject: "Redefinição de Senha • SisConnecta",
+      subject: "Redefinição de Senha • InnovaGO",
       html: generatePasswordResetEmail(resetUrl, logoUrl),
     });
 

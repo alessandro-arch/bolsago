@@ -24,7 +24,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
-import logoSisConnecta from "@/assets/logo-sisconnecta.png";
+import logoInnovaGO from "@/assets/logo-innovago.png";
 
 interface NavItem {
   name: string;
@@ -54,8 +54,6 @@ const adminNavigation: NavItem[] = [
   { name: "Organizações", icon: Building2, href: "/admin/organizacoes", adminOnly: true },
   { name: "Trilha de Auditoria", icon: ShieldAlert, href: "/admin/trilha-auditoria", adminOnly: true },
 ];
-
-// Secondary nav is built dynamically based on role
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -87,8 +85,8 @@ export function Sidebar() {
         {!collapsed && (
           <div className="flex items-center gap-3">
             <img 
-              src={logoSisConnecta} 
-              alt="SisConnecta" 
+              src={logoInnovaGO} 
+              alt="InnovaGO" 
               className="h-8 w-auto"
             />
           </div>
@@ -118,7 +116,7 @@ export function Sidebar() {
         <div className="px-4 py-3 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              SisConnecta
+              InnovaGO
             </span>
             {!loading && (
               <span className={cn(

@@ -23,7 +23,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmação de E-mail | SisConnecta</title>
+  <title>Confirmação de E-mail | InnovaGO</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -38,7 +38,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
   
   <!-- Preheader text -->
   <div style="display: none; max-height: 0; overflow: hidden;">
-    Confirme seu e-mail para acessar o SisConnecta - Sistema de Gestão de Bolsas Institucionais
+    Confirme seu e-mail para acessar o InnovaGO - Sistema de Gestão de Bolsas Institucionais
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
@@ -55,8 +55,8 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
                 <tr>
                   <td>
                     ${logoUrl 
-                      ? `<img src="${logoUrl}" alt="SisConnecta" style="max-height: 40px; width: auto;" />`
-                      : `<span style="font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: 1px;">SisConnecta</span>`
+                      ? `<img src="${logoUrl}" alt="InnovaGO" style="max-height: 40px; width: auto;" />`
+                      : `<span style="font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: 1px;">InnovaGO</span>`
                     }
                   </td>
                   <td align="right" style="vertical-align: middle;">
@@ -95,7 +95,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
                   Olá,
                 </p>
                 <p style="margin: 0; font-size: 16px; color: #333333; line-height: 1.6;">
-                  Bem-vindo(a) ao <strong>SisConnecta</strong>. Para ativar sua conta e acessar todos os recursos do portal de gestão de bolsas, por favor confirme seu endereço de e-mail clicando no botão abaixo.
+                  Bem-vindo(a) ao <strong>InnovaGO</strong>. Para ativar sua conta e acessar todos os recursos do portal de gestão de bolsas, por favor confirme seu endereço de e-mail clicando no botão abaixo.
                 </p>
               </div>
             </td>
@@ -150,7 +150,7 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
                 Atenciosamente,
               </p>
               <p style="margin: 0; font-size: 15px; font-weight: 600; color: #003366;">
-                Equipe SisConnecta
+                Equipe InnovaGO
               </p>
               <p style="margin: 4px 0 0 0; font-size: 13px; color: #666666;">
                 Sistema de Gestão de Bolsas Institucionais
@@ -168,8 +168,8 @@ function generateConfirmationEmail(userEmail: string, confirmationUrl: string, l
                       Seu parceiro em inovação e conhecimento
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #ffffff; opacity: 0.8; line-height: 1.5;">
-                      © SisConnecta – Sistema de Gestão de Bolsas Institucionais<br />
-                      <a href="https://sisconnecta.com" style="color: #ffffff; text-decoration: underline;">sisconnecta.com</a>
+                      © InnovaGO – Sistema de Gestão de Bolsas Institucionais<br />
+                      <a href="https://innovago.com.br" style="color: #ffffff; text-decoration: underline;">innovago.com.br</a>
                     </p>
                   </td>
                 </tr>
@@ -251,14 +251,14 @@ Deno.serve(async (req) => {
     const finalRedirectTo = redirect_to || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth`;
     const confirmationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(finalRedirectTo)}`;
 
-    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-sisconnecta.png?v=1`;
+    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-innovago.png?v=1`;
 
     const html = generateConfirmationEmail(user.email, confirmationUrl, logoUrl);
 
     const { error } = await resend.emails.send({
-      from: 'SisConnecta <noreply@bolsaconecta.com.br>',
+      from: 'InnovaGO <noreply@bolsaconecta.com.br>',
       to: [user.email],
-      subject: 'Confirmação de E-mail • SisConnecta',
+      subject: 'Confirmação de E-mail • InnovaGO',
       html,
     });
 

@@ -10,7 +10,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
-import logoIcca from "@/assets/logo-icca.png";
+import logoSisConnecta from "@/assets/logo-sisconnecta.png";
 
 type AuthView = "login" | "signup" | "forgot-password" | "reset-password";
 
@@ -23,7 +23,6 @@ export default function Auth() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Listen for PASSWORD_RECOVERY event
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
@@ -33,16 +32,13 @@ export default function Auth() {
       }
     });
 
-    // Check if coming from recovery link
     const isRecovery = searchParams.get("recovery") === "true";
     if (isRecovery) {
-      // The PASSWORD_RECOVERY event will handle this
     }
 
     return () => subscription.unsubscribe();
   }, [searchParams]);
 
-  // Redirect if already logged in (but not during password recovery)
   if (user && currentView !== "reset-password") {
     return <Navigate to="/" replace />;
   }
@@ -108,8 +104,8 @@ export default function Auth() {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <img 
-            src={logoIcca} 
-            alt="ICCA - Instituto de Inovação, Conhecimento e Ciências Aplicadas" 
+            src={logoSisConnecta} 
+            alt="SisConnecta – Sistema de Gestão de Bolsas Institucionais" 
             className="h-16 mx-auto mb-4"
           />
           <h1 className="text-xl font-bold text-foreground">SisConnecta</h1>
@@ -178,16 +174,7 @@ export default function Auth() {
             Ao acessar, você concorda com os termos de uso do sistema.
           </p>
           <p className="text-xs text-muted-foreground">
-            © ICCA – Instituto de Inovação, Conhecimento e Ciências Aplicadas (
-            <a 
-              href="https://www.icca.org.br" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
-            >
-              www.icca.org.br
-            </a>
-            )
+            © SisConnecta – Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>
       </div>

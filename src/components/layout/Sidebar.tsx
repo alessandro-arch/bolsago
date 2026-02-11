@@ -24,7 +24,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
-import logoIcca from "@/assets/logo-icca.png";
+import logoSisConnecta from "@/assets/logo-sisconnecta.png";
 
 interface NavItem {
   name: string;
@@ -45,7 +45,7 @@ const scholarNavigation: NavItem[] = [
 ];
 
 const adminNavigation: NavItem[] = [
-  { name: "Dashboard ICCA", icon: Globe, href: "/admin/dashboard-icca", adminOnly: true, section: "Governança" },
+  { name: "Dashboard Estratégico", icon: Globe, href: "/admin/dashboard-icca", adminOnly: true, section: "Governança" },
   { name: "Painel Gestor", icon: Users, href: "/admin/painel", managerOnly: true },
   { name: "Projetos Temáticos", icon: FolderOpen, href: "/admin/projetos-tematicos", managerOnly: true },
   { name: "Documentos", icon: FileText, href: "/admin/documentos", managerOnly: true },
@@ -62,7 +62,6 @@ export function Sidebar() {
   const location = useLocation();
   const { hasManagerAccess, isAdmin, loading } = useUserRole();
 
-  // Select navigation based on user role
   const baseNavigation = hasManagerAccess ? adminNavigation : scholarNavigation;
 
   const secondaryNavigation: NavItem[] = [
@@ -88,8 +87,8 @@ export function Sidebar() {
         {!collapsed && (
           <div className="flex items-center gap-3">
             <img 
-              src={logoIcca} 
-              alt="ICCA" 
+              src={logoSisConnecta} 
+              alt="SisConnecta" 
               className="h-8 w-auto"
             />
           </div>

@@ -9,7 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle, Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
 import { z } from "zod";
-import logoIcca from "@/assets/logo-icca.png";
+import logoSisConnecta from "@/assets/logo-sisconnecta.png";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(8, "A senha deve ter pelo menos 8 caracteres");
@@ -98,8 +98,8 @@ export default function PasswordRecovery() {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <img 
-            src={logoIcca} 
-            alt="ICCA" 
+            src={logoSisConnecta} 
+            alt="SisConnecta" 
             className="h-14 mx-auto mb-4"
           />
           <h1 className="text-xl font-bold text-foreground">SisConnecta</h1>
@@ -215,7 +215,7 @@ export default function PasswordRecovery() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © ICCA · Instituto de Inovação, Conhecimento e Ciências Aplicadas
+            © SisConnecta – Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>
       </div>

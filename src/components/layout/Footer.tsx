@@ -4,12 +4,12 @@ export function Footer() {
       <p className="text-xs text-muted-foreground text-center">
         © InnovaGO – Sistema de Gestão de Bolsas Institucionais (
         <a 
-          href="https://innovago.com.br" 
+          href="https://www.innovago.app" 
           target="_blank" 
           rel="noopener noreferrer"
           className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
         >
-          innovago.com.br
+          www.innovago.app
         </a>
         )
       </p>

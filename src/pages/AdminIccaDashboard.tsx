@@ -38,7 +38,7 @@ const AdminIccaDashboard = () => {
           <main className="flex-1 p-6 overflow-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-foreground">
-                Dashboard Estratégico ICCA
+                Dashboard Estratégico
               </h1>
               <p className="text-muted-foreground">
                 Visão multi-organização para governança institucional

@@ -155,8 +155,8 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
                       Seu parceiro em inovação e conhecimento
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #ffffff; opacity: 0.8; line-height: 1.5;">
-                      © ICCA – Instituto de Inovação, Conhecimento e Ciências Aplicadas<br />
-                      <a href="https://www.icca.org.br" style="color: #ffffff; text-decoration: underline;">www.icca.org.br</a>
+                      © SisConnecta – Sistema de Gestão de Bolsas Institucionais<br />
+                      <a href="https://sisconnecta.com" style="color: #ffffff; text-decoration: underline;">sisconnecta.com</a>
                     </p>
                   </td>
                 </tr>
@@ -224,7 +224,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const finalRedirectTo = redirect_to || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?recovery=true`;
     const resetUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(finalRedirectTo)}`;
 
-    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-icca.png?v=1`;
+    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-sisconnecta.png?v=1`;
 
     console.log("Sending password reset email to:", user.email);
     console.log("Reset URL:", resetUrl);

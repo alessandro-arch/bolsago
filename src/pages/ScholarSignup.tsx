@@ -9,7 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle, Mail, Lock, Loader2, ArrowLeft, GraduationCap, Ticket, User } from "lucide-react";
 import { z } from "zod";
-import logoIcca from "@/assets/logo-icca.png";
+import logoSisConnecta from "@/assets/logo-sisconnecta.png";
 
 const signupSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -104,8 +104,8 @@ export default function ScholarSignup() {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <img 
-            src={logoIcca} 
-            alt="ICCA" 
+            src={logoSisConnecta} 
+            alt="SisConnecta" 
             className="h-14 mx-auto mb-4"
           />
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -256,7 +256,7 @@ export default function ScholarSignup() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © ICCA · Instituto de Inovação, Conhecimento e Ciências Aplicadas
+            © SisConnecta – Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>
       </div>

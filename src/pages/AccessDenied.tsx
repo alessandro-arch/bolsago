@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { ShieldX, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import logoIcca from "@/assets/logo-icca.png";
+import logoSisConnecta from "@/assets/logo-sisconnecta.png";
 
 export default function AccessDenied() {
   return (
@@ -10,8 +10,8 @@ export default function AccessDenied() {
       <div className="w-full max-w-md text-center">
         {/* Logo */}
         <img 
-          src={logoIcca} 
-          alt="ICCA" 
+          src={logoSisConnecta} 
+          alt="SisConnecta" 
           className="h-12 mx-auto mb-8"
         />
 
@@ -43,7 +43,7 @@ export default function AccessDenied() {
         {/* Footer */}
         <div className="mt-6">
           <p className="text-xs text-muted-foreground">
-            © ICCA · Instituto de Inovação, Conhecimento e Ciências Aplicadas
+            © SisConnecta – Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>
       </div>

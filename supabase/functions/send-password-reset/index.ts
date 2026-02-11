@@ -4,6 +4,7 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const ALLOWED_ORIGINS = [
   "https://sisconnecta.lovable.app",
+  "https://www.innovago.app",
   "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
 ];
 
@@ -156,7 +157,7 @@ const generatePasswordResetEmail = (resetUrl: string, logoUrl: string): string =
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #ffffff; opacity: 0.8; line-height: 1.5;">
                       © InnovaGO – Sistema de Gestão de Bolsas Institucionais<br />
-                      <a href="https://innovago.com.br" style="color: #ffffff; text-decoration: underline;">innovago.com.br</a>
+                      <a href="https://www.innovago.app" style="color: #ffffff; text-decoration: underline;">www.innovago.app</a>
                     </p>
                   </td>
                 </tr>

@@ -360,7 +360,7 @@ export default function Access() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
               <Button asChild variant="outline" size="lg" className="rounded-md px-8">
-                <a href="mailto:contato@innovago.com.br" className="inline-flex items-center gap-2">
+                <a href="mailto:contato@innovago.app" className="inline-flex items-center gap-2">
                   <Mail className="h-5 w-5" />
                   Fale Conosco
                 </a>
@@ -410,15 +410,15 @@ export default function Access() {
               <h4 className="text-white font-semibold mb-4 text-sm">Contato</h4>
               <ul className="space-y-2.5 text-sm">
                 <li>
-                  <a href="mailto:contato@innovago.com.br" className="hover:text-white transition-colors inline-flex items-center gap-2">
+                  <a href="mailto:contato@innovago.app" className="hover:text-white transition-colors inline-flex items-center gap-2">
                     <Mail className="h-3.5 w-3.5" />
-                    contato@innovago.com.br
+                    contato@innovago.app
                   </a>
                 </li>
                 <li>
-                  <a href="https://innovago.com.br/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-2">
+                  <a href="https://www.innovago.app/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-2">
                     <ExternalLink className="h-3.5 w-3.5" />
-                    innovago.com.br
+                    www.innovago.app
                   </a>
                 </li>
               </ul>
@@ -445,7 +445,7 @@ export default function Access() {
               <h4 className="text-white font-semibold mb-3 text-sm">Institucional</h4>
               <ul className="space-y-2.5 text-sm">
                 <li>
-                  <a href="https://innovago.com.br/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  <a href="https://www.innovago.app/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
                     Site InnovaGO
                   </a>
                 </li>
@@ -456,8 +456,8 @@ export default function Access() {
           {/* Divider + Copyright */}
           <div className="border-t border-white/10 pt-6 text-center text-sm text-gray-500">
             © InnovaGO – Sistema de Gestão de Bolsas Institucionais (
-            <a href="https://innovago.com.br" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">
-              innovago.com.br
+            <a href="https://www.innovago.app" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">
+              www.innovago.app
             </a>
             )
           </div>

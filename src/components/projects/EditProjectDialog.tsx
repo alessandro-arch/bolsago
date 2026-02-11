@@ -226,7 +226,7 @@ export function EditProjectDialog({
                 name="coordenador_tecnico_icca"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Coordenador Técnico ICCA (opcional)</FormLabel>
+                    <FormLabel>Coordenador Técnico (opcional)</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>

@@ -260,7 +260,7 @@ export function CreateProjectDialog({
                 name="coordenador_tecnico_icca"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Coordenador Técnico ICCA</FormLabel>
+                    <FormLabel>Coordenador Técnico</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Nome do coordenador (opcional)" />
                     </FormControl>

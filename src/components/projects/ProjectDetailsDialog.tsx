@@ -162,7 +162,7 @@ export function ProjectDetailsDialog({
                   <p className="font-medium">{project.orientador}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Coordenador Técnico ICCA</p>
+                  <p className="text-sm text-muted-foreground">Coordenador Técnico</p>
                   <p className="font-medium">{project.coordenador_tecnico_icca || '—'}</p>
                 </div>
                 <div>

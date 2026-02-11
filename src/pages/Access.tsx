@@ -380,7 +380,7 @@ export default function Access() {
               <p className="text-sm text-gray-400 leading-relaxed mb-5">
                 Plataforma para gestão e comprovação de projetos de Pesquisa, Desenvolvimento e Inovação (PD&I).
               </p>
-              <img src={logoSisConnectaWhite} alt="SisConnecta" className="h-10 w-auto opacity-70" />
+              
             </div>
 
             {/* Col 2 - Acesso */}

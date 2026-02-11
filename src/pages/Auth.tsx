@@ -10,7 +10,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
-import logoSisConnecta from "@/assets/logo-sisconnecta.png";
+import logoInnovaGO from "@/assets/logo-innovago.png";
 
 type AuthView = "login" | "signup" | "forgot-password" | "reset-password";
 
@@ -104,11 +104,11 @@ export default function Auth() {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <img 
-            src={logoSisConnecta} 
-            alt="SisConnecta – Sistema de Gestão de Bolsas Institucionais" 
+            src={logoInnovaGO} 
+            alt="InnovaGO – Sistema de Gestão de Bolsas Institucionais" 
             className="h-16 mx-auto mb-4"
           />
-          <h1 className="text-xl font-bold text-foreground">SisConnecta</h1>
+          <h1 className="text-xl font-bold text-foreground">InnovaGO</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Portal de Gestão de Bolsas
           </p>
@@ -174,7 +174,7 @@ export default function Auth() {
             Ao acessar, você concorda com os termos de uso do sistema.
           </p>
           <p className="text-xs text-muted-foreground">
-            © SisConnecta – Sistema de Gestão de Bolsas Institucionais
+            © InnovaGO – Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>
       </div>

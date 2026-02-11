@@ -9,7 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle, Mail, Lock, Loader2, ArrowLeft, GraduationCap, Ticket, User } from "lucide-react";
 import { z } from "zod";
-import logoSisConnecta from "@/assets/logo-sisconnecta.png";
+import logoInnovaGO from "@/assets/logo-innovago.png";
 
 const signupSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -92,7 +92,6 @@ export default function ScholarSignup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Back link */}
         <Link 
           to="/bolsista/login" 
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
@@ -101,11 +100,10 @@ export default function ScholarSignup() {
           Voltar ao login
         </Link>
 
-        {/* Logo/Header */}
         <div className="text-center mb-8">
           <img 
-            src={logoSisConnecta} 
-            alt="SisConnecta" 
+            src={logoInnovaGO} 
+            alt="InnovaGO" 
             className="h-14 mx-auto mb-4"
           />
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -113,7 +111,7 @@ export default function ScholarSignup() {
             <h1 className="text-xl font-bold text-foreground">Criar Conta de Bolsista</h1>
           </div>
           <p className="text-muted-foreground text-sm">
-            SisConnecta
+            InnovaGO
           </p>
         </div>
 
@@ -253,10 +251,9 @@ export default function ScholarSignup() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © SisConnecta – Sistema de Gestão de Bolsas Institucionais
+            © InnovaGO – Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>
       </div>

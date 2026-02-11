@@ -10,7 +10,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Mail, Lock, Loader2, ArrowLeft, Users } from "lucide-react";
 import { z } from "zod";
-import logoSisConnecta from "@/assets/logo-sisconnecta.png";
+import logoInnovaGO from "@/assets/logo-innovago.png";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -87,8 +87,8 @@ export default function AdminLogin() {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <img 
-            src={logoSisConnecta} 
-            alt="SisConnecta" 
+            src={logoInnovaGO} 
+            alt="InnovaGO" 
             className="h-14 mx-auto mb-4"
           />
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -96,7 +96,7 @@ export default function AdminLogin() {
             <h1 className="text-xl font-bold text-foreground">Portal do Administrador</h1>
           </div>
           <p className="text-muted-foreground text-sm">
-            SisConnecta
+            InnovaGO
           </p>
         </div>
 
@@ -180,7 +180,7 @@ export default function AdminLogin() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © SisConnecta – Sistema de Gestão de Bolsas Institucionais
+            © InnovaGO – Sistema de Gestão de Bolsas Institucionais
           </p>
         </div>
       </div>

@@ -236,10 +236,10 @@ export default function Access() {
             <div className="mt-12">
               <div className="bg-white rounded-xl border border-border p-8">
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  <strong className="text-foreground">InnovaGO</strong> é uma plataforma para cadastro, acompanhamento, avaliação e liberação de pagamento de bolsas vinculadas a projetos científicos e de inovação, mediante envio e análise de relatórios.
+                  <strong className="text-foreground">BolsaGO</strong> é uma plataforma para cadastro, acompanhamento, avaliação e liberação de pagamento de bolsas vinculadas a projetos científicos e de inovação.
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  A plataforma foi desenvolvida a partir da experiência prática em execução e gestão de projetos de Pesquisa, Desenvolvimento e Inovação (PD&I), oferecendo uma solução completa para instituições que gerenciam bolsas científicas.
+                  A plataforma foi desenvolvida a partir da experiência prática em execução e gestão de bolsas de projetos de Pesquisa e Inovação, oferecendo uma solução inteligente e segura.
                 </p>
               </div>
             </div>

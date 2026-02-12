@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check } from "lucide-react";
+import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -594,7 +594,721 @@ Deno.serve(async (req) => {
   },
 ];
 
-type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration";
+type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration" | "rls-policies";
+
+// =============================================
+// RLS POLICIES DATA
+// =============================================
+
+const STORAGE_RLS_POLICIES = `-- =============================================
+-- STORAGE BUCKETS - Criação com visibilidade correta
+-- =============================================
+
+-- Buckets PRIVADOS
+INSERT INTO storage.buckets (id, name, public) VALUES ('reports', 'reports', false);
+INSERT INTO storage.buckets (id, name, public) VALUES ('payment-receipts', 'payment-receipts', false);
+INSERT INTO storage.buckets (id, name, public) VALUES ('grant-terms', 'grant-terms', false);
+
+-- Buckets PÚBLICOS
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('email-assets', 'email-assets', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('institutional-documents', 'institutional-documents', true);
+
+-- =============================================
+-- STORAGE RLS POLICIES
+-- =============================================
+
+-- ============ BUCKET: reports (privado) ============
+CREATE POLICY "Scholars can upload own reports"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'reports'
+  AND auth.uid()::text = (storage.foldername(name))[3]
+);
+
+CREATE POLICY "Scholars can view own reports"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'reports'
+  AND auth.uid()::text = (storage.foldername(name))[3]
+);
+
+CREATE POLICY "Managers can view all reports"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'reports'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+CREATE POLICY "Managers can delete reports"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'reports'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+-- ============ BUCKET: avatars (público) ============
+CREATE POLICY "Avatar images are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can upload their own avatar"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'avatars'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+CREATE POLICY "Users can update their own avatar"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'avatars'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+CREATE POLICY "Users can delete their own avatar"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'avatars'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- ============ BUCKET: email-assets (público) ============
+CREATE POLICY "Email assets are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'email-assets');
+
+CREATE POLICY "Managers can upload email assets"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'email-assets'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+-- ============ BUCKET: payment-receipts (privado) ============
+CREATE POLICY "Managers can upload payment receipts"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'payment-receipts'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+CREATE POLICY "Managers can view payment receipts"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'payment-receipts'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+CREATE POLICY "Scholars can view own payment receipts"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'payment-receipts'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- ============ BUCKET: grant-terms (privado) ============
+CREATE POLICY "Managers can upload grant terms"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'grant-terms'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+CREATE POLICY "Managers can view grant terms"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'grant-terms'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+CREATE POLICY "Scholars can view own grant terms"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'grant-terms'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- ============ BUCKET: institutional-documents (público) ============
+CREATE POLICY "Institutional docs are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'institutional-documents');
+
+CREATE POLICY "Managers can upload institutional docs"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'institutional-documents'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+CREATE POLICY "Managers can update institutional docs"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'institutional-documents'
+  AND (
+    public.has_role(auth.uid(), 'manager'::public.app_role)
+    OR public.has_role(auth.uid(), 'admin'::public.app_role)
+  )
+);
+
+CREATE POLICY "Admins can delete institutional docs"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'institutional-documents'
+  AND public.has_role(auth.uid(), 'admin'::public.app_role)
+);`;
+
+interface TableRLSPolicies {
+  table: string;
+  sql: string;
+}
+
+const TABLE_RLS_POLICIES: TableRLSPolicies[] = [
+  {
+    table: "profiles",
+    sql: `-- RLS Policies: profiles
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "deny_anon_select" ON public.profiles
+  AS RESTRICTIVE FOR SELECT USING (false);
+
+CREATE POLICY "Profiles: select own" ON public.profiles
+  AS RESTRICTIVE FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Profiles: select admin" ON public.profiles
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Profiles: select manager org-scoped" ON public.profiles
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) AND organization_id IN (SELECT get_user_organizations()));
+
+CREATE POLICY "Profiles: insert own" ON public.profiles
+  AS RESTRICTIVE FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Profiles: update own non-sensitive" ON public.profiles
+  AS RESTRICTIVE FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Admins can delete profiles" ON public.profiles
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "profiles_sensitive",
+    sql: `-- RLS Policies: profiles_sensitive
+ALTER TABLE public.profiles_sensitive ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles_sensitive FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own sensitive data" ON public.profiles_sensitive
+  AS RESTRICTIVE FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Admins can view sensitive data" ON public.profiles_sensitive
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Users can insert their own sensitive data" ON public.profiles_sensitive
+  AS RESTRICTIVE FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own sensitive data" ON public.profiles_sensitive
+  AS RESTRICTIVE FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Admins can update sensitive data" ON public.profiles_sensitive
+  AS RESTRICTIVE FOR UPDATE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "user_roles",
+    sql: `-- RLS Policies: user_roles
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_roles FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "deny_anon_select" ON public.user_roles
+  AS RESTRICTIVE FOR SELECT USING (false);
+
+CREATE POLICY "Roles: select own" ON public.user_roles
+  AS RESTRICTIVE FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Roles: select admin" ON public.user_roles
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Roles: select manager" ON public.user_roles
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'manager'::app_role));
+
+CREATE POLICY "Roles: insert admin only" ON public.user_roles
+  AS RESTRICTIVE FOR INSERT WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Roles: update admin only" ON public.user_roles
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Roles: delete admin only" ON public.user_roles
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "organizations",
+    sql: `-- RLS Policies: organizations
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organizations FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "org_select_members" ON public.organizations
+  AS RESTRICTIVE FOR SELECT USING (user_has_org_access(id) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "org_insert_admin" ON public.organizations
+  AS RESTRICTIVE FOR INSERT WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "org_update_owner" ON public.organizations
+  AS RESTRICTIVE FOR UPDATE USING (user_org_role(id) = 'owner' OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "org_delete_superadmin" ON public.organizations
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "organization_members",
+    sql: `-- RLS Policies: organization_members
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organization_members FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "org_members_select" ON public.organization_members
+  AS RESTRICTIVE FOR SELECT
+  USING (user_has_org_access(organization_id) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "org_members_insert_owner" ON public.organization_members
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (user_org_role(organization_id) IN ('owner', 'admin') OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "org_members_update_owner" ON public.organization_members
+  AS RESTRICTIVE FOR UPDATE
+  USING (user_org_role(organization_id) IN ('owner', 'admin') OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "org_members_delete_owner" ON public.organization_members
+  AS RESTRICTIVE FOR DELETE
+  USING (user_org_role(organization_id) IN ('owner', 'admin') OR has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "thematic_projects",
+    sql: `-- RLS Policies: thematic_projects
+ALTER TABLE public.thematic_projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thematic_projects FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "Managers can view all thematic projects" ON public.thematic_projects
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Scholars can view their thematic project" ON public.thematic_projects
+  AS RESTRICTIVE FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM enrollments e
+    JOIN projects p ON e.project_id = p.id
+    WHERE p.thematic_project_id = thematic_projects.id AND e.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Managers can insert thematic projects" ON public.thematic_projects
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can update thematic projects" ON public.thematic_projects
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can delete thematic projects" ON public.thematic_projects
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "projects",
+    sql: `-- RLS Policies: projects
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "Managers can view all projects" ON public.projects
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Scholars can view their projects" ON public.projects
+  AS RESTRICTIVE FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM enrollments WHERE project_id = projects.id AND user_id = auth.uid()
+  ));
+
+CREATE POLICY "Managers can insert projects" ON public.projects
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can update projects" ON public.projects
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can delete projects" ON public.projects
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "enrollments",
+    sql: `-- RLS Policies: enrollments
+ALTER TABLE public.enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.enrollments FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "Enrollments: select own" ON public.enrollments
+  AS RESTRICTIVE FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Enrollments: select manager/admin" ON public.enrollments
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can insert enrollments" ON public.enrollments
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can update enrollments" ON public.enrollments
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can delete enrollments" ON public.enrollments
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "payments",
+    sql: `-- RLS Policies: payments
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payments FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "Scholars can view their own payments" ON public.payments
+  AS RESTRICTIVE FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Managers can view all payments" ON public.payments
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can insert payments" ON public.payments
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can update payments" ON public.payments
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "reports",
+    sql: `-- RLS Policies: reports
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reports FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "deny_anon_select" ON public.reports
+  AS RESTRICTIVE FOR SELECT USING (false);
+
+CREATE POLICY "Reports: select own" ON public.reports
+  AS RESTRICTIVE FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Reports: select admin" ON public.reports
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Reports: select manager org-scoped" ON public.reports
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) AND EXISTS (
+    SELECT 1 FROM profiles p
+    WHERE p.user_id = reports.user_id
+    AND p.organization_id IN (SELECT get_user_organizations())
+  ));
+
+CREATE POLICY "Reports: insert own" ON public.reports
+  AS RESTRICTIVE FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Reports: update admin" ON public.reports
+  AS RESTRICTIVE FOR UPDATE USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Reports: update manager org-scoped" ON public.reports
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) AND EXISTS (
+    SELECT 1 FROM profiles p
+    WHERE p.user_id = reports.user_id
+    AND p.organization_id IN (SELECT get_user_organizations())
+  ));`,
+  },
+  {
+    table: "bank_accounts",
+    sql: `-- RLS Policies: bank_accounts
+ALTER TABLE public.bank_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bank_accounts FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "deny_anon_select" ON public.bank_accounts
+  AS RESTRICTIVE FOR SELECT USING (false);
+
+CREATE POLICY "bank_accounts_select_own" ON public.bank_accounts
+  AS RESTRICTIVE FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "bank_accounts_select_admin" ON public.bank_accounts
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "bank_accounts_select_manager_org_scoped" ON public.bank_accounts
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) AND user_can_access_profile_by_org(user_id));
+
+CREATE POLICY "Users can view their own bank account" ON public.bank_accounts
+  AS RESTRICTIVE FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "bank_accounts_insert_own" ON public.bank_accounts
+  AS RESTRICTIVE FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can insert their own bank account" ON public.bank_accounts
+  AS RESTRICTIVE FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "bank_accounts_update_own_unvalidated" ON public.bank_accounts
+  AS RESTRICTIVE FOR UPDATE
+  USING (
+    user_id = auth.uid()
+    AND COALESCE(locked_for_edit, false) = false
+    AND COALESCE(validation_status, 'pending'::bank_validation_status) IN ('pending', 'returned')
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    AND COALESCE(locked_for_edit, false) = false
+    AND COALESCE(validation_status, 'pending'::bank_validation_status) IN ('pending', 'returned')
+  );
+
+CREATE POLICY "Users can update their own bank account when not locked" ON public.bank_accounts
+  AS RESTRICTIVE FOR UPDATE
+  USING (auth.uid() = user_id AND locked_for_edit = false)
+  WITH CHECK (auth.uid() = user_id AND locked_for_edit = false);
+
+CREATE POLICY "bank_accounts_update_admin" ON public.bank_accounts
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "bank_accounts_update_manager_org_scoped" ON public.bank_accounts
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) AND user_can_access_profile_by_org(user_id))
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) AND user_can_access_profile_by_org(user_id));
+
+CREATE POLICY "bank_accounts_delete_own_unvalidated" ON public.bank_accounts
+  AS RESTRICTIVE FOR DELETE
+  USING (
+    user_id = auth.uid()
+    AND COALESCE(validation_status, 'pending'::bank_validation_status) IN ('pending', 'returned')
+  );`,
+  },
+  {
+    table: "grant_terms",
+    sql: `-- RLS Policies: grant_terms
+ALTER TABLE public.grant_terms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.grant_terms FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "grant_terms_select_own" ON public.grant_terms
+  AS RESTRICTIVE FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "grant_terms_select_manager" ON public.grant_terms
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "grant_terms_insert_manager" ON public.grant_terms
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "grant_terms_update_manager" ON public.grant_terms
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "grant_terms_delete_admin" ON public.grant_terms
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "invite_codes",
+    sql: `-- RLS Policies: invite_codes
+ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invite_codes FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "invite_codes_select_manager_admin" ON public.invite_codes
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "invite_codes_insert_manager_admin" ON public.invite_codes
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "invite_codes_update_manager_admin" ON public.invite_codes
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "invite_codes_delete_admin_only" ON public.invite_codes
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "invite_code_uses",
+    sql: `-- RLS Policies: invite_code_uses
+ALTER TABLE public.invite_code_uses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invite_code_uses FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "invite_code_uses_select_manager_admin" ON public.invite_code_uses
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "messages",
+    sql: `-- RLS Policies: messages
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "messages_deny_anon" ON public.messages
+  AS RESTRICTIVE FOR SELECT USING (false);
+
+CREATE POLICY "messages_select_own" ON public.messages
+  AS RESTRICTIVE FOR SELECT USING (recipient_id = auth.uid());
+
+CREATE POLICY "messages_select_admin_all" ON public.messages
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "messages_select_manager_org" ON public.messages
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) AND organization_id IN (SELECT get_user_organizations()));
+
+CREATE POLICY "messages_insert_manager" ON public.messages
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (sender_id = auth.uid() AND (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role)));
+
+CREATE POLICY "messages_update_own" ON public.messages
+  AS RESTRICTIVE FOR UPDATE
+  USING (recipient_id = auth.uid())
+  WITH CHECK (recipient_id = auth.uid());
+
+CREATE POLICY "messages_update_admin_all" ON public.messages
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "messages_update_manager_org" ON public.messages
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) AND organization_id IN (SELECT get_user_organizations()))
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) AND organization_id IN (SELECT get_user_organizations()));`,
+  },
+  {
+    table: "message_templates",
+    sql: `-- RLS Policies: message_templates
+ALTER TABLE public.message_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.message_templates FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "templates_select_manager" ON public.message_templates
+  AS RESTRICTIVE FOR SELECT
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "templates_insert_manager" ON public.message_templates
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "templates_update_manager" ON public.message_templates
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "templates_delete_manager" ON public.message_templates
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "notifications",
+    sql: `-- RLS Policies: notifications
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own notifications" ON public.notifications
+  AS RESTRICTIVE FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Managers can insert notifications" ON public.notifications
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Users can update their own notifications" ON public.notifications
+  AS RESTRICTIVE FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own notifications" ON public.notifications
+  AS RESTRICTIVE FOR DELETE USING (auth.uid() = user_id);`,
+  },
+  {
+    table: "audit_logs",
+    sql: `-- RLS Policies: audit_logs
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "deny_anon_select" ON public.audit_logs
+  AS RESTRICTIVE FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "deny_anon_insert" ON public.audit_logs
+  AS RESTRICTIVE FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Admins can view all audit logs" ON public.audit_logs
+  AS RESTRICTIVE FOR SELECT USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+  {
+    table: "institutional_documents",
+    sql: `-- RLS Policies: institutional_documents
+ALTER TABLE public.institutional_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.institutional_documents FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY "All authenticated users can view institutional documents" ON public.institutional_documents
+  AS RESTRICTIVE FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Managers can insert institutional documents" ON public.institutional_documents
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Managers can update institutional documents" ON public.institutional_documents
+  AS RESTRICTIVE FOR UPDATE
+  USING (has_role(auth.uid(), 'manager'::app_role) OR has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can delete institutional documents" ON public.institutional_documents
+  AS RESTRICTIVE FOR DELETE USING (has_role(auth.uid(), 'admin'::app_role));`,
+  },
+];
+
+function generateAllRLSPoliciesSQL(): string {
+  const parts: string[] = [];
+  parts.push("-- =============================================");
+  parts.push("-- COMPLETE RLS POLICIES MIGRATION SCRIPT");
+  parts.push(`-- Generated at: ${new Date().toISOString()}`);
+  parts.push("-- =============================================\n");
+  parts.push("-- PREREQUISITE: Ensure the has_role(), user_has_org_access(),");
+  parts.push("-- get_user_organizations(), user_org_role(), and");
+  parts.push("-- user_can_access_profile_by_org() functions exist.\n");
+  
+  parts.push("-- =============================================");
+  parts.push("-- SECTION 1: STORAGE BUCKETS + POLICIES");
+  parts.push("-- =============================================\n");
+  parts.push(STORAGE_RLS_POLICIES);
+  
+  parts.push("\n\n-- =============================================");
+  parts.push("-- SECTION 2: TABLE RLS POLICIES");
+  parts.push("-- =============================================\n");
+  TABLE_RLS_POLICIES.forEach(p => {
+    parts.push(p.sql);
+    parts.push("");
+  });
+  
+  return parts.join("\n");
+}
 
 function generateCreateTableSQL(table: TableDef): string {
   const lines: string[] = [];
@@ -709,6 +1423,7 @@ export default function DatabaseSchema() {
     { id: "edge-functions", label: "Edge Functions", icon: <Columns className="w-4 h-4" /> },
     { id: "edge-function-code", label: "Edge Function Code", icon: <Code className="w-4 h-4" /> },
     { id: "sql-migration", label: "SQL Migration", icon: <Code className="w-4 h-4" /> },
+    { id: "rls-policies", label: "RLS Policies", icon: <Shield className="w-4 h-4" /> },
   ];
 
   const currentTable = SCHEMA.find(t => t.name === selectedTable);
@@ -1052,6 +1767,89 @@ export default function DatabaseSchema() {
                   </CardContent>
                 </Card>
               )
+            ))}
+          </div>
+        )}
+
+        {activeSection === "rls-policies" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">RLS Policies (Storage + {TABLE_RLS_POLICIES.length} Tabelas)</h2>
+              <Button
+                onClick={() => copyToClipboard(generateAllRLSPoliciesSQL(), "__rls_full__")}
+                size="sm"
+              >
+                {copiedTable === "__rls_full__" ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copiedTable === "__rls_full__" ? "Copiado!" : "Copiar script completo"}
+              </Button>
+            </div>
+
+            <Card className="border-destructive/30 bg-destructive/5">
+              <CardContent className="pt-4">
+                <p className="text-sm text-destructive">
+                  <strong>Pré-requisito:</strong> Execute primeiro os scripts de <strong>Enums</strong>, <strong>Tabelas</strong> e <strong>Funções auxiliares</strong> (has_role, user_has_org_access, get_user_organizations, user_org_role, user_can_access_profile_by_org) antes de aplicar as RLS policies.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Storage Buckets + Policies */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-primary" />
+                    Storage Buckets + Policies (6 buckets)
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => copyToClipboard(STORAGE_RLS_POLICIES, "__storage_rls__")}
+                  >
+                    {copiedTable === "__storage_rls__" ? (
+                      <><Check className="w-3 h-3" /> Copiado</>
+                    ) : (
+                      <><Copy className="w-3 h-3" /> Copiar</>
+                    )}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">
+                  {STORAGE_RLS_POLICIES}
+                </pre>
+              </CardContent>
+            </Card>
+
+            {/* Table RLS Policies */}
+            {TABLE_RLS_POLICIES.map(policy => (
+              <Card key={policy.table}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      {policy.table}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => copyToClipboard(policy.sql, `rls_${policy.table}`)}
+                    >
+                      {copiedTable === `rls_${policy.table}` ? (
+                        <><Check className="w-3 h-3" /> Copiado</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> Copiar</>
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground">
+                    {policy.sql}
+                  </pre>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

@@ -268,8 +268,8 @@ export function ScholarDataCards() {
         <div className="card-institutional">
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <User className="w-5 h-5 text-primary-foreground" />
               </div>
               <h3 className="font-semibold text-foreground">Dados Pessoais</h3>
             </div>

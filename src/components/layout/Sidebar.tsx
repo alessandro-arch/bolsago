@@ -123,12 +123,12 @@ export function Sidebar() {
             </span>
             {!loading && (
               <span className={cn(
-                "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold",
                 hasManagerAccess 
-                  ? "bg-primary/10 text-primary" 
-                  : "bg-info/10 text-info"
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-info text-white"
               )}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
                 {hasManagerAccess ? "Gestor" : "Bolsista"}
               </span>
             )}

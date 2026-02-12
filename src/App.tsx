@@ -16,6 +16,7 @@ import AdminLogin from "./pages/AdminLogin";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import ScholarSignup from "./pages/ScholarSignup";
 import AccessDenied from "./pages/AccessDenied";
+import DatabaseSchema from "./pages/DatabaseSchema";
 import NotFound from "./pages/NotFound";
 
 // Scholar pages (reusing existing)
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/recuperar-senha" element={<PasswordRecovery />} />
               <Route path="/criar-conta" element={<ScholarSignup />} />
               <Route path="/acesso-negado" element={<AccessDenied />} />
+              <Route path="/database-schema" element={<DatabaseSchema />} />
               
               {/* Legacy auth route - redirect to new access page */}
               <Route path="/auth" element={<Navigate to="/acesso" replace />} />

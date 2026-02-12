@@ -5,6 +5,7 @@ const ALLOWED_ORIGINS = [
   "https://bolsago.lovable.app",
   "https://www.innovago.app",
   "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+  "https://2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovableproject.com",
 ];
 
 function getCorsHeaders(req: Request) {

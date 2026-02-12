@@ -17,7 +17,9 @@ import {
   ShieldAlert,
   Ticket,
   Building2,
-  Globe
+  Globe,
+  Mail,
+  Send
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -40,6 +42,7 @@ const scholarNavigation: NavItem[] = [
   { name: "Meu Painel", icon: LayoutDashboard, href: "/bolsista/painel" },
   { name: "Meu Perfil", icon: UserCircle, href: "/bolsista/perfil" },
   { name: "Meus Pagamentos", icon: Receipt, href: "/bolsista/pagamentos-relatorios" },
+  { name: "Mensagens", icon: Mail, href: "/bolsista/mensagens" },
   { name: "Documentos", icon: FileText, href: "/bolsista/documentos" },
   { name: "Manual", icon: HelpCircle, href: "/bolsista/manual" },
 ];
@@ -48,6 +51,7 @@ const adminNavigation: NavItem[] = [
   { name: "Dashboard Estratégico", icon: Globe, href: "/admin/dashboard-icca", adminOnly: true, section: "Governança" },
   { name: "Painel Gestor", icon: Users, href: "/admin/painel", managerOnly: true },
   { name: "Projetos Temáticos", icon: FolderOpen, href: "/admin/projetos-tematicos", managerOnly: true },
+  { name: "Mensagens", icon: Send, href: "/admin/mensagens", managerOnly: true },
   { name: "Documentos", icon: FileText, href: "/admin/documentos", managerOnly: true },
   { name: "Códigos de Convite", icon: Ticket, href: "/admin/codigos-convite", managerOnly: true, section: "Gestão Institucional" },
   { name: "Importar Dados", icon: Upload, href: "/admin/importar", managerOnly: true },

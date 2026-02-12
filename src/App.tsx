@@ -36,6 +36,8 @@ import Organizations from "./pages/Organizations";
 import ScholarProfileView from "./pages/ScholarProfileView";
 import Import from "./pages/Import";
 import AuditTrail from "./pages/AuditTrail";
+import ScholarMessages from "./pages/ScholarMessages";
+import AdminMessages from "./pages/AdminMessages";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +92,11 @@ const App = () => (
                   <ScholarManual />
                 </ScholarProtectedRoute>
               } />
+              <Route path="/bolsista/mensagens" element={
+                <ScholarProtectedRoute>
+                  <ScholarMessages />
+                </ScholarProtectedRoute>
+              } />
               
               {/* Change Password - accessible by all authenticated users */}
               <Route path="/alterar-senha" element={
@@ -109,6 +116,11 @@ const App = () => (
               <Route path="/admin/importar" element={
                 <AdminProtectedRoute>
                   <Import />
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/mensagens" element={
+                <AdminProtectedRoute>
+                  <AdminMessages />
                 </AdminProtectedRoute>
               } />
               <Route path="/admin/projetos-tematicos" element={

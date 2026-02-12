@@ -1,8 +1,6 @@
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-// Resend is instantiated inside the handler to ensure env vars are available
-
 const ALLOWED_ORIGINS = [
   "https://bolsago.lovable.app",
   "https://www.innovago.app",
@@ -23,9 +21,14 @@ function generateMessageEmail(
   subject: string,
   body: string,
   senderName: string,
-  logoUrl: string
+  logoUrl: string,
+  isSystem: boolean = false
 ): string {
   const bodyHtml = body.replace(/\n/g, '<br/>');
+  const emoji = isSystem ? '🔔' : '💬';
+  const headerTitle = isSystem ? 'Notificação do Sistema' : 'Nova Mensagem';
+  const fromLabel = isSystem ? 'Sistema BolsaGO' : senderName;
+  
   return `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -64,15 +67,15 @@ function generateMessageEmail(
                 <tr>
                   <td style="vertical-align: middle;">
                     <h1 style="margin: 0; font-size: 22px; font-weight: 600; color: #003366; line-height: 1.3;">
-                      Nova Mensagem
+                      ${headerTitle}
                     </h1>
                     <p style="margin: 8px 0 0 0; font-size: 14px; color: #666666;">
-                      De: <strong>${senderName}</strong>
+                      De: <strong>${fromLabel}</strong>
                     </p>
                   </td>
                   <td width="64" align="right" style="vertical-align: middle;">
                     <div style="width: 56px; height: 56px; background-color: #e6f3ff; border-radius: 50%; text-align: center; line-height: 56px;">
-                      <span style="font-size: 28px;">💬</span>
+                      <span style="font-size: 28px;">${emoji}</span>
                     </div>
                   </td>
                 </tr>
@@ -128,6 +131,54 @@ function generateMessageEmail(
 </html>`;
 }
 
+async function sendEmailForMessage(
+  supabaseAdmin: any,
+  messageId: string,
+  recipientEmail: string,
+  recipientName: string,
+  subject: string,
+  body: string,
+  senderName: string,
+  logoUrl: string,
+  isSystem: boolean
+) {
+  try {
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured');
+      await supabaseAdmin.from('messages').update({ email_status: 'failed', email_error: 'RESEND_API_KEY not configured' }).eq('id', messageId);
+      return false;
+    }
+
+    const resend = new Resend(resendApiKey);
+    const html = generateMessageEmail(recipientName, subject, body, senderName, logoUrl, isSystem);
+
+    const { error: emailError } = await resend.emails.send({
+      from: 'BolsaGO <contato@innovago.app>',
+      to: [recipientEmail],
+      subject: `${subject} • BolsaGO`,
+      html,
+    });
+
+    if (emailError) {
+      console.error('Resend error:', emailError);
+      await supabaseAdmin.from('messages').update({ 
+        email_status: 'failed', 
+        email_error: JSON.stringify(emailError).substring(0, 500) 
+      }).eq('id', messageId);
+      return false;
+    }
+
+    await supabaseAdmin.from('messages').update({ email_status: 'sent' }).eq('id', messageId);
+    return true;
+  } catch (err) {
+    console.error('Email send error:', err);
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    await supabaseAdmin.from('messages').update({ email_status: 'failed', email_error: errorMsg.substring(0, 500) }).eq('id', messageId);
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -164,7 +215,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role to check role and get profiles
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: roles } = await supabaseAdmin
@@ -192,7 +242,7 @@ Deno.serve(async (req) => {
     // Get recipient profile
     const { data: recipientProfile } = await supabaseAdmin
       .from('profiles')
-      .select('full_name, email')
+      .select('full_name, email, organization_id')
       .eq('user_id', recipient_id)
       .single();
 
@@ -213,17 +263,47 @@ Deno.serve(async (req) => {
     const senderName = senderProfile?.full_name || 'Equipe de Gestão';
     const recipientName = recipientProfile.full_name || 'Bolsista';
 
-    // Insert message into database
-    const { error: insertError } = await supabaseAdmin
+    // Get org_id from recipient's thematic project enrollment
+    let orgId: string | null = null;
+    const { data: enrollmentOrg } = await supabaseAdmin
+      .from('enrollments')
+      .select('project_id')
+      .eq('user_id', recipient_id)
+      .limit(1)
+      .single();
+    
+    if (enrollmentOrg) {
+      const { data: projectData } = await supabaseAdmin
+        .from('projects')
+        .select('thematic_project_id')
+        .eq('id', enrollmentOrg.project_id)
+        .single();
+      if (projectData) {
+        const { data: tpData } = await supabaseAdmin
+          .from('thematic_projects')
+          .select('organization_id')
+          .eq('id', projectData.thematic_project_id)
+          .single();
+        orgId = tpData?.organization_id || null;
+      }
+    }
+
+    // Insert message into database with new fields
+    const { data: insertedMessage, error: insertError } = await supabaseAdmin
       .from('messages')
       .insert({
         sender_id: user.id,
         recipient_id,
         subject,
         body,
-      });
+        type: 'GESTOR',
+        event_type: 'GENERAL',
+        organization_id: orgId,
+      })
+      .select('id')
+      .single();
 
-    if (insertError) {
+    if (insertError || !insertedMessage) {
       console.error('Error inserting message:', insertError);
       return new Response(JSON.stringify({ error: 'Failed to save message' }), {
         status: 500,
@@ -231,31 +311,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send email
-    const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-innovago.png?v=1`;
-    const html = generateMessageEmail(recipientName, subject, body, senderName, logoUrl);
+    // Check if org has email enabled
+    let emailEnabled = true; // default to true
+    if (orgId) {
+      const { data: org } = await supabaseAdmin
+        .from('organizations')
+        .select('settings')
+        .eq('id', orgId)
+        .single();
+      if (org?.settings && typeof org.settings === 'object') {
+        const settings = org.settings as Record<string, any>;
+        if (settings.email_notifications_enabled === false) {
+          emailEnabled = false;
+        }
+      }
+    }
 
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY')!);
-    const { error: emailError } = await resend.emails.send({
-      from: 'BolsaGO <contato@innovago.app>',
-      to: [recipientProfile.email],
-      subject: `${subject} • BolsaGO`,
-      html,
-    });
-
-    if (emailError) {
-      console.error('Resend error (message saved but email failed):', emailError);
-      // Message was saved, just email failed — return partial success
-      return new Response(
-        JSON.stringify({ success: true, email_sent: false, warning: 'Message saved but email delivery failed' }),
-        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    let emailSent = false;
+    if (emailEnabled) {
+      const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-innovago.png?v=1`;
+      emailSent = await sendEmailForMessage(
+        supabaseAdmin,
+        insertedMessage.id,
+        recipientProfile.email,
+        recipientName,
+        subject,
+        body,
+        senderName,
+        logoUrl,
+        false
       );
     }
 
-    console.log(`Message sent to ${recipientProfile.email} by ${senderName}`);
+    console.log(`Message sent to ${recipientProfile.email} by ${senderName}, email: ${emailSent}`);
 
     return new Response(
-      JSON.stringify({ success: true, email_sent: true }),
+      JSON.stringify({ success: true, email_sent: emailSent }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   } catch (error: unknown) {

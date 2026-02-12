@@ -383,34 +383,60 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          email_error: string | null
+          email_status: string | null
+          event_type: string | null
           id: string
+          link_url: string | null
+          organization_id: string | null
           read: boolean
           read_at: string | null
           recipient_id: string
-          sender_id: string
+          sender_id: string | null
           subject: string
+          type: string
         }
         Insert: {
           body: string
           created_at?: string
+          email_error?: string | null
+          email_status?: string | null
+          event_type?: string | null
           id?: string
+          link_url?: string | null
+          organization_id?: string | null
           read?: boolean
           read_at?: string | null
           recipient_id: string
-          sender_id: string
+          sender_id?: string | null
           subject: string
+          type?: string
         }
         Update: {
           body?: string
           created_at?: string
+          email_error?: string | null
+          email_status?: string | null
+          event_type?: string | null
           id?: string
+          link_url?: string | null
+          organization_id?: string | null
           read?: boolean
           read_at?: string | null
           recipient_id?: string
-          sender_id?: string
+          sender_id?: string | null
           subject?: string
+          type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {

@@ -25,6 +25,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
 import logoInnovaGO from "@/assets/logo-innovago.png";
 
@@ -63,6 +64,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { hasManagerAccess, isAdmin, loading } = useUserRole();
+  const unreadMessages = useUnreadMessages();
 
   const baseNavigation = hasManagerAccess ? adminNavigation : scholarNavigation;
 
@@ -162,8 +164,24 @@ export function Sidebar() {
                 className={linkClasses}
                 title={collapsed ? item.name : undefined}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span>{item.name}</span>}
+                <div className="relative">
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  {item.href === "/bolsista/mensagens" && unreadMessages > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 text-[9px] font-bold bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
+                      {unreadMessages > 99 ? "99+" : unreadMessages}
+                    </span>
+                  )}
+                </div>
+                {!collapsed && (
+                  <span className="flex items-center gap-2">
+                    {item.name}
+                    {item.href === "/bolsista/mensagens" && unreadMessages > 0 && (
+                      <span className="text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 min-w-[18px] text-center">
+                        {unreadMessages > 99 ? "99+" : unreadMessages}
+                      </span>
+                    )}
+                  </span>
+                )}
               </Link>
             </div>
           );

@@ -1,4 +1,5 @@
 import { Search, ChevronDown, LogOut, Shield, User, Camera, Loader2, KeyRound } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -119,12 +120,19 @@ export function Header() {
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 <div className="flex items-center gap-1.5 mt-1">
-                  {hasManagerAccess ? (
-                    <Shield className="w-3 h-3 text-primary" />
-                  ) : (
-                    <User className="w-3 h-3 text-info" />
-                  )}
-                  <p className="text-xs text-muted-foreground">{getRoleLabel()}</p>
+                  <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                    hasManagerAccess 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-info text-white"
+                  )}>
+                    {hasManagerAccess ? (
+                      <Shield className="w-3 h-3" />
+                    ) : (
+                      <User className="w-3 h-3" />
+                    )}
+                    {getRoleLabel()}
+                  </span>
                 </div>
               </div>
             </div>

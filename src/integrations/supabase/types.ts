@@ -382,51 +382,72 @@ export type Database = {
       messages: {
         Row: {
           body: string
+          campaign_code: string | null
           created_at: string
+          deleted_at: string | null
+          delivered_at: string | null
           email_error: string | null
           email_status: string | null
           event_type: string | null
           id: string
           link_url: string | null
           organization_id: string | null
+          provider: string | null
+          provider_message_id: string | null
           read: boolean
           read_at: string | null
           recipient_id: string
           sender_id: string | null
+          sent_at: string | null
           subject: string
           type: string
+          updated_at: string | null
         }
         Insert: {
           body: string
+          campaign_code?: string | null
           created_at?: string
+          deleted_at?: string | null
+          delivered_at?: string | null
           email_error?: string | null
           email_status?: string | null
           event_type?: string | null
           id?: string
           link_url?: string | null
           organization_id?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
           read?: boolean
           read_at?: string | null
           recipient_id: string
           sender_id?: string | null
+          sent_at?: string | null
           subject: string
           type?: string
+          updated_at?: string | null
         }
         Update: {
           body?: string
+          campaign_code?: string | null
           created_at?: string
+          deleted_at?: string | null
+          delivered_at?: string | null
           email_error?: string | null
           email_status?: string | null
           event_type?: string | null
           id?: string
           link_url?: string | null
           organization_id?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
           read?: boolean
           read_at?: string | null
           recipient_id?: string
           sender_id?: string | null
+          sent_at?: string | null
           subject?: string
           type?: string
+          updated_at?: string | null
         }
         Relationships: [
           {

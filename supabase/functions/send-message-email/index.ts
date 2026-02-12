@@ -1,7 +1,7 @@
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string);
+// Resend is instantiated inside the handler to ensure env vars are available
 
 const ALLOWED_ORIGINS = [
   "https://bolsago.lovable.app",
@@ -235,6 +235,7 @@ Deno.serve(async (req) => {
     const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-innovago.png?v=1`;
     const html = generateMessageEmail(recipientName, subject, body, senderName, logoUrl);
 
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY')!);
     const { error: emailError } = await resend.emails.send({
       from: 'BolsaGO <noreply@bolsaconecta.com.br>',
       to: [recipientProfile.email],

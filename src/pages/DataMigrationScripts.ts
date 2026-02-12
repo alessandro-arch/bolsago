@@ -398,18 +398,35 @@ ON CONFLICT (id) DO NOTHING;
   },
   {
     name: "13. bank_accounts",
-    description: "Dados bancários - 3 registros (sem pix_key_encrypted por segurança)",
+    description: "Dados bancários - 3 registros (com criptografia PIX via trigger)",
     order: 13,
-    code: `-- ⚠️ NOTA: pix_key_encrypted é bytea criptografado com AES-256.
--- Na migração, use o campo pix_key_masked para inserir e deixe
--- o trigger encrypt_and_mask_pix_key processar a criptografia.
--- O pix_key original deve ser inserido temporariamente para o trigger funcionar.
+    code: `-- ⚠️ IMPORTANTE: NÃO desabilite triggers do bank_accounts!
+-- O trigger encrypt_and_mask_pix_key DEVE estar ativo para criptografar as chaves PIX.
+-- Pré-requisito: a variável PIX_KEY_ENCRYPTION_KEY deve estar configurada no Vault.
+--
+-- ESTRATÉGIA:
+-- 1. Coloque a chave PIX original no campo pix_key_masked (sem ***)
+-- 2. O trigger detecta que não contém '***' e automaticamente:
+--    - Criptografa em pix_key_encrypted (AES-256)
+--    - Mascara o valor em pix_key_masked
+--    - Define pix_key = NULL (segurança)
+-- 3. Para chaves já mascaradas (contendo ***), o trigger preserva como está
+--
+-- ⚠️ Para as chaves PIX dos bolsistas Madson e Barauna, os valores originais
+-- foram perdidos (só temos a versão mascarada). Será necessário que eles
+-- recadastrem a chave PIX no novo ambiente, ou obtenha os valores originais
+-- e substitua abaixo.
 
-INSERT INTO public.bank_accounts (id, user_id, bank_name, bank_code, agency, account_number, account_type, pix_key, pix_key_masked, validation_status, locked_for_edit, validated_by, validated_at, notes_gestor, created_at, updated_at) VALUES
-  ('b1a801f6-1328-4cc3-85ec-b5da0738483d', '190f52bb-2a3d-4a63-abcb-853f638ffd81', 'Banco do Brasil', '', '3028', '0111597', 'Conta Corrente', '03498290630', NULL, 'validated', true, '3e893529-c8f5-4807-af00-4a9897aa444b', '2026-02-01 23:02:26.14+00', NULL, '2026-02-01 22:08:08.730776+00', '2026-02-01 23:02:26.366745+00'),
-  ('c451119b-d333-4e54-bd77-8f1c37db0a30', '22ded811-7482-4a95-9443-69907ae37bc5', 'Nubank', '', '0001', '24152878', 'Conta Corrente', NULL, '10*******65', 'validated', true, '3e893529-c8f5-4807-af00-4a9897aa444b', '2026-02-09 16:29:18.627+00', NULL, '2026-02-09 16:00:01.189012+00', '2026-02-09 16:29:18.850845+00'),
-  ('c460d486-9b45-4fd2-89ab-91351c6c6167', '55214dcb-af81-49de-b3ec-d79b24842d7a', 'Banco do Brasil', '', '31933', '294950', 'Conta Corrente', NULL, '14*******62', 'validated', true, '3e893529-c8f5-4807-af00-4a9897aa444b', '2026-02-09 21:02:39.087+00', NULL, '2026-02-09 20:36:05.753377+00', '2026-02-09 21:02:39.408788+00')
-ON CONFLICT (id) DO NOTHING;`
+-- Desabilitar APENAS o trigger de prevenção de edição (não o de criptografia)
+-- ALTER TABLE public.bank_accounts DISABLE TRIGGER trg_prevent_bank_fields_edit;
+
+INSERT INTO public.bank_accounts (id, user_id, bank_name, bank_code, agency, account_number, account_type, pix_key_masked, validation_status, locked_for_edit, validated_by, validated_at, notes_gestor, created_at, updated_at) VALUES
+  ('b1a801f6-1328-4cc3-85ec-b5da0738483d', '190f52bb-2a3d-4a63-abcb-853f638ffd81', 'Banco do Brasil', '', '3028', '0111597', 'Conta Corrente', '03498290630', 'validated', true, '3e893529-c8f5-4807-af00-4a9897aa444b', '2026-02-01 23:02:26.14+00', NULL, '2026-02-01 22:08:08.730776+00', '2026-02-01 23:02:26.366745+00'),
+  ('c451119b-d333-4e54-bd77-8f1c37db0a30', '22ded811-7482-4a95-9443-69907ae37bc5', 'Nubank', '', '0001', '24152878', 'Conta Corrente', '10*******65', 'validated', true, '3e893529-c8f5-4807-af00-4a9897aa444b', '2026-02-09 16:29:18.627+00', NULL, '2026-02-09 16:00:01.189012+00', '2026-02-09 16:29:18.850845+00'),
+  ('c460d486-9b45-4fd2-89ab-91351c6c6167', '55214dcb-af81-49de-b3ec-d79b24842d7a', 'Banco do Brasil', '', '31933', '294950', 'Conta Corrente', '14*******62', 'validated', true, '3e893529-c8f5-4807-af00-4a9897aa444b', '2026-02-09 21:02:39.087+00', NULL, '2026-02-09 20:36:05.753377+00', '2026-02-09 21:02:39.408788+00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ALTER TABLE public.bank_accounts ENABLE TRIGGER trg_prevent_bank_fields_edit;`
   },
   {
     name: "14. grant_terms",
@@ -505,8 +522,11 @@ export const DISABLE_TRIGGERS_SCRIPT = `-- =====================================
 ALTER TABLE public.reports DISABLE TRIGGER USER;
 ALTER TABLE public.payments DISABLE TRIGGER USER;
 ALTER TABLE public.messages DISABLE TRIGGER USER;
-ALTER TABLE public.bank_accounts DISABLE TRIGGER USER;
 ALTER TABLE public.notifications DISABLE TRIGGER USER;
+-- ⚠️ NÃO desabilitar triggers do bank_accounts!
+-- O trigger encrypt_and_mask_pix_key precisa estar ativo para criptografar PIX.
+-- Apenas desabilite o trigger de prevenção de edição se necessário:
+-- ALTER TABLE public.bank_accounts DISABLE TRIGGER trg_prevent_bank_fields_edit;
 
 -- =============================================
 -- REABILITAR TRIGGERS (executar APÓS os INSERTs)
@@ -514,8 +534,8 @@ ALTER TABLE public.notifications DISABLE TRIGGER USER;
 -- ALTER TABLE public.reports ENABLE TRIGGER USER;
 -- ALTER TABLE public.payments ENABLE TRIGGER USER;
 -- ALTER TABLE public.messages ENABLE TRIGGER USER;
--- ALTER TABLE public.bank_accounts ENABLE TRIGGER USER;
--- ALTER TABLE public.notifications ENABLE TRIGGER USER;`;
+-- ALTER TABLE public.notifications ENABLE TRIGGER USER;
+-- ALTER TABLE public.bank_accounts ENABLE TRIGGER trg_prevent_bank_fields_edit;`;
 
 export const VERIFICATION_SCRIPT = `-- =============================================
 -- VERIFICAÇÃO PÓS-MIGRAÇÃO

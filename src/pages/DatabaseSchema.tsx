@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check, Shield, Zap, Settings } from "lucide-react";
+import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check, Shield, Zap, Settings, HardDrive } from "lucide-react";
+import { DATA_MIGRATION_STRATEGY, AUTH_USERS_MIGRATION, MIGRATION_SCRIPTS, DISABLE_TRIGGERS_SCRIPT, VERIFICATION_SCRIPT } from "./DataMigrationScripts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -594,7 +595,7 @@ Deno.serve(async (req) => {
   },
 ];
 
-type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration" | "rls-policies" | "auxiliary-functions" | "database-functions" | "triggers" | "vault";
+type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration" | "rls-policies" | "auxiliary-functions" | "database-functions" | "triggers" | "vault" | "data-migration";
 
 // =============================================
 // RLS POLICIES DATA
@@ -2263,7 +2264,10 @@ export default function DatabaseSchema() {
     { id: "database-functions", label: "Database Functions", icon: <Code className="w-4 h-4" /> },
     { id: "triggers", label: "CREATE TRIGGER", icon: <Clock className="w-4 h-4" /> },
     { id: "vault", label: "Vault Config", icon: <Settings className="w-4 h-4" /> },
+    { id: "data-migration", label: "📦 Migração de Dados", icon: <HardDrive className="w-4 h-4" /> },
   ];
+
+  const [selectedMigrationScript, setSelectedMigrationScript] = useState(MIGRATION_SCRIPTS[0]?.name || "");
 
   const currentTable = SCHEMA.find(t => t.name === selectedTable);
 
@@ -2928,6 +2932,125 @@ export default function DatabaseSchema() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* Data Migration Section */}
+        {activeSection === "data-migration" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">📦 Migração de Dados</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Scripts SQL de INSERT INTO com dados reais extraídos do banco de dados atual. Ordem de execução respeita integridade referencial.</p>
+
+            {/* Strategy card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Code className="w-4 h-4 text-primary" />
+                    Estratégia de Migração
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => copyToClipboard(DATA_MIGRATION_STRATEGY, 'strategy')}>
+                    {copiedTable === 'strategy' ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[40vh] overflow-y-auto">{DATA_MIGRATION_STRATEGY}</pre>
+              </CardContent>
+            </Card>
+
+            {/* Disable triggers */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-destructive" />
+                    Desabilitar/Reabilitar Triggers
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => copyToClipboard(DISABLE_TRIGGERS_SCRIPT, 'triggers-toggle')}>
+                    {copiedTable === 'triggers-toggle' ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[30vh] overflow-y-auto">{DISABLE_TRIGGERS_SCRIPT}</pre>
+              </CardContent>
+            </Card>
+
+            {/* Auth Users */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-orange-500" />
+                    0. auth.users (Criação de Usuários)
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => copyToClipboard(AUTH_USERS_MIGRATION, 'auth-users')}>
+                    {copiedTable === 'auth-users' ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">{AUTH_USERS_MIGRATION}</pre>
+              </CardContent>
+            </Card>
+
+            {/* Migration script selector */}
+            <h3 className="text-lg font-semibold text-foreground mt-6">Scripts de INSERT por Tabela ({MIGRATION_SCRIPTS.length})</h3>
+            <div className="flex flex-wrap gap-2">
+              {MIGRATION_SCRIPTS.map(s => (
+                <Badge
+                  key={s.name}
+                  variant={selectedMigrationScript === s.name ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedMigrationScript(s.name)}
+                >
+                  {s.name}
+                </Badge>
+              ))}
+            </div>
+
+            {MIGRATION_SCRIPTS.filter(s => s.name === selectedMigrationScript).map(s => (
+              <Card key={s.name}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex flex-col gap-1">
+                      <span className="flex items-center gap-2">
+                        <Table className="w-4 h-4 text-primary" />
+                        {s.name}
+                      </span>
+                      <p className="text-xs font-normal text-muted-foreground">{s.description}</p>
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => copyToClipboard(s.code, s.name)}>
+                      {copiedTable === s.name ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">{s.code}</pre>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Verification */}
+            <Card className="mt-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    Verificação Pós-Migração
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => copyToClipboard(VERIFICATION_SCRIPT, 'verification')}>
+                    {copiedTable === 'verification' ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[40vh] overflow-y-auto">{VERIFICATION_SCRIPT}</pre>
+              </CardContent>
+            </Card>
           </div>
         )}
       </main>

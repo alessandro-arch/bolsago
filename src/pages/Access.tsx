@@ -231,7 +231,7 @@ export default function Access() {
               Desenvolvido por quem faz P,D&I na prática.
             </h2>
             <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-4 leading-relaxed">
-              O sistema BolsaGO da InnovaGO combina rigor metodológico, governança institucional e experiência real em projetos de pesquisa e inovação.
+              O sistema BolsaGO combina rigor metodológico, governança institucional e experiência real em projetos de pesquisa e inovação.
             </p>
             <div className="mt-12">
               <div className="bg-white rounded-xl border border-border p-8">
@@ -348,7 +348,7 @@ export default function Access() {
               Pronto para transformar a gestão de projetos e bolsas da sua instituição?
             </h2>
             <p className="text-muted-foreground mb-8 leading-relaxed">
-              Converse com nossos especialistas e descubra como o sistema BolsaGO da InnovaGO pode apoiar sua instituição.
+              Converse com nossos especialistas e descubra como o sistema BolsaGO pode apoiar sua instituição.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button 

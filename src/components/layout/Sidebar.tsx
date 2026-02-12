@@ -83,12 +83,9 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-border">
         {!collapsed && (
-          <div className="flex items-center gap-3">
-            <img 
-              src={logoInnovaGO} 
-              alt="InnovaGO" 
-              className="h-8 w-auto"
-            />
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-foreground leading-tight">BolsaGO</span>
+            <span className="text-[9px] text-muted-foreground leading-tight">Powered by <span className="font-medium">InnovaGO</span></span>
           </div>
         )}
         {collapsed && (
@@ -116,7 +113,7 @@ export function Sidebar() {
         <div className="px-4 py-3 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              InnovaGO
+              BolsaGO
             </span>
             {!loading && (
               <span className={cn(

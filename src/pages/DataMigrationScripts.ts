@@ -37,17 +37,17 @@ export const DATA_MIGRATION_STRATEGY = `-- =====================================
 --
 -- PROCEDIMENTO:
 --   1. Executar scripts de schema (tabelas, enums, funções)
---   2. Desabilitar triggers:
---      ALTER TABLE reports DISABLE TRIGGER ALL;
---      ALTER TABLE payments DISABLE TRIGGER ALL;
---      ALTER TABLE messages DISABLE TRIGGER ALL;
---      ALTER TABLE bank_accounts DISABLE TRIGGER ALL;
+--   2. Desabilitar triggers (usar USER, não ALL):
+--      ALTER TABLE reports DISABLE TRIGGER USER;
+--      ALTER TABLE payments DISABLE TRIGGER USER;
+--      ALTER TABLE messages DISABLE TRIGGER USER;
+--      ALTER TABLE bank_accounts DISABLE TRIGGER USER;
 --   3. Executar scripts de INSERT (nesta ordem)
 --   4. Reabilitar triggers:
---      ALTER TABLE reports ENABLE TRIGGER ALL;
---      ALTER TABLE payments ENABLE TRIGGER ALL;
---      ALTER TABLE messages ENABLE TRIGGER ALL;
---      ALTER TABLE bank_accounts ENABLE TRIGGER ALL;
+--      ALTER TABLE reports ENABLE TRIGGER USER;
+--      ALTER TABLE payments ENABLE TRIGGER USER;
+--      ALTER TABLE messages ENABLE TRIGGER USER;
+--      ALTER TABLE bank_accounts ENABLE TRIGGER USER;
 --   5. Verificar contagem de registros
 `;
 
@@ -458,7 +458,7 @@ ON CONFLICT (id) DO NOTHING;
     code: `-- ⚠️ Mensagens são dados operacionais/transacionais.
 -- A migração é OPCIONAL - recomenda-se iniciar limpo no novo ambiente.
 -- Se desejar migrar, desabilite os triggers ANTES da inserção:
--- ALTER TABLE messages DISABLE TRIGGER ALL;
+-- ALTER TABLE messages DISABLE TRIGGER USER;
 
 INSERT INTO public.messages (id, recipient_id, sender_id, subject, body, type, organization_id, read, created_at, updated_at) VALUES
   ('d7eee211-e6d2-42c4-9630-3cbfe3248729', '190f52bb-2a3d-4a63-abcb-853f638ffd81', '3e893529-c8f5-4807-af00-4a9897aa444b', 'Teste', 'Teste de envio', 'GESTOR', NULL, true, '2026-02-12 01:07:47.170193+00', '2026-02-12 01:52:56.747386+00'),
@@ -500,20 +500,22 @@ ON CONFLICT (id) DO NOTHING;
 export const DISABLE_TRIGGERS_SCRIPT = `-- =============================================
 -- DESABILITAR TRIGGERS (executar ANTES dos INSERTs)
 -- =============================================
-ALTER TABLE public.reports DISABLE TRIGGER ALL;
-ALTER TABLE public.payments DISABLE TRIGGER ALL;
-ALTER TABLE public.messages DISABLE TRIGGER ALL;
-ALTER TABLE public.bank_accounts DISABLE TRIGGER ALL;
-ALTER TABLE public.notifications DISABLE TRIGGER ALL;
+-- IMPORTANTE: Use DISABLE TRIGGER USER (não ALL) para evitar erro de permissão
+-- em triggers de sistema (foreign keys). O comando ALL requer superuser.
+ALTER TABLE public.reports DISABLE TRIGGER USER;
+ALTER TABLE public.payments DISABLE TRIGGER USER;
+ALTER TABLE public.messages DISABLE TRIGGER USER;
+ALTER TABLE public.bank_accounts DISABLE TRIGGER USER;
+ALTER TABLE public.notifications DISABLE TRIGGER USER;
 
 -- =============================================
 -- REABILITAR TRIGGERS (executar APÓS os INSERTs)
 -- =============================================
--- ALTER TABLE public.reports ENABLE TRIGGER ALL;
--- ALTER TABLE public.payments ENABLE TRIGGER ALL;
--- ALTER TABLE public.messages ENABLE TRIGGER ALL;
--- ALTER TABLE public.bank_accounts ENABLE TRIGGER ALL;
--- ALTER TABLE public.notifications ENABLE TRIGGER ALL;`;
+-- ALTER TABLE public.reports ENABLE TRIGGER USER;
+-- ALTER TABLE public.payments ENABLE TRIGGER USER;
+-- ALTER TABLE public.messages ENABLE TRIGGER USER;
+-- ALTER TABLE public.bank_accounts ENABLE TRIGGER USER;
+-- ALTER TABLE public.notifications ENABLE TRIGGER USER;`;
 
 export const VERIFICATION_SCRIPT = `-- =============================================
 -- VERIFICAÇÃO PÓS-MIGRAÇÃO

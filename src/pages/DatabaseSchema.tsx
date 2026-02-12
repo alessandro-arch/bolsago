@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Table, Download, Columns, Key, Link2, Clock, Hash } from "lucide-react";
+import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -363,7 +363,63 @@ const EDGE_FUNCTIONS = [
   "send-system-email",
 ];
 
-type Section = "tables" | "enums" | "storage" | "edge-functions";
+type Section = "tables" | "enums" | "storage" | "edge-functions" | "sql-migration";
+
+function generateCreateTableSQL(table: TableDef): string {
+  const lines: string[] = [];
+  lines.push(`CREATE TABLE public.${table.name} (`);
+  
+  const colLines: string[] = [];
+  const fkLines: string[] = [];
+  
+  table.columns.forEach(col => {
+    let colDef = `  ${col.name} ${col.type === "timestamptz" ? "timestamp with time zone" : col.type}`;
+    if (!col.nullable) colDef += " NOT NULL";
+    if (col.default_value) colDef += ` DEFAULT ${col.default_value}`;
+    if (col.is_primary) colDef += " PRIMARY KEY";
+    colLines.push(colDef);
+    
+    if (col.is_foreign && col.fk_reference) {
+      const [refTable, refCol] = col.fk_reference.split(".");
+      fkLines.push(`  CONSTRAINT ${table.name}_${col.name}_fkey FOREIGN KEY (${col.name}) REFERENCES public.${refTable}(${refCol})`);
+    }
+  });
+  
+  lines.push([...colLines, ...fkLines].join(",\n"));
+  lines.push(");");
+  lines.push("");
+  lines.push(`-- Enable RLS`);
+  lines.push(`ALTER TABLE public.${table.name} ENABLE ROW LEVEL SECURITY;`);
+  
+  return lines.join("\n");
+}
+
+function generateAllEnumsSQL(): string {
+  return ENUMS.map(e => {
+    const values = e.values.map(v => `'${v}'`).join(", ");
+    return `CREATE TYPE public.${e.name} AS ENUM (${values});`;
+  }).join("\n\n");
+}
+
+function generateFullMigrationSQL(): string {
+  const parts: string[] = [];
+  parts.push("-- =============================================");
+  parts.push("-- FULL DATABASE MIGRATION SCRIPT");
+  parts.push(`-- Generated at: ${new Date().toISOString()}`);
+  parts.push("-- =============================================\n");
+  parts.push("-- 1. ENUMS");
+  parts.push("-- =============================================\n");
+  parts.push(generateAllEnumsSQL());
+  parts.push("\n\n-- =============================================");
+  parts.push("-- 2. TABLES");
+  parts.push("-- =============================================\n");
+  SCHEMA.forEach(t => {
+    parts.push(`-- Table: ${t.name}`);
+    parts.push(generateCreateTableSQL(t));
+    parts.push("");
+  });
+  return parts.join("\n");
+}
 
 function downloadCSV(filename: string, rows: string[][]) {
   const csv = rows.map(r => r.map(c => `"${(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -406,12 +462,20 @@ function exportEdgeFunctions() {
 export default function DatabaseSchema() {
   const [activeSection, setActiveSection] = useState<Section>("tables");
   const [selectedTable, setSelectedTable] = useState<string>(SCHEMA[0].name);
+  const [copiedTable, setCopiedTable] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, tableName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedTable(tableName);
+    setTimeout(() => setCopiedTable(null), 2000);
+  };
 
   const sidebarItems: { id: Section; label: string; icon: React.ReactNode }[] = [
     { id: "tables", label: "Tabelas", icon: <Table className="w-4 h-4" /> },
     { id: "enums", label: "Enums", icon: <Hash className="w-4 h-4" /> },
     { id: "storage", label: "Storage", icon: <Database className="w-4 h-4" /> },
     { id: "edge-functions", label: "Edge Functions", icon: <Columns className="w-4 h-4" /> },
+    { id: "sql-migration", label: "SQL Migration", icon: <Code className="w-4 h-4" /> },
   ];
 
   const currentTable = SCHEMA.find(t => t.name === selectedTable);
@@ -626,6 +690,81 @@ export default function DatabaseSchema() {
                 </Card>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeSection === "sql-migration" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">SQL Migration Scripts</h2>
+              <Button
+                onClick={() => copyToClipboard(generateFullMigrationSQL(), "__full__")}
+                size="sm"
+              >
+                {copiedTable === "__full__" ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copiedTable === "__full__" ? "Copiado!" : "Copiar script completo"}
+              </Button>
+            </div>
+
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-primary" />
+                  Enums (executar primeiro)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-7 text-xs"
+                    onClick={() => copyToClipboard(generateAllEnumsSQL(), "__enums__")}
+                  >
+                    {copiedTable === "__enums__" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  </Button>
+                  <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground">
+                    {generateAllEnumsSQL()}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+
+            {SCHEMA.map(table => {
+              const sql = generateCreateTableSQL(table);
+              return (
+                <Card key={table.name}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Table className="w-4 h-4 text-primary" />
+                        {table.name}
+                        <span className="text-xs text-muted-foreground font-normal">
+                          ({table.columns.length} colunas)
+                        </span>
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => copyToClipboard(sql, table.name)}
+                      >
+                        {copiedTable === table.name ? (
+                          <><Check className="w-3 h-3" /> Copiado</>
+                        ) : (
+                          <><Copy className="w-3 h-3" /> Copiar</>
+                        )}
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground">
+                      {sql}
+                    </pre>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>

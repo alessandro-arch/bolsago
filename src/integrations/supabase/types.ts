@@ -512,6 +512,7 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
+          email_notifications_enabled: boolean
           id: string
           is_active: boolean
           logo_url: string | null
@@ -522,6 +523,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_notifications_enabled?: boolean
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -532,6 +534,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_notifications_enabled?: boolean
           id?: string
           is_active?: boolean
           logo_url?: string | null

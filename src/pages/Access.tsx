@@ -253,7 +253,7 @@ export default function Access() {
               NOSSA ABORDAGEM
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4 text-center">
-              Pilares do InnovaGO.
+              Pilares do BolsaGO.
             </h2>
             <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12 leading-relaxed">
               Cadastro, acompanhamento, avaliação e controle financeiro de bolsas com transparência e conformidade.

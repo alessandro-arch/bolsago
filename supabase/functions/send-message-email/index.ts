@@ -131,6 +131,50 @@ function generateMessageEmail(
 </html>`;
 }
 
+async function getEmailTemplate(supabaseAdmin: any, orgId: string | null): Promise<string | null> {
+  try {
+    // Try to find a default template for the org first
+    if (orgId) {
+      const { data } = await supabaseAdmin
+        .from('message_templates')
+        .select('html_template')
+        .eq('organization_id', orgId)
+        .eq('is_default', true)
+        .not('html_template', 'is', null)
+        .limit(1)
+        .single();
+      if (data?.html_template) return data.html_template;
+    }
+
+    // Fallback to any default template
+    const { data } = await supabaseAdmin
+      .from('message_templates')
+      .select('html_template')
+      .eq('is_default', true)
+      .not('html_template', 'is', null)
+      .limit(1)
+      .single();
+    if (data?.html_template) return data.html_template;
+  } catch {
+    // No template found, use hardcoded fallback
+  }
+  return null;
+}
+
+function applyTemplate(
+  template: string,
+  vars: Record<string, string>
+): string {
+  let result = template;
+  for (const [key, value] of Object.entries(vars)) {
+    const placeholder = `{{${key}}}`;
+    while (result.includes(placeholder)) {
+      result = result.replace(placeholder, value);
+    }
+  }
+  return result;
+}
+
 async function sendEmailForMessage(
   supabaseAdmin: any,
   messageId: string,
@@ -140,7 +184,8 @@ async function sendEmailForMessage(
   body: string,
   senderName: string,
   logoUrl: string,
-  isSystem: boolean
+  isSystem: boolean,
+  orgId: string | null = null
 ) {
   try {
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -151,7 +196,28 @@ async function sendEmailForMessage(
     }
 
     const resend = new Resend(resendApiKey);
-    const html = generateMessageEmail(recipientName, subject, body, senderName, logoUrl, isSystem);
+
+    // Try to use a DB template first
+    const dbTemplate = await getEmailTemplate(supabaseAdmin, orgId);
+    
+    const bodyHtml = body.replace(/\n/g, '<br/>');
+    let html: string;
+
+    if (dbTemplate) {
+      html = applyTemplate(dbTemplate, {
+        subject,
+        body: bodyHtml,
+        recipient_name: recipientName,
+        sender_name: senderName,
+        logo_url: logoUrl,
+        org_name: 'InnovaGO',
+        cta_url: 'https://bolsago.lovable.app/bolsista/mensagens',
+        cta_text: 'Ver no BolsaGO',
+        footer_text: '© InnovaGO – Sistema de Gestão de Bolsas em Pesquisa e Desenvolvimento<br /><a href="https://www.innovago.app" style="color: #ffffff; text-decoration: underline;">www.innovago.app</a>',
+      });
+    } else {
+      html = generateMessageEmail(recipientName, subject, body, senderName, logoUrl, isSystem);
+    }
 
     const { error: emailError } = await resend.emails.send({
       from: 'BolsaGO <contato@innovago.app>',
@@ -339,7 +405,8 @@ Deno.serve(async (req) => {
         body,
         senderName,
         logoUrl,
-        false
+        false,
+        orgId
       );
     }
 

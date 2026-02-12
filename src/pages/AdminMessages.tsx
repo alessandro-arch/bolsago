@@ -6,7 +6,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileCode } from "lucide-react";
 import { toast } from "sonner";
 import { ComposeMessageDialog } from "@/components/messages/ComposeMessageDialog";
 import { MessageMetricsCards } from "@/components/messages/MessageMetricsCards";
@@ -15,6 +15,7 @@ import { MessagesTable } from "@/components/messages/MessagesTable";
 import { MessageDetailDrawer } from "@/components/messages/MessageDetailDrawer";
 import { DeleteMessageDialog } from "@/components/messages/DeleteMessageDialog";
 import { ResendMessageDialog } from "@/components/messages/ResendMessageDialog";
+import { EmailTemplateEditorDrawer } from "@/components/messages/EmailTemplateEditorDrawer";
 import { useAuditLog } from "@/hooks/useAuditLog";
 
 export interface EnrichedMessage {
@@ -57,6 +58,7 @@ export default function AdminMessages() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EnrichedMessage | null>(null);
   const [resendTarget, setResendTarget] = useState<EnrichedMessage | null>(null);
+  const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
 
   // Fetch all messages (org-scoped via RLS)
   const { data: rawMessages = [], isLoading, dataUpdatedAt } = useQuery({
@@ -255,10 +257,16 @@ export default function AdminMessages() {
                   Gerencie comunicações com bolsistas (manual e automáticas).
                 </p>
               </div>
-              <Button onClick={() => setComposeOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Mensagem
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setTemplateEditorOpen(true)}>
+                  <FileCode className="w-4 h-4 mr-2" />
+                  Templates
+                </Button>
+                <Button onClick={() => setComposeOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Mensagem
+                </Button>
+              </div>
             </div>
 
 
@@ -315,6 +323,12 @@ export default function AdminMessages() {
         loading={resendMutation.isPending}
         subject={resendTarget?.subject || ""}
         isFailed={resendTarget?.email_status === "failed" || !!resendTarget?.email_error}
+      />
+
+      {/* Template Editor */}
+      <EmailTemplateEditorDrawer
+        open={templateEditorOpen}
+        onClose={() => setTemplateEditorOpen(false)}
       />
     </div>
   );

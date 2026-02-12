@@ -341,7 +341,9 @@ export type Database = {
           category: string
           created_at: string
           created_by: string
+          html_template: string | null
           id: string
+          is_default: boolean
           name: string
           organization_id: string | null
           subject: string
@@ -352,7 +354,9 @@ export type Database = {
           category?: string
           created_at?: string
           created_by: string
+          html_template?: string | null
           id?: string
+          is_default?: boolean
           name: string
           organization_id?: string | null
           subject: string
@@ -363,7 +367,9 @@ export type Database = {
           category?: string
           created_at?: string
           created_by?: string
+          html_template?: string | null
           id?: string
+          is_default?: boolean
           name?: string
           organization_id?: string | null
           subject?: string

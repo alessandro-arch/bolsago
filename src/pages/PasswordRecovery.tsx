@@ -215,7 +215,7 @@ export default function PasswordRecovery() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            © InnovaGO – Sistema de Gestão de Bolsas Institucionais
+            © InnovaGO – Sistema de Gestão de Bolsas em Pesquisa e Desenvolvimento
           </p>
         </div>
       </div>

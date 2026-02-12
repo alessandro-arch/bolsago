@@ -6,7 +6,7 @@ export function Footer() {
       <div className="flex flex-col items-center gap-2">
         <img src={logoInnovago} alt="InnovaGO" className="h-6 w-auto" />
         <p className="text-xs text-muted-foreground text-center">
-          © InnovaGO – Sistema de Gestão de Bolsas Institucionais (
+          © InnovaGO – Sistema de Gestão de Bolsas em Pesquisa e Desenvolvimento (
           <a 
             href="https://www.innovago.app" 
             target="_blank" 

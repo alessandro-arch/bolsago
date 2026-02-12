@@ -153,7 +153,7 @@ export default function Access() {
         <section className="px-4 py-20 sm:py-28">
           <div className="max-w-4xl mx-auto">
             <p className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground mb-4">
-              GESTÃO DE BOLSAS INSTITUCIONAIS
+              GESTÃO DE BOLSAS EM PESQUISA E DESENVOLVIMENTO
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
               Seja bem-vindo ao Portal do Bolsista!
@@ -455,7 +455,7 @@ export default function Access() {
 
           {/* Divider + Copyright */}
           <div className="border-t border-white/10 pt-6 text-center text-sm text-gray-500">
-            © InnovaGO – Sistema de Gestão de Bolsas Institucionais (
+            © InnovaGO – Sistema de Gestão de Bolsas em Pesquisa e Desenvolvimento (
             <a href="https://www.innovago.app" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">
               www.innovago.app
             </a>

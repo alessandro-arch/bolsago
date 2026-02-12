@@ -345,7 +345,7 @@ export default function Access() {
         <section id="contato" className="px-4 py-20 bg-[hsl(210,20%,97%)] scroll-mt-20">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Pronto para transformar a gestão de projetos e bolsas da sua instituição?
+              Pronto para transformar a gestão de projetos com bolsas da sua instituição?
             </h2>
             <p className="text-muted-foreground mb-8 leading-relaxed">
               Converse com nossos especialistas e descubra como o sistema BolsaGO pode apoiar sua instituição.

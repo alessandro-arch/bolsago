@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check, Shield, Zap } from "lucide-react";
+import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check, Shield, Zap, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -594,7 +594,7 @@ Deno.serve(async (req) => {
   },
 ];
 
-type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration" | "rls-policies" | "auxiliary-functions";
+type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration" | "rls-policies" | "auxiliary-functions" | "database-functions" | "triggers" | "vault";
 
 // =============================================
 // RLS POLICIES DATA
@@ -1642,15 +1642,607 @@ AS $function$
     ELSE false
   END;
 $function$;`,
+   },
+];
+
+// Database Functions (Triggers and Business Logic)
+const DATABASE_FUNCTIONS = [
+  {
+    name: "update_updated_at_column",
+    description: "Atualiza automaticamente o timestamp 'updated_at' quando um registro é modificado.",
+    code: `CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "prevent_bank_fields_edit",
+    description: "Impede que bolsistas editem campos de controle bancário (validation_status, locked_for_edit).",
+    code: `CREATE OR REPLACE FUNCTION public.prevent_bank_fields_edit()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  -- Se não for gestor/admin, não pode mudar campos de controle
+  IF NOT (
+    has_role(auth.uid(), 'manager'::app_role)
+    OR has_role(auth.uid(), 'admin'::app_role)
+  ) THEN
+    IF (NEW.validation_status IS DISTINCT FROM OLD.validation_status)
+       OR (NEW.locked_for_edit IS DISTINCT FROM OLD.locked_for_edit) THEN
+      RAISE EXCEPTION 'Not allowed to change validation fields';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "validate_project_valor_mensal",
+    description: "Valida que o valor mensal de um projeto é sempre positivo.",
+    code: `CREATE OR REPLACE FUNCTION public.validate_project_valor_mensal()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NEW.valor_mensal <= 0 THEN
+    RAISE EXCEPTION 'valor_mensal deve ser um valor positivo';
+  END IF;
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "encrypt_and_mask_pix_key",
+    description: "Encripta a chave PIX com AES-256 e a mascara automaticamente em inserts/updates.",
+    code: `CREATE OR REPLACE FUNCTION public.encrypt_and_mask_pix_key()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+BEGIN
+  -- If pix_key_masked is being set (from application), use it as the source for encryption
+  IF NEW.pix_key_masked IS NOT NULL AND NEW.pix_key_masked <> '' AND 
+     (TG_OP = 'INSERT' OR OLD.pix_key_masked IS DISTINCT FROM NEW.pix_key_masked) THEN
+    -- Check if the value looks like a masked value (contains ***) - if so, don't re-encrypt
+    IF POSITION('***' IN NEW.pix_key_masked) = 0 THEN
+      -- This is a new PIX key value, encrypt it and mask it
+      NEW.pix_key_encrypted := public.encrypt_pix_key(NEW.pix_key_masked);
+      NEW.pix_key_masked := public.mask_pix_key(NEW.pix_key_masked);
+    END IF;
+  END IF;
+  
+  -- Ensure pix_key column (plain text) is always NULL to prevent plain text storage
+  NEW.pix_key := NULL;
+  
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "notify_new_message",
+    description: "Cria notificação e dispara email quando uma nova mensagem é enviada.",
+    code: `CREATE OR REPLACE FUNCTION public.notify_new_message()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_sender_name text;
+BEGIN
+  -- Get sender name
+  SELECT COALESCE(full_name, 'Gestor') INTO v_sender_name
+  FROM public.profiles
+  WHERE user_id = NEW.sender_id
+  LIMIT 1;
+
+  -- Insert notification for recipient
+  INSERT INTO public.notifications (user_id, title, message, type, entity_type, entity_id)
+  VALUES (
+    NEW.recipient_id,
+    'Nova Mensagem',
+    'Você recebeu uma mensagem de ' || v_sender_name || ': ' || LEFT(NEW.subject, 50),
+    'info',
+    'message',
+    NEW.id
+  );
+
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "notify_report_status_change",
+    description: "Notifica bolsista quando status do relatório muda (aprovado, devolvido, sob análise).",
+    code: `CREATE OR REPLACE FUNCTION public.notify_report_status_change()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_title text;
+  v_message text;
+  v_type text;
+  v_event_type text;
+  v_org_id uuid;
+  v_link_url text;
+BEGIN
+  -- Only trigger on status change
+  IF OLD.status = NEW.status THEN
+    RETURN NEW;
+  END IF;
+
+  -- Get org_id from the scholar's enrollment -> project -> thematic_project
+  SELECT tp.organization_id INTO v_org_id
+  FROM public.enrollments e
+  JOIN public.projects p ON e.project_id = p.id
+  JOIN public.thematic_projects tp ON p.thematic_project_id = tp.id
+  WHERE e.user_id = NEW.user_id
+  LIMIT 1;
+
+  v_link_url := '/bolsista/perfil';
+
+  -- Determine notification content based on new status
+  CASE NEW.status
+    WHEN 'approved' THEN
+      v_title := 'Relatório Aprovado';
+      v_message := 'Seu relatório de ' || NEW.reference_month || ' foi aprovado!';
+      v_type := 'success';
+      v_event_type := NULL;
+    WHEN 'rejected' THEN
+      v_title := 'Relatório Devolvido para Ajustes';
+      v_message := 'Seu relatório de ' || NEW.reference_month || ' foi devolvido para ajustes.';
+      IF NEW.feedback IS NOT NULL AND NEW.feedback <> '' THEN
+        v_message := v_message || ' Observações: ' || LEFT(NEW.feedback, 200);
+      END IF;
+      v_type := 'error';
+      v_event_type := 'REPORT_RETURNED';
+    WHEN 'under_review' THEN
+      v_title := 'Relatório Enviado com Sucesso';
+      v_message := 'Seu relatório de ' || NEW.reference_month || ' foi enviado e está em análise.';
+      v_type := 'info';
+      v_event_type := 'REPORT_SUBMITTED';
+    ELSE
+      RETURN NEW;
+  END CASE;
+
+  -- Insert notification (bell)
+  INSERT INTO public.notifications (user_id, title, message, type, entity_type, entity_id)
+  VALUES (NEW.user_id, v_title, v_message, v_type, 'report', NEW.id);
+
+  -- Insert inbox message (system)
+  INSERT INTO public.messages (recipient_id, sender_id, subject, body, type, event_type, link_url, organization_id)
+  VALUES (NEW.user_id, NULL, v_title, v_message, 'SYSTEM', v_event_type, v_link_url, v_org_id);
+
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "notify_payment_status_change",
+    description: "Notifica bolsista quando status do pagamento muda (liberado, pago, cancelado).",
+    code: `CREATE OR REPLACE FUNCTION public.notify_payment_status_change()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_title text;
+  v_message text;
+  v_type text;
+  v_org_id uuid;
+BEGIN
+  -- Only trigger on status change
+  IF OLD.status = NEW.status THEN
+    RETURN NEW;
+  END IF;
+
+  -- Get org_id
+  SELECT tp.organization_id INTO v_org_id
+  FROM public.enrollments e
+  JOIN public.projects p ON e.project_id = p.id
+  JOIN public.thematic_projects tp ON p.thematic_project_id = tp.id
+  WHERE e.user_id = NEW.user_id
+  LIMIT 1;
+
+  CASE NEW.status
+    WHEN 'eligible' THEN
+      v_title := 'Pagamento Liberado';
+      v_message := 'O pagamento da parcela ' || NEW.installment_number || ' (' || NEW.reference_month || ') foi liberado!';
+      v_type := 'success';
+    WHEN 'paid' THEN
+      v_title := 'Pagamento Efetuado';
+      v_message := 'A parcela ' || NEW.installment_number || ' (' || NEW.reference_month || ') foi paga com sucesso!';
+      v_type := 'success';
+    WHEN 'cancelled' THEN
+      v_title := 'Pagamento Cancelado';
+      v_message := 'A parcela ' || NEW.installment_number || ' (' || NEW.reference_month || ') foi cancelada.';
+      v_type := 'warning';
+    ELSE
+      RETURN NEW;
+  END CASE;
+
+  -- Insert notification (bell)
+  INSERT INTO public.notifications (user_id, title, message, type, entity_type, entity_id)
+  VALUES (NEW.user_id, v_title, v_message, v_type, 'payment', NEW.id);
+
+  -- Insert inbox message (system)
+  INSERT INTO public.messages (recipient_id, sender_id, subject, body, type, event_type, link_url, organization_id)
+  VALUES (NEW.user_id, NULL, v_title, v_message, 'SYSTEM', 'PAYMENT_STATUS', '/bolsista/perfil', v_org_id);
+
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "queue_system_message_email",
+    description: "Enfileira envio de e-mail para mensagens do sistema respeitando configurações da organização.",
+    code: `CREATE OR REPLACE FUNCTION public.queue_system_message_email()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_profile record;
+  v_email_enabled boolean := true;
+BEGIN
+  IF NEW.type <> 'SYSTEM' THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT email, full_name INTO v_profile
+  FROM public.profiles
+  WHERE user_id = NEW.recipient_id
+  LIMIT 1;
+
+  IF v_profile IS NULL OR v_profile.email IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  -- Check org email_notifications_enabled column
+  IF NEW.organization_id IS NOT NULL THEN
+    SELECT o.email_notifications_enabled INTO v_email_enabled
+    FROM public.organizations o
+    WHERE o.id = NEW.organization_id;
+  END IF;
+
+  IF NOT v_email_enabled THEN
+    -- Just register in inbox, no email
+    RETURN NEW;
+  END IF;
+
+  PERFORM net.http_post(
+    url := current_setting('app.settings.supabase_url', true) || '/functions/v1/send-system-email',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.supabase_anon_key', true)
+    ),
+    body := jsonb_build_object(
+      'message_id', NEW.id,
+      'recipient_email', v_profile.email,
+      'recipient_name', COALESCE(v_profile.full_name, 'Bolsista'),
+      'subject', NEW.subject,
+      'body', NEW.body
+    )
+  );
+
+  RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE WARNING 'Failed to queue system email: %', SQLERRM;
+    RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "update_messages_updated_at",
+    description: "Atualiza timestamp de mensagens quando são modificadas.",
+    code: `CREATE OR REPLACE FUNCTION public.update_messages_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "handle_new_user",
+    description: "Trigger para novos usuários: cria perfil, atribui papel, valida código de convite e registra auditoria.",
+    code: `CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  assigned_role app_role;
+  is_seed_admin boolean := false;
+  v_invite_code text;
+  v_invite_record record;
+  v_cpf_clean text;
+BEGIN
+  -- Check if this is the institutional seed admin email
+  IF NEW.email = 'administrativo@icca.org.br' THEN
+    assigned_role := 'admin';
+    is_seed_admin := true;
+  ELSE
+    assigned_role := 'scholar';
+    
+    -- VALIDATE INVITE CODE for non-admin signups
+    v_invite_code := NEW.raw_user_meta_data->>'invite_code';
+    
+    IF v_invite_code IS NULL OR TRIM(v_invite_code) = '' THEN
+      RAISE EXCEPTION 'Código de convite é obrigatório para cadastro';
+    END IF;
+    
+    -- Fetch and validate invite code with row lock to prevent race conditions
+    SELECT * INTO v_invite_record
+    FROM public.invite_codes
+    WHERE code = UPPER(TRIM(v_invite_code))
+    FOR UPDATE;
+    
+    IF v_invite_record IS NULL THEN
+      RAISE EXCEPTION 'Código de convite inválido: %', v_invite_code;
+    END IF;
+    
+    IF v_invite_record.status != 'active' THEN
+      RAISE EXCEPTION 'Código de convite não está ativo: %', v_invite_code;
+    END IF;
+    
+    IF v_invite_record.expires_at IS NOT NULL AND v_invite_record.expires_at < CURRENT_DATE THEN
+      UPDATE public.invite_codes SET status = 'expired' WHERE id = v_invite_record.id;
+      RAISE EXCEPTION 'Código de convite expirado: %', v_invite_code;
+    END IF;
+    
+    IF v_invite_record.max_uses IS NOT NULL AND v_invite_record.used_count >= v_invite_record.max_uses THEN
+      UPDATE public.invite_codes SET status = 'exhausted' WHERE id = v_invite_record.id;
+      RAISE EXCEPTION 'Código de convite atingiu limite de usos: %', v_invite_code;
+    END IF;
+  END IF;
+
+  -- Clean CPF: remove all non-numeric characters
+  v_cpf_clean := regexp_replace(COALESCE(NEW.raw_user_meta_data->>'cpf', ''), '[^0-9]', '', 'g');
+  IF v_cpf_clean = '' THEN
+    v_cpf_clean := NULL;
+  END IF;
+
+  -- Create profile with invite code tracking
+  INSERT INTO public.profiles (
+    user_id, email, full_name, cpf, origin,
+    thematic_project_id, partner_company_id, 
+    invite_code_used, invite_used_at
+  )
+  VALUES (
+    NEW.id, 
+    NEW.email, 
+    NEW.raw_user_meta_data->>'full_name',
+    v_cpf_clean,
+    COALESCE(NEW.raw_user_meta_data->>'origin', 'manual'),
+    CASE WHEN NOT is_seed_admin THEN v_invite_record.thematic_project_id ELSE NULL END,
+    CASE WHEN NOT is_seed_admin THEN v_invite_record.partner_company_id ELSE NULL END,
+    CASE WHEN NOT is_seed_admin THEN v_invite_code ELSE NULL END,
+    CASE WHEN NOT is_seed_admin THEN now() ELSE NULL END
+  );
+  
+  -- Assign role based on email check
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (NEW.id, assigned_role);
+  
+  -- Record invite code usage for non-admin users
+  IF NOT is_seed_admin THEN
+    INSERT INTO public.invite_code_uses (invite_code_id, used_by, used_by_email)
+    VALUES (v_invite_record.id, NEW.id, NEW.email);
+    
+    UPDATE public.invite_codes 
+    SET used_count = used_count + 1
+    WHERE id = v_invite_record.id;
+  END IF;
+  
+  -- Log seed admin assignment
+  IF is_seed_admin THEN
+    RAISE LOG '[SEED_ADMIN] Papel Admin Master atribuído automaticamente ao usuário institucional: % (user_id: %)', NEW.email, NEW.id;
+  END IF;
+  
+  RETURN NEW;
+END;
+$function$;`,
+  },
+  {
+    name: "insert_audit_log",
+    description: "Insere registro de auditoria com verificação de autenticação e papel.",
+    code: `CREATE OR REPLACE FUNCTION public.insert_audit_log(p_action text, p_entity_type text, p_entity_id uuid DEFAULT NULL::uuid, p_details jsonb DEFAULT '{}'::jsonb, p_previous_value jsonb DEFAULT NULL::jsonb, p_new_value jsonb DEFAULT NULL::jsonb, p_user_agent text DEFAULT NULL::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_user_id uuid;
+  v_user_email text;
+  v_log_id uuid;
+BEGIN
+  -- Get current user
+  v_user_id := auth.uid();
+  
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'User must be authenticated to create audit logs';
+  END IF;
+  
+  -- Verify caller has admin or manager role
+  IF NOT (has_role(v_user_id, 'admin'::app_role) OR has_role(v_user_id, 'manager'::app_role)) THEN
+    RAISE EXCEPTION 'Only admins and managers can create audit logs';
+  END IF;
+  
+  -- Get user email from auth.users
+  SELECT email INTO v_user_email
+  FROM auth.users
+  WHERE id = v_user_id;
+  
+  -- Insert the audit log
+  INSERT INTO public.audit_logs (
+    user_id,
+    user_email,
+    action,
+    entity_type,
+    entity_id,
+    details,
+    previous_value,
+    new_value,
+    user_agent
+  ) VALUES (
+    v_user_id,
+    v_user_email,
+    p_action,
+    p_entity_type,
+    p_entity_id,
+    COALESCE(p_details, '{}'::jsonb),
+    p_previous_value,
+    p_new_value,
+    p_user_agent
+  )
+  RETURNING id INTO v_log_id;
+  
+  RETURN v_log_id;
+END;
+$function$;`,
   },
 ];
 
+// CREATE TRIGGER Statements
+const TRIGGER_STATEMENTS = [
+  {
+    name: "trg_update_profiles_updated_at",
+    table: "profiles",
+    description: "Atualiza updated_at na tabela profiles",
+    code: `CREATE TRIGGER trg_update_profiles_updated_at
+BEFORE UPDATE ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();`,
+  },
+  {
+    name: "trg_prevent_bank_fields_edit",
+    table: "bank_accounts",
+    description: "Impede edição de campos de controle bancário",
+    code: `CREATE TRIGGER trg_prevent_bank_fields_edit
+BEFORE UPDATE ON public.bank_accounts
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_bank_fields_edit();`,
+  },
+  {
+    name: "trg_validate_project_valor",
+    table: "projects",
+    description: "Valida valor mensal positivo",
+    code: `CREATE TRIGGER trg_validate_project_valor
+BEFORE INSERT OR UPDATE ON public.projects
+FOR EACH ROW
+EXECUTE FUNCTION public.validate_project_valor_mensal();`,
+  },
+  {
+    name: "trg_encrypt_mask_pix",
+    table: "bank_accounts",
+    description: "Encripta e mascara chave PIX",
+    code: `CREATE TRIGGER trg_encrypt_mask_pix
+BEFORE INSERT OR UPDATE ON public.bank_accounts
+FOR EACH ROW
+EXECUTE FUNCTION public.encrypt_and_mask_pix_key();`,
+  },
+  {
+    name: "trg_notify_new_message",
+    table: "messages",
+    description: "Notifica novo usuário quando mensagem é enviada",
+    code: `CREATE TRIGGER trg_notify_new_message
+AFTER INSERT ON public.messages
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_new_message();`,
+  },
+  {
+    name: "trg_notify_report_change",
+    table: "reports",
+    description: "Notifica bolsista quando relatório muda de status",
+    code: `CREATE TRIGGER trg_notify_report_change
+AFTER UPDATE ON public.reports
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_report_status_change();`,
+  },
+  {
+    name: "trg_notify_payment_change",
+    table: "payments",
+    description: "Notifica bolsista quando pagamento muda de status",
+    code: `CREATE TRIGGER trg_notify_payment_change
+AFTER UPDATE ON public.payments
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_payment_status_change();`,
+  },
+  {
+    name: "trg_queue_system_email",
+    table: "messages",
+    description: "Enfileira envio de e-mail para mensagens de sistema",
+    code: `CREATE TRIGGER trg_queue_system_email
+AFTER INSERT ON public.messages
+FOR EACH ROW
+EXECUTE FUNCTION public.queue_system_message_email();`,
+  },
+  {
+    name: "trg_update_messages_timestamp",
+    table: "messages",
+    description: "Atualiza updated_at em mensagens",
+    code: `CREATE TRIGGER trg_update_messages_timestamp
+BEFORE UPDATE ON public.messages
+FOR EACH ROW
+EXECUTE FUNCTION public.update_messages_updated_at();`,
+  },
+];
+
+// Vault Configuration
+const VAULT_CONFIG = [
+  {
+    name: "PIX_KEY_ENCRYPTION_KEY",
+    description: "Chave de encriptação AES-256 para PIX Keys armazenada no Vault do Supabase. Deve ser uma string aleatória de pelo menos 32 caracteres.",
+    code: `-- 1. Gerar uma chave aleatória no SQL (use isto como template):
+SELECT encode(gen_random_bytes(32), 'base64') as encryption_key;
+
+-- 2. Copiar a chave gerada acima
+
+-- 3. No Supabase Dashboard, ir para: Settings > Vault > Create a secret
+-- - Nome (Name): PIX_KEY_ENCRYPTION_KEY
+-- - Valor (Secret): <colar a chave gerada acima>
+-- - Clique em Save
+
+-- 4. Verificar se a chave está configurada corretamente:
+SELECT decrypted_secret 
+FROM vault.decrypted_secrets 
+WHERE name = 'PIX_KEY_ENCRYPTION_KEY';
+
+-- 5. Se a query retornar um resultado, a configuração está correta!
+-- Nota: Esta query só funciona se você estiver autenticado como admin`,
+  },
+];
 
 export default function DatabaseSchema() {
   const [activeSection, setActiveSection] = useState<Section>("tables");
   const [selectedTable, setSelectedTable] = useState<string>(SCHEMA[0].name);
   const [selectedFunction, setSelectedFunction] = useState<string>(EDGE_FUNCTION_CODES[0].name);
   const [selectedAuxFunction, setSelectedAuxFunction] = useState<string>(AUXILIARY_FUNCTIONS[0].name);
+  const [selectedDbFunction, setSelectedDbFunction] = useState<string>(DATABASE_FUNCTIONS[0].name);
+  const [selectedTrigger, setSelectedTrigger] = useState<string>(TRIGGER_STATEMENTS[0].name);
+  const [selectedVault, setSelectedVault] = useState<string>(VAULT_CONFIG[0].name);
   const [copiedTable, setCopiedTable] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, tableName: string) => {
@@ -1668,6 +2260,9 @@ export default function DatabaseSchema() {
     { id: "sql-migration", label: "SQL Migration", icon: <Code className="w-4 h-4" /> },
     { id: "rls-policies", label: "RLS Policies", icon: <Shield className="w-4 h-4" /> },
     { id: "auxiliary-functions", label: "Funções Auxiliares", icon: <Zap className="w-4 h-4" /> },
+    { id: "database-functions", label: "Database Functions", icon: <Code className="w-4 h-4" /> },
+    { id: "triggers", label: "CREATE TRIGGER", icon: <Clock className="w-4 h-4" /> },
+    { id: "vault", label: "Vault Config", icon: <Settings className="w-4 h-4" /> },
   ];
 
   const currentTable = SCHEMA.find(t => t.name === selectedTable);
@@ -2148,6 +2743,187 @@ export default function DatabaseSchema() {
                 <CardContent>
                   <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">
                     {f.code}
+                  </pre>
+                </CardContent>
+              </Card>
+            ))}
+           </div>
+        )}
+
+        {/* Database Functions Section */}
+        {activeSection === "database-functions" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">Database Functions ({DATABASE_FUNCTIONS.length})</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Funções PL/pgSQL para triggers, criptografia, notificações e lógica de negócio</p>
+
+            {/* Function selector */}
+            <div className="flex flex-wrap gap-2">
+              {DATABASE_FUNCTIONS.map(f => (
+                <Badge
+                  key={f.name}
+                  variant={selectedDbFunction === f.name ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedDbFunction(f.name)}
+                >
+                  {f.name}
+                </Badge>
+              ))}
+            </div>
+
+            {/* Function detail */}
+            {DATABASE_FUNCTIONS.filter(f => f.name === selectedDbFunction).map(f => (
+              <Card key={f.name}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2 flex-col">
+                      <span className="flex items-center gap-2">
+                        <Code className="w-4 h-4 text-primary" />
+                        {f.name}
+                      </span>
+                      <p className="text-xs font-normal text-muted-foreground mt-2">{f.description}</p>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => copyToClipboard(f.code, f.name)}
+                    >
+                      {copiedTable === f.name ? (
+                        <><Check className="w-3 h-3" /> Copiado</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> Copiar</>
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">
+                    {f.code}
+                  </pre>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* CREATE TRIGGER Section */}
+        {activeSection === "triggers" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">CREATE TRIGGER Statements ({TRIGGER_STATEMENTS.length})</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Triggers que vinculam funções a eventos de tabelas (INSERT, UPDATE, DELETE)</p>
+
+            {/* Trigger selector */}
+            <div className="flex flex-wrap gap-2">
+              {TRIGGER_STATEMENTS.map(t => (
+                <Badge
+                  key={t.name}
+                  variant={selectedTrigger === t.name ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedTrigger(t.name)}
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-current"></span>
+                    {t.name}
+                  </span>
+                </Badge>
+              ))}
+            </div>
+
+            {/* Trigger detail */}
+            {TRIGGER_STATEMENTS.filter(t => t.name === selectedTrigger).map(t => (
+              <Card key={t.name}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2 flex-col">
+                      <span className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-primary" />
+                        {t.name}
+                      </span>
+                      <p className="text-xs font-normal text-muted-foreground mt-2">{t.description}</p>
+                      <p className="text-xs font-mono text-muted-foreground mt-1">Tabela: <span className="font-bold">{t.table}</span></p>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => copyToClipboard(t.code, t.name)}
+                    >
+                      {copiedTable === t.name ? (
+                        <><Check className="w-3 h-3" /> Copiado</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> Copiar</>
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">
+                    {t.code}
+                  </pre>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Vault Configuration Section */}
+        {activeSection === "vault" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">Vault Configuration</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Segredos armazenados no Supabase Vault para criptografia e variáveis sensíveis</p>
+
+            {/* Vault item selector */}
+            <div className="flex flex-wrap gap-2">
+              {VAULT_CONFIG.map(v => (
+                <Badge
+                  key={v.name}
+                  variant={selectedVault === v.name ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedVault(v.name)}
+                >
+                  <span className="flex items-center gap-1">
+                    <Settings className="w-3 h-3" />
+                    {v.name}
+                  </span>
+                </Badge>
+              ))}
+            </div>
+
+            {/* Vault detail */}
+            {VAULT_CONFIG.filter(v => v.name === selectedVault).map(v => (
+              <Card key={v.name}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2 flex-col">
+                      <span className="flex items-center gap-2">
+                        <Settings className="w-4 h-4 text-primary" />
+                        {v.name}
+                      </span>
+                      <p className="text-xs font-normal text-muted-foreground mt-2">{v.description}</p>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => copyToClipboard(v.code, v.name)}
+                    >
+                      {copiedTable === v.name ? (
+                        <><Check className="w-3 h-3" /> Copiado</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> Copiar</>
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">
+                    {v.code}
                   </pre>
                 </CardContent>
               </Card>

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { 
   GraduationCap, 
   Users, 
@@ -19,6 +19,8 @@ import {
   Search,
   BarChart3
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import logoInnovaGO from "@/assets/logo-innovago.png";
@@ -57,6 +59,8 @@ const securityItems = [
 export default function Access() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const { role, loading: roleLoading, hasManagerAccess } = useUserRole();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,6 +69,16 @@ export default function Access() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Redirect authenticated users to their portal
+  if (!authLoading && !roleLoading && user && role) {
+    if (hasManagerAccess) {
+      return <Navigate to="/admin/painel" replace />;
+    }
+    if (role === "scholar") {
+      return <Navigate to="/bolsista/painel" replace />;
+    }
+  }
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
@@ -184,7 +198,7 @@ export default function Access() {
                 Envie relatórios mensais, acompanhe o status da sua bolsa e consulte pagamentos.
               </p>
               <Button asChild size="lg" className="w-full mb-3 bg-primary hover:bg-primary/90">
-                <Link to="/bolsista/login">
+                <Link to="/bolsista/login" replace>
                   Acessar Portal do Bolsista
                 </Link>
               </Button>
@@ -205,7 +219,7 @@ export default function Access() {
                 Gerencie projetos temáticos, subprojetos, bolsistas, relatórios e liberação de pagamentos.
               </p>
               <Button asChild variant="outline" size="lg" className="w-full mb-3 border-foreground text-foreground hover:bg-foreground hover:text-white">
-                <Link to="/admin/login">
+                <Link to="/admin/login" replace>
                   Acessar Portal do Administrador
                 </Link>
               </Button>

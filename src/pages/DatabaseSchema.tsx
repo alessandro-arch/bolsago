@@ -363,7 +363,238 @@ const EDGE_FUNCTIONS = [
   "send-system-email",
 ];
 
-type Section = "tables" | "enums" | "storage" | "edge-functions" | "sql-migration";
+interface EdgeFunctionCode {
+  name: string;
+  code: string;
+}
+
+const EDGE_FUNCTION_CODES: EdgeFunctionCode[] = [
+  {
+    name: "assign-scholar-to-project",
+    code: `// Assigns a scholar to a project and creates enrollment with payment installments
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const ALLOWED_ORIGINS = [
+  "https://sisconnecta.lovable.app",
+  "https://www.innovago.app",
+  "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+];
+
+// Validates UUID format
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - CORS handling
+  // - User authentication verification
+  // - Role-based access control (manager/admin only)
+  // - Project validation and date range checks
+  // - Duplicate enrollment prevention
+  // - Enrollment creation with payment installments
+  // - Audit logging
+})`,
+  },
+  {
+    name: "cleanup-orphan-users",
+    code: `// Identifies and removes orphaned auth users (no matching profile)
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Lists all auth users and profiles
+// Finds users in auth but not in profiles
+// Optionally deletes orphaned users with cleanup
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Admin-only access control
+  // - Listing all auth users (perPage: 1000)
+  // - Comparing against profiles table
+  // - Safe deletion of orphaned records
+  // - Cleanup of associated user_roles
+})`,
+  },
+  {
+    name: "create-users-batch",
+    code: `// Batch creates scholar accounts with auto-confirm and profile setup
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Supports two actions:
+// 1. Create new users: validates email/CPF, creates auth user, creates profile
+// 2. Reset password: generates secure random passwords for existing users
+
+const ALLOWED_ORIGINS = [
+  "https://sisconnecta.lovable.app",
+  "https://www.innovago.app",
+  "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+];
+
+function generateRandomPassword(): string {
+  // ... 16-char cryptographically random password with mixed case, digits, and special chars
+}
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Batch user creation (max 100 per request)
+  // - Email format validation
+  // - CPF validation (11+ digits)
+  // - Automatic profile creation via trigger
+  // - Fallback manual profile creation if trigger fails
+  // - Invite code validation and usage tracking
+  // - Password reset functionality
+})`,
+  },
+  {
+    name: "delete-users",
+    code: `// Permanently deletes users and all associated data
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Requires admin role
+// Prevents self-deletion
+// Validates UUID format for all user IDs
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Admin-only access control
+  // - Self-deletion prevention
+  // - Batch deletion (max 100 users per request)
+  // - Cascading deletion of:
+  //   - user_roles
+  //   - profiles
+  //   - enrollments
+  //   - payments
+  //   - reports
+  //   - bank_accounts
+  //   - auth.users
+})`,
+  },
+  {
+    name: "manage-users",
+    code: `// Manages user lifecycle: deactivate, reactivate, or permanently delete
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Three actions:
+// 1. deactivate: marks user as inactive, suspends active enrollments
+// 2. reactivate: marks user as active
+// 3. delete: permanently removes user (admin only)
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Manager/admin access control
+  // - User existence validation
+  // - Deactivation with enrollment suspension
+  // - Reactivation support
+  // - Permanent deletion with dependency checks
+  // - Prevents deletion of users with active enrollments/payments/reports
+})`,
+  },
+  {
+    name: "monthly-report-reminder",
+    code: `// Sends monthly report reminders to scholars with active enrollments
+import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+// Gets active enrollments
+// Filters scholars who haven't submitted reports for current month
+// Sends inbox messages and emails (if enabled)
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Active enrollment detection
+  // - Monthly report submission tracking
+  // - Scholar deduplication (handles multiple enrollments)
+  // - Organization email notification settings check
+  // - HTML email template generation
+  // - Resend API integration
+})`,
+  },
+  {
+    name: "send-confirmation-email",
+    code: `// Sends email confirmation for signup and email change actions
+import { Resend } from "https://esm.sh/resend@4.0.0";
+
+// Triggered by Supabase auth hook
+// Generates professional HTML email with verification link
+// Includes security information and fallback link
+
+const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string);
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Auth webhook payload parsing
+  // - Email action type validation (signup, email_change)
+  // - Confirmation URL generation with token
+  // - HTML email template with branding
+  // - Security notice with link expiry info
+  // - Resend email delivery
+})`,
+  },
+  {
+    name: "send-message-email",
+    code: `// Sends manager/system messages to scholars via email
+import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+const ALLOWED_ORIGINS = [
+  "https://bolsago.lovable.app",
+  "https://www.innovago.app",
+  "https://id-preview--2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovable.app",
+  "https://2b9d72d4-676d-41a6-bf6b-707f4c8b4527.lovableproject.com",
+];
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Manager/admin authentication
+  // - Recipient profile lookup
+  // - Organization email settings check
+  // - Custom message template support
+  // - HTML email generation
+  // - Resend delivery with error handling
+})`,
+  },
+  {
+    name: "send-password-reset",
+    code: `// Sends password reset email with secure verification link
+import { Resend } from "https://esm.sh/resend@4.0.0";
+
+// Triggered by Supabase auth hook
+// Only processes 'recovery' email action type
+// Generates professional HTML email with reset link
+
+Deno.serve(async (req: Request): Promise<Response> => {
+  // ... Full implementation includes:
+  // - Auth webhook payload parsing
+  // - Recovery action type validation
+  // - Password reset URL generation
+  // - HTML email template with security info
+  // - Link expiry notice (1 hour)
+  // - Resend email delivery
+})`,
+  },
+  {
+    name: "send-system-email",
+    code: `// Sends system notification emails to scholars
+import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+// Used by triggers for automated notifications:
+// - Report status changes (approved, rejected)
+// - Payment status updates (eligible, paid, cancelled)
+// - Monthly report reminders
+
+Deno.serve(async (req) => {
+  // ... Full implementation includes:
+  // - Message lookup from database
+  // - Recipient info retrieval
+  // - Professional HTML template
+  // - Dynamic subject and body
+  // - Resend email delivery
+  // - Email status tracking
+})`,
+  },
+];
+
+type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration";
 
 function generateCreateTableSQL(table: TableDef): string {
   const lines: string[] = [];
@@ -462,6 +693,7 @@ function exportEdgeFunctions() {
 export default function DatabaseSchema() {
   const [activeSection, setActiveSection] = useState<Section>("tables");
   const [selectedTable, setSelectedTable] = useState<string>(SCHEMA[0].name);
+  const [selectedFunction, setSelectedFunction] = useState<string>(EDGE_FUNCTION_CODES[0].name);
   const [copiedTable, setCopiedTable] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, tableName: string) => {
@@ -475,6 +707,7 @@ export default function DatabaseSchema() {
     { id: "enums", label: "Enums", icon: <Hash className="w-4 h-4" /> },
     { id: "storage", label: "Storage", icon: <Database className="w-4 h-4" /> },
     { id: "edge-functions", label: "Edge Functions", icon: <Columns className="w-4 h-4" /> },
+    { id: "edge-function-code", label: "Edge Function Code", icon: <Code className="w-4 h-4" /> },
     { id: "sql-migration", label: "SQL Migration", icon: <Code className="w-4 h-4" /> },
   ];
 
@@ -765,6 +998,61 @@ export default function DatabaseSchema() {
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {activeSection === "edge-function-code" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">Edge Function Code ({EDGE_FUNCTION_CODES.length})</h2>
+            </div>
+
+            {/* Function selector */}
+            <div className="flex flex-wrap gap-2">
+              {EDGE_FUNCTION_CODES.map(f => (
+                <Badge
+                  key={f.name}
+                  variant={selectedFunction === f.name ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedFunction(f.name)}
+                >
+                  {f.name}
+                </Badge>
+              ))}
+            </div>
+
+            {/* Code viewer */}
+            {EDGE_FUNCTION_CODES.map(func => (
+              selectedFunction === func.name && (
+                <Card key={func.name}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Code className="w-4 h-4 text-primary" />
+                        {func.name}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => copyToClipboard(func.code, func.name)}
+                      >
+                        {copiedTable === func.name ? (
+                          <><Check className="w-3 h-3" /> Copiado</>
+                        ) : (
+                          <><Copy className="w-3 h-3" /> Copiar</>
+                        )}
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[70vh] overflow-y-auto">
+                      {func.code}
+                    </pre>
+                  </CardContent>
+                </Card>
+              )
+            ))}
           </div>
         )}
       </main>

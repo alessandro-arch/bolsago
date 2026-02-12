@@ -89,7 +89,13 @@ export function ComposeMessageDialog({ open, onOpenChange, preselectedRecipientI
     const template = templates.find((t: any) => t.id === templateId);
     if (template) {
       setSubject(template.subject);
-      setBody(template.body);
+      // Only set body if it's not a placeholder like {{body}}
+      const templateBody = template.body;
+      if (templateBody && !templateBody.trim().startsWith('{{')) {
+        setBody(templateBody);
+      } else {
+        setBody("");
+      }
     }
   };
 

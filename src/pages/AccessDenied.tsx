@@ -43,7 +43,7 @@ export default function AccessDenied() {
         {/* Footer */}
         <div className="mt-6">
           <p className="text-xs text-muted-foreground">
-            © InnovaGO – Sistema de Gestão de Bolsas Institucionais
+            © InnovaGO – Sistema de Gestão de Bolsas em Pesquisa e Desenvolvimento
           </p>
         </div>
       </div>

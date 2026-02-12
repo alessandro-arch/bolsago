@@ -105,7 +105,7 @@ export default function Auth() {
         <div className="text-center mb-8">
           <img 
             src={logoInnovaGO} 
-            alt="InnovaGO – Sistema de Gestão de Bolsas Institucionais" 
+            alt="InnovaGO – Sistema de Gestão de Bolsas em Pesquisa e Desenvolvimento" 
             className="h-16 mx-auto mb-4"
           />
           <h1 className="text-xl font-bold text-foreground">InnovaGO</h1>
@@ -174,7 +174,7 @@ export default function Auth() {
             Ao acessar, você concorda com os termos de uso do sistema.
           </p>
           <p className="text-xs text-muted-foreground">
-            © InnovaGO – Sistema de Gestão de Bolsas Institucionais
+            © InnovaGO – Sistema de Gestão de Bolsas em Pesquisa e Desenvolvimento
           </p>
         </div>
       </div>

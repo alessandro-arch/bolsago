@@ -261,12 +261,6 @@ export default function AdminMessages() {
               </Button>
             </div>
 
-            {/* Metrics */}
-            <MessageMetricsCards
-              metrics={metrics}
-              loading={isLoading}
-              lastUpdated={dataUpdatedAt ? new Date(dataUpdatedAt) : null}
-            />
 
             {/* Filters */}
             <MessageFiltersBar

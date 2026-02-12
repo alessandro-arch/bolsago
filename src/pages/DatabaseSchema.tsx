@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check, Shield } from "lucide-react";
+import { Database, Table, Download, Columns, Key, Link2, Clock, Hash, Code, Copy, Check, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -594,7 +594,7 @@ Deno.serve(async (req) => {
   },
 ];
 
-type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration" | "rls-policies";
+type Section = "tables" | "enums" | "storage" | "edge-functions" | "edge-function-code" | "sql-migration" | "rls-policies" | "auxiliary-functions";
 
 // =============================================
 // RLS POLICIES DATA
@@ -1404,10 +1404,108 @@ function exportEdgeFunctions() {
   downloadCSV("edge_functions.csv", rows);
 }
 
+interface AuxiliaryFunction {
+  name: string;
+  description: string;
+  code: string;
+}
+
+const AUXILIARY_FUNCTIONS: AuxiliaryFunction[] = [
+  {
+    name: "has_role",
+    description: "Verifica se um usuário tem um papel específico (admin, manager, scholar). Usa SECURITY DEFINER para evitar recursão nas RLS policies.",
+    code: `CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role = _role
+  )
+$function$;`,
+  },
+  {
+    name: "get_user_organizations",
+    description: "Retorna lista de UUIDs das organizações do usuário autenticado. Usado para isolamento multi-tenant.",
+    code: `CREATE OR REPLACE FUNCTION public.get_user_organizations()
+ RETURNS SETOF uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT organization_id
+  FROM public.organization_members
+  WHERE user_id = auth.uid()
+$function$;`,
+  },
+  {
+    name: "user_has_org_access",
+    description: "Verifica se o usuário autenticado tem acesso a uma organização específica.",
+    code: `CREATE OR REPLACE FUNCTION public.user_has_org_access(p_org_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_members
+    WHERE organization_id = p_org_id
+      AND user_id = auth.uid()
+  )
+$function$;`,
+  },
+  {
+    name: "user_org_role",
+    description: "Retorna o papel do usuário dentro de uma organização específica ('owner', 'admin', 'member').",
+    code: `CREATE OR REPLACE FUNCTION public.user_org_role(p_org_id uuid)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT role
+  FROM public.organization_members
+  WHERE organization_id = p_org_id
+    AND user_id = auth.uid()
+  LIMIT 1
+$function$;`,
+  },
+  {
+    name: "user_can_access_profile_by_org",
+    description: "Valida se o gestor/admin pode acessar o perfil de outro usuário (verificando se estão na mesma organização).",
+    code: `CREATE OR REPLACE FUNCTION public.user_can_access_profile_by_org(p_user_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  -- Admin can access all
+  SELECT CASE 
+    WHEN has_role(auth.uid(), 'admin'::app_role) THEN true
+    -- Manager can access if target user is in same organization
+    WHEN has_role(auth.uid(), 'manager'::app_role) THEN EXISTS (
+      SELECT 1
+      FROM public.profiles p
+      WHERE p.user_id = p_user_id
+        AND p.organization_id IN (SELECT get_user_organizations())
+    )
+    ELSE false
+  END;
+$function$;`,
+  },
+];
+
+
 export default function DatabaseSchema() {
   const [activeSection, setActiveSection] = useState<Section>("tables");
   const [selectedTable, setSelectedTable] = useState<string>(SCHEMA[0].name);
   const [selectedFunction, setSelectedFunction] = useState<string>(EDGE_FUNCTION_CODES[0].name);
+  const [selectedAuxFunction, setSelectedAuxFunction] = useState<string>(AUXILIARY_FUNCTIONS[0].name);
   const [copiedTable, setCopiedTable] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, tableName: string) => {
@@ -1424,6 +1522,7 @@ export default function DatabaseSchema() {
     { id: "edge-function-code", label: "Edge Function Code", icon: <Code className="w-4 h-4" /> },
     { id: "sql-migration", label: "SQL Migration", icon: <Code className="w-4 h-4" /> },
     { id: "rls-policies", label: "RLS Policies", icon: <Shield className="w-4 h-4" /> },
+    { id: "auxiliary-functions", label: "Funções Auxiliares", icon: <Zap className="w-4 h-4" /> },
   ];
 
   const currentTable = SCHEMA.find(t => t.name === selectedTable);
@@ -1847,6 +1946,63 @@ export default function DatabaseSchema() {
                 <CardContent>
                   <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground">
                     {policy.sql}
+                  </pre>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {activeSection === "auxiliary-functions" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">Funções Auxiliares ({AUXILIARY_FUNCTIONS.length})</h2>
+              <p className="text-xs text-muted-foreground">Funções SECURITY DEFINER para RLS policies</p>
+            </div>
+
+            {/* Function selector */}
+            <div className="flex flex-wrap gap-2">
+              {AUXILIARY_FUNCTIONS.map(f => (
+                <Badge
+                  key={f.name}
+                  variant={selectedAuxFunction === f.name ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedAuxFunction(f.name)}
+                >
+                  {f.name}
+                </Badge>
+              ))}
+            </div>
+
+            {/* Function detail */}
+            {AUXILIARY_FUNCTIONS.filter(f => f.name === selectedAuxFunction).map(f => (
+              <Card key={f.name}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="flex items-center gap-2 flex-col">
+                      <span className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-primary" />
+                        {f.name}
+                      </span>
+                      <p className="text-xs font-normal text-muted-foreground mt-2">{f.description}</p>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => copyToClipboard(f.code, f.name)}
+                    >
+                      {copiedTable === f.name ? (
+                        <><Check className="w-3 h-3" /> Copiado</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> Copiar</>
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs font-mono whitespace-pre-wrap text-foreground max-h-[60vh] overflow-y-auto">
+                    {f.code}
                   </pre>
                 </CardContent>
               </Card>

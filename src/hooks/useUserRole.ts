@@ -10,8 +10,10 @@ interface UseUserRoleReturn {
   loading: boolean;
   isManager: boolean;
   isAdmin: boolean;
+  isAuditor: boolean;
   isScholar: boolean;
   hasManagerAccess: boolean;
+  hasAuditorAccess: boolean;
 }
 
 export function useUserRole(): UseUserRoleReturn {
@@ -47,12 +49,14 @@ export function useUserRole(): UseUserRoleReturn {
           // Default to scholar if no role found
           setRole("scholar");
         } else {
-          // Prioritize highest role: admin > manager > scholar
+          // Prioritize highest role: admin > manager > auditor > scholar
           const roles = data.map((r) => r.role);
           if (roles.includes("admin")) {
             setRole("admin");
           } else if (roles.includes("manager")) {
             setRole("manager");
+          } else if (roles.includes("auditor")) {
+            setRole("auditor");
           } else {
             setRole("scholar");
           }
@@ -74,15 +78,19 @@ export function useUserRole(): UseUserRoleReturn {
 
   const isAdmin = role === "admin";
   const isManager = role === "manager";
+  const isAuditor = role === "auditor";
   const isScholar = role === "scholar";
   const hasManagerAccess = isAdmin || isManager;
+  const hasAuditorAccess = isAdmin || isAuditor;
 
   return {
     role,
     loading,
     isManager,
     isAdmin,
+    isAuditor,
     isScholar,
     hasManagerAccess,
+    hasAuditorAccess,
   };
 }

@@ -155,7 +155,7 @@ const App = () => (
               
               {/* Admin-only routes */}
               <Route path="/admin/dashboard-icca" element={
-                <AdminProtectedRoute allowedRoles={["admin"]}>
+                <AdminProtectedRoute allowedRoles={["admin", "auditor"]}>
                   <AdminIccaDashboard />
                 </AdminProtectedRoute>
               } />

@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ("admin" | "manager")[];
+  allowedRoles?: ("admin" | "manager" | "auditor")[];
 }
 
 export function AdminProtectedRoute({ 
@@ -13,7 +13,7 @@ export function AdminProtectedRoute({
   allowedRoles 
 }: AdminProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth();
-  const { role, loading: roleLoading, hasManagerAccess, isScholar } = useUserRole();
+  const { role, loading: roleLoading, hasManagerAccess, hasAuditorAccess, isScholar } = useUserRole();
   const location = useLocation();
 
   // Avoid race conditions: after auth resolves, role might still be unknown for one render
@@ -40,13 +40,13 @@ export function AdminProtectedRoute({
     return <Navigate to="/bolsista/painel" replace />;
   }
 
-  // Check if user has manager access (admin or manager role)
-  if (!hasManagerAccess) {
+  // Check if user has manager or auditor access
+  if (!hasManagerAccess && !hasAuditorAccess) {
     return <Navigate to="/acesso-negado" replace />;
   }
 
   // Check specific role requirements if specified
-  if (allowedRoles && role && !allowedRoles.includes(role as "admin" | "manager")) {
+  if (allowedRoles && role && !allowedRoles.includes(role as "admin" | "manager" | "auditor")) {
     return <Navigate to="/acesso-negado" replace />;
   }
 

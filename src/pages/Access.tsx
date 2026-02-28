@@ -185,7 +185,7 @@ export default function Access() {
 
         {/* Access Cards Section */}
         <section id="acesso-cards" className="px-4 pb-20 scroll-mt-20">
-          <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 w-full max-w-6xl mx-auto">
             {/* Scholar Portal Card */}
             <div className="bg-white rounded-xl border border-border p-8 hover:shadow-lg transition-all duration-300 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
@@ -225,6 +225,27 @@ export default function Access() {
               </Button>
               <p className="text-xs text-muted-foreground text-center">
                 Acesso restrito a administradores e gestores da organização.
+              </p>
+            </div>
+
+            {/* Auditor ICCA Card */}
+            <div className="bg-white rounded-xl border border-border p-8 hover:shadow-lg transition-all duration-300 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-foreground" />
+                </div>
+                <h2 className="text-xl font-semibold text-foreground">Painel do Auditor</h2>
+              </div>
+              <p className="text-muted-foreground mb-6 flex-1 text-sm leading-relaxed">
+                Supervisão institucional com visão estratégica, analytics e governança em modo somente-leitura.
+              </p>
+              <Button asChild variant="outline" size="lg" className="w-full mb-3 border-foreground text-foreground hover:bg-foreground hover:text-white">
+                <Link to="/admin/login" replace>
+                  Acessar Painel do Auditor
+                </Link>
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Acesso restrito ao administrador institucional (ICCA).
               </p>
             </div>
           </div>

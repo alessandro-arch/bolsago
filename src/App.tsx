@@ -18,6 +18,7 @@ import ScholarSignup from "./pages/ScholarSignup";
 import AccessDenied from "./pages/AccessDenied";
 import DatabaseSchema from "./pages/DatabaseSchema";
 import NotFound from "./pages/NotFound";
+import Health from "./pages/Health";
 
 // Scholar pages (reusing existing)
 import Index from "./pages/Index";
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/criar-conta" element={<ScholarSignup />} />
               <Route path="/acesso-negado" element={<AccessDenied />} />
               <Route path="/database-schema" element={<DatabaseSchema />} />
+              <Route path="/health" element={<Health />} />
               
               {/* Legacy auth route - redirect to new access page */}
               <Route path="/auth" element={<Navigate to="/acesso" replace />} />

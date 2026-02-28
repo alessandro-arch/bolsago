@@ -1,4 +1,5 @@
 import logoInnovago from "@/assets/logo-innovago.png";
+import { APP_VERSION, ENVIRONMENT } from "@/lib/version";
 
 export function Footer() {
   return (
@@ -16,6 +17,9 @@ export function Footer() {
             www.innovago.app
           </a>
           )
+        </p>
+        <p className="text-[10px] text-muted-foreground/60 font-mono">
+          BolsaGO by InnovaGO • v{APP_VERSION} • {ENVIRONMENT}
         </p>
       </div>
     </footer>

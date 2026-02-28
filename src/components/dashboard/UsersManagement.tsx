@@ -87,6 +87,7 @@ const ROLE_CONFIG: Record<AppRole, { label: string; variant: "default" | "second
   admin: { label: "Administrador", variant: "default", icon: <Shield className="w-3 h-3" /> },
   manager: { label: "Gestor", variant: "secondary", icon: <Shield className="w-3 h-3" /> },
   scholar: { label: "Bolsista", variant: "outline", icon: <GraduationCap className="w-3 h-3" /> },
+  auditor: { label: "Auditor", variant: "secondary", icon: <Shield className="w-3 h-3" /> },
 };
 
 type FilterType = "all" | AppRole | "egresso" | "awaiting" | "inactive";

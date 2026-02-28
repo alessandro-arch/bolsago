@@ -2,56 +2,45 @@
 
 ## Diagnóstico
 
-Investiguei o banco de dados e encontrei o problema raiz:
+Os dois auditores (`o.heringer@tommasi.com.br` e `suporte@innovago.app`) **não existem** na tabela `auth.users` do ambiente atual. A tabela tem apenas 7 usuários e nenhum desses emails consta. A screenshot mostra a UI de membros de um ambiente anterior — os dados não migraram para o banco atual.
 
-1. **Nenhum usuário auditor existe** no banco. O email `suporte@innovago.app` não existe em `auth.users`. Apenas 8 usuários existem no sistema.
-2. **Não existe role "auditor"** no sistema. O enum `app_role` tem apenas `admin`, `manager`, `scholar`. A tabela `organization_members` usa `owner`, `admin`, `manager`, `member`.
-3. **O `AuditorLogin.tsx` atual** verifica `isAdmin` (role `admin` em `user_roles`) para redirecionar ao Dashboard ICCA. Qualquer outro papel recebe mensagem de erro.
+Como não é possível inserir diretamente em `auth.users` (schema reservado), precisamos recriá-los via Edge Function.
 
-O login falha porque o usuário simplesmente não existe no banco.
+## Plano
 
----
+### 1. Criar os 2 usuários auditores via Edge Function `manage-users`
 
-## Plano de Implementação
+Chamar a Edge Function `create-users-batch` com uma lógica adaptada para:
+- Criar `o.heringer@tommasi.com.br` (Otávio Arruda Heringer) e `suporte@innovago.app` (Suporte Innovago) com email_confirm: true
+- Precisam de CPF para o `handle_new_user` trigger — se não houver CPF real, o trigger vai falhar. Alternativa: criar diretamente via `supabaseAdmin.auth.admin.createUser` sem passar pelo trigger, e inserir profile/role manualmente.
 
-### 1. Criar role "auditor" no sistema
+### 2. Atribuir role `auditor` em `user_roles`
 
-- Adicionar `'auditor'` ao enum `app_role` via migration SQL
-- Atualizar `useUserRole.ts` para reconhecer o role `auditor` (prioridade: admin > manager > auditor > scholar)
-- Adicionar propriedade `isAuditor` ao hook
+Após criar os auth users, inserir na tabela `user_roles`:
+```sql
+INSERT INTO user_roles (user_id, role) VALUES ('<user_id>', 'auditor');
+```
 
-### 2. Criar os usuários auditores no banco
+### 3. Inserir em `organization_members` com role `auditor`
 
-- Usar a Edge Function `create-users-batch` ou `manage-users` existente para criar os usuários, OU criar via migration/insert
-- Preciso saber **quais emails** devem ter acesso de auditor
-- Atribuir role `auditor` em `user_roles` e membership em `organization_members`
+```sql
+INSERT INTO organization_members (organization_id, user_id, role)
+VALUES ('a1111111-1111-1111-1111-111111111111', '<user_id>', 'auditor');
+```
 
-### 3. Corrigir `AuditorLogin.tsx`
+### 4. Atualizar Edge Function para suportar criação de auditores
 
-- Remover validação que bloqueia por role — usar o mesmo `signIn` genérico
-- Após login, detectar role via `useUserRole`:
-  - `admin` ou `auditor` → redirecionar para `/admin/dashboard-icca`
-  - `manager` → mostrar aviso "use o portal do admin"
-  - `scholar` → mostrar aviso "acesso restrito"
+Modificar `create-users-batch` para aceitar um parâmetro `role` opcional. Quando `role = 'auditor'`, pular a validação de invite code e CPF, e atribuir o role correto.
 
-### 4. Ajustar `AdminProtectedRoute` para permitir auditores no Dashboard ICCA
+### 5. Criar profiles para os auditores
 
-- Na rota `/admin/dashboard-icca`, alterar `allowedRoles` para incluir `"auditor"`
-- Ou criar flag `hasAuditorAccess` que combina admin + auditor
+Inserir perfis básicos com `full_name`, `email`, `organization_id` apontando para Tommasi.
 
-### 5. Ajustar RLS para que auditores possam ler dados
+### Informação necessária
 
-- Adicionar políticas SELECT em tabelas chave (profiles, projects, thematic_projects, payments, enrollments, reports) que permitam `has_role(auth.uid(), 'auditor')` com acesso somente-leitura
-- Auditor NÃO deve ver dados bancários (bank_accounts, PIX keys)
+Preciso de dois dados para prosseguir:
+- **CPFs** dos auditores (ou permissão para criar sem CPF, adaptando o trigger)
+- **Senha inicial** desejada (ex: `InnovaGO@2026`) ou se devem receber email de redefinição
 
-### 6. Dashboard ICCA em modo read-only para auditores
-
-- No `AdminIccaDashboard.tsx`, detectar se o usuário é auditor e esconder ações de escrita (botões de editar, excluir, criar)
-- Manter todas as abas de visualização disponíveis
-
----
-
-## Informação necessária antes de implementar
-
-Preciso saber quais emails serão os auditores e com qual senha inicial devem ser criados. Sem isso, posso implementar toda a infraestrutura (role, RLS, roteamento) mas os usuários não conseguirão logar.
+Sem essas informações, posso criar uma versão da Edge Function que bypass o trigger e cria tudo manualmente (profile + role + org_member) sem exigir CPF.
 

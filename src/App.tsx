@@ -12,7 +12,6 @@ import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 // Public pages
 import Access from "./pages/Access";
 import ScholarLogin from "./pages/ScholarLogin";
-import AuditorLogin from "./pages/AuditorLogin";
 import AdminLogin from "./pages/AdminLogin";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import ScholarSignup from "./pages/ScholarSignup";
@@ -56,7 +55,6 @@ const App = () => (
               <Route path="/acesso" element={<Access />} />
               <Route path="/bolsista/login" element={<ScholarLogin />} />
               <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/auditor/login" element={<AuditorLogin />} />
               <Route path="/recuperar-senha" element={<PasswordRecovery />} />
               <Route path="/criar-conta" element={<ScholarSignup />} />
               <Route path="/acesso-negado" element={<AccessDenied />} />
@@ -155,7 +153,7 @@ const App = () => (
               
               {/* Admin-only routes */}
               <Route path="/admin/dashboard-icca" element={
-                <AdminProtectedRoute allowedRoles={["admin", "auditor"]}>
+                <AdminProtectedRoute allowedRoles={["admin"]}>
                   <AdminIccaDashboard />
                 </AdminProtectedRoute>
               } />

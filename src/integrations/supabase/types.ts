@@ -951,7 +951,7 @@ export type Database = {
       user_org_role: { Args: { p_org_id: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "manager" | "scholar" | "auditor"
+      app_role: "admin" | "manager" | "scholar"
       bank_validation_status:
         | "pending"
         | "under_review"
@@ -1099,7 +1099,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "manager", "scholar", "auditor"],
+      app_role: ["admin", "manager", "scholar"],
       bank_validation_status: [
         "pending",
         "under_review",

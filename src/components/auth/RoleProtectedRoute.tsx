@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ("admin" | "manager" | "auditor" | "scholar")[];
+  allowedRoles?: ("admin" | "manager" | "scholar")[];
   requireManagerAccess?: boolean;
 }
 

@@ -240,7 +240,7 @@ export default function Access() {
                 Supervisão institucional com visão estratégica, analytics e governança em modo somente-leitura.
               </p>
               <Button asChild variant="outline" size="lg" className="w-full mb-3 border-foreground text-foreground hover:bg-foreground hover:text-white">
-                <Link to="/auditor/login" replace>
+                <Link to="/admin/login" replace>
                   Acessar Painel do Auditor
                 </Link>
               </Button>

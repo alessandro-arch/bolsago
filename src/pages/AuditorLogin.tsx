@@ -19,7 +19,7 @@ const loginSchema = z.object({
 
 export default function AuditorLogin() {
   const { user, signIn } = useAuth();
-  const { role, loading: roleLoading, isAdmin, isScholar, hasManagerAccess } = useUserRole();
+  const { role, loading: roleLoading, isAdmin, isAuditor, isScholar, hasManagerAccess } = useUserRole();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -29,16 +29,16 @@ export default function AuditorLogin() {
   // Redirect based on role after login
   useEffect(() => {
     if (user && !roleLoading) {
-      if (isAdmin) {
-        // Admin goes directly to ICCA dashboard
+      if (isAdmin || isAuditor) {
+        // Admin and auditor go to ICCA dashboard
         navigate("/admin/dashboard-icca", { replace: true });
       } else if (isScholar) {
-        setError("Acesso restrito ao administrador institucional.");
+        setError("Acesso restrito. Sua conta não possui permissão de auditor.");
       } else if (hasManagerAccess) {
-        setError("Acesso restrito ao administrador institucional. Use o Portal do Administrador.");
+        setError("Acesso restrito ao auditor institucional. Use o Portal do Administrador.");
       }
     }
-  }, [user, role, roleLoading, isAdmin, isScholar, hasManagerAccess, navigate]);
+  }, [user, role, roleLoading, isAdmin, isAuditor, isScholar, hasManagerAccess, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
